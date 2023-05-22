@@ -1,25 +1,4 @@
-//supposedly the fastest way to do this according to https://gist.github.com/Giacom/be635398926bb463b42a
-#define RANGE_TURFS(RADIUS, CENTER) \
-  block( \
-    locate(max(CENTER.x-(RADIUS),1),          max(CENTER.y-(RADIUS),1),          CENTER.z), \
-    locate(min(CENTER.x+(RADIUS),world.maxx), min(CENTER.y+(RADIUS),world.maxy), CENTER.z) \
-  )
-
-#define RANGE_TURFS_XY(XRADIUS, YRADIUS, CENTER) \
-  block( \
-    locate(max(CENTER.x-(XRADIUS),1),          max(CENTER.y-(YRADIUS),1),          CENTER.z), \
-    locate(min(CENTER.x+(XRADIUS),world.maxx), min(CENTER.y+(YRADIUS),world.maxy), CENTER.z) \
-  )
-
-#define Z_TURFS(ZLEVEL) block(locate(1,1,ZLEVEL), locate(world.maxx, world.maxy, ZLEVEL))
 #define CULT_POLL_WAIT 2400
-
-/proc/get_area(atom/A)
-	RETURN_TYPE(/area)
-	if(isarea(A))
-		return A
-	var/turf/T = get_turf(A)
-	return T ? T.loc : null
 
 /proc/get_area_name(atom/X, format_text = FALSE)
 	var/area/A = isarea(X) ? X : get_area(X)
@@ -88,14 +67,7 @@
 // Like view but bypasses luminosity check
 
 /proc/get_hear(range, atom/source)
-
-	var/lum = source.luminosity
-	source.luminosity = 6
-
-	var/list/heard = view(range, source)
-	source.luminosity = lum
-
-	return heard
+	return dview(range, source)
 
 /proc/alone_in_area(area/the_area, mob/must_be_alone, check_type = /mob/living/carbon)
 	var/area/our_area = get_area(the_area)
@@ -177,20 +149,6 @@
 			turfs += T
 	return turfs
 
-
-//This is the new version of recursive_mob_check, used for say().
-//The other proc was left intact because morgue trays use it.
-//Sped this up again for real this time
-/proc/recursive_hear_check(O)
-	var/list/processing_list = list(O)
-	. = list()
-	while(processing_list.len)
-		var/atom/A = processing_list[1]
-		if(A.flags_1 & HEAR_1)
-			. += A
-		processing_list.Cut(1, 2)
-		processing_list += A.contents
-
 /** recursive_organ_check
   * inputs: O (object to start with)
   * outputs:
@@ -228,7 +186,7 @@
 
 	return
 
-// Better recursive loop, technically sort of not actually recursive cause that shit is retarded, enjoy.
+// Better recursive loop, technically sort of not actually recursive cause that shit is stupid, enjoy.
 //No need for a recursive limit either
 /proc/recursive_mob_check(atom/O,client_check=1,sight_check=1,include_radio=1)
 
@@ -269,48 +227,34 @@
 
 	return found_mobs
 
-// Returns a list of hearers in view(R) from source (ignoring luminosity). Used in saycode. Consider using `hearers` when you *only* need mobs.
-/proc/get_hearers_in_view(R, atom/source)
-	var/turf/T = get_turf(source)
+/**
+ * Returns a list of hearers in view(view_radius) from source (ignoring luminosity). uses important_recursive_contents[RECURSIVE_CONTENTS_HEARING_SENSITIVE]
+ * vars:
+ * * view_radius is distance we look for potential hearers
+ * * source is obviously the source attom from where we start looking
+ * * invis_flags is for if we want to include invisible mobs or even ghosts etc the default value 0 means only visible mobs are included SEE_INVISIBLE_OBSERVER would also include ghosts.
+ */
+/proc/get_hearers_in_view(view_radius, atom/source, invis_flags = 0)
+	var/turf/center_turf = get_turf(source)
 	. = list()
-
-	if(!T)
+	if(!center_turf)
 		return
-
-	var/list/processing_list = list()
-	if (R == 0) // if the range is zero, we know exactly where to look for, we can skip view
-		processing_list += T.contents // We can shave off one iteration by assuming turfs cannot hear
-	else  // A variation(?) of get_hear inlined here to take advantage of the compiler's fastpath for obj in view
-		// Benchmark before trying to "optimize" this proc
-		processing_list += hearers(R, T)
-
-		// dview is inlined here
-		GLOB.dview_mob.loc = T
-		GLOB.dview_mob.see_invisible = SEE_INVISIBLE_MINIMUM // Sorry, invisible objects. You folks can't HEAR_1 anyway.
-		for(var/obj/O in view(R, GLOB.dview_mob))
-			processing_list += O
-		GLOB.dview_mob.loc = null
-
-	while(length(processing_list)) // recursive_hear_check inlined here with optimized processing
-		var/atom/A = processing_list[length(processing_list)]
-		if(A.flags_1 & HEAR_1)
-			. += A
-		processing_list.len--
-		processing_list += A.contents
+	for(var/atom/movable/movable in dview(view_radius, center_turf, invis_flags))
+		var/list/recursive_contents = LAZYACCESS(movable.important_recursive_contents, RECURSIVE_CONTENTS_HEARING_SENSITIVE)
+		if(recursive_contents)
+			. += recursive_contents
 
 /proc/get_mobs_in_radio_ranges(list/obj/item/radio/radios)
 	. = list()
 	// Returns a list of mobs who can hear any of the radios given in @radios
 	for(var/obj/item/radio/R in radios)
-		if(R)
-			if(R.canhear_range != -1)
-				. |= get_hearers_in_view(R.canhear_range, R)
-			else
-				if(istype(R.loc, /obj/item/implant))
-					var/obj/item/implant/I = R.loc
-					if(I.imp_in)
-						. |= I.imp_in
-
+		if(R.canhear_range != -1)
+			. |= get_hearers_in_view(R.canhear_range, R)
+		else
+			if(istype(R.loc, /obj/item/implant))
+				var/obj/item/implant/I = R.loc
+				if(I.imp_in)
+					. |= I.imp_in
 
 #define SIGNV(X) ((X<0)?-1:1)
 
@@ -412,6 +356,10 @@
 	O.screen_loc = screen_loc
 	return O
 
+/// Removes an image from a client's `.images`. Useful as a callback.
+/proc/remove_image_from_client(image/image, client/remove_from)
+	remove_from?.images -= image
+
 /proc/remove_images_from_clients(image/I, list/show_to)
 	for(var/client/C in show_to)
 		C.images -= I
@@ -419,7 +367,7 @@
 /proc/flick_overlay(image/I, list/show_to, duration)
 	for(var/client/C in show_to)
 		C.images += I
-	addtimer(CALLBACK(GLOBAL_PROC, /proc/remove_images_from_clients, I, show_to), duration, TIMER_CLIENT_TIME)
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(remove_images_from_clients), I, show_to), duration, TIMER_CLIENT_TIME)
 
 /proc/flick_overlay_view(image/I, atom/target, duration) //wrapper for the above, flicks to everyone who can see the target atom
 	var/list/viewing = list()
@@ -477,7 +425,7 @@
 		else
 			candidates -= M
 
-/proc/pollGhostCandidates(Question, jobbanType, datum/game_mode/gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE)
+/proc/pollGhostCandidates(Question, jobbanType, datum/game_mode/gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE, req_hours = 0)
 	var/list/candidates = list()
 	if(!(GLOB.ghost_role_flags & GHOSTROLE_STATION_SENTIENCE))
 		return candidates
@@ -485,9 +433,9 @@
 	for(var/mob/dead/observer/G in GLOB.player_list)
 		candidates += G
 
-	return pollCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category, flashwindow, candidates)
+	return pollCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category, flashwindow, candidates, req_hours)
 
-/proc/pollCandidates(Question, jobbanType, datum/game_mode/gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE, list/group = null)
+/proc/pollCandidates(Question, jobbanType, datum/game_mode/gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE, list/group = null, req_hours = 0)
 	var/time_passed = world.time
 	if (!Question)
 		Question = "Would you like to be a special role?"
@@ -503,7 +451,10 @@
 			if(!gametypeCheck.age_check(M.client))
 				continue
 		if(jobbanType)
-			if(is_banned_from(M.ckey, list(jobbanType, ROLE_SYNDICATE)) || QDELETED(M))
+			if(QDELETED(M) || is_banned_from(M.ckey, list(jobbanType, ROLE_SYNDICATE)))
+				continue
+		if(req_hours) //minimum living hour count
+			if((M.client.get_exp_living(TRUE)/60) < req_hours)
 				continue
 
 		showCandidatePollWindow(M, poll_time, Question, result, ignore_category, time_passed, flashwindow)
@@ -520,7 +471,7 @@
 
 /proc/pollCandidatesForMob(Question, jobbanType, datum/game_mode/gametypeCheck, be_special_flag = 0, poll_time = 300, mob/M, ignore_category = null)
 	var/list/L = pollGhostCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category)
-	if(!M || QDELETED(M) || !M.loc)
+	if(QDELETED(M) || !M.loc)
 		return list()
 	return L
 
@@ -529,7 +480,7 @@
 	var/i=1
 	for(var/v in mobs)
 		var/atom/A = v
-		if(!A || QDELETED(A) || !A.loc)
+		if(QDELETED(A) || !A.loc)
 			mobs.Cut(i,i+1)
 		else
 			++i
@@ -545,7 +496,7 @@
 	var/mob/living/carbon/human/new_character = new//The mob being spawned.
 	SSjob.SendToLateJoin(new_character)
 
-	G_found.client.prefs.copy_to(new_character)
+	G_found.client.prefs.active_character.copy_to(new_character)
 	new_character.dna.update_dna_identity()
 	new_character.key = G_found.key
 
@@ -561,7 +512,7 @@
 		var/mob/M = C
 		if(M.client)
 			C = M.client
-	if(!C || (!C.prefs.windowflashing && !ignorepref))
+	if(!C || (!(C.prefs.toggles2 & PREFTOGGLE_2_WINDOW_FLASHING) && !ignorepref))
 		return
 	winset(C, "mainwindow", "flash=5")
 
@@ -579,7 +530,7 @@
 	return A.loc
 
 /proc/AnnounceArrival(var/mob/living/carbon/human/character, var/rank)
-	if(!SSticker.IsRoundInProgress() || QDELETED(character))
+	if(QDELETED(character) || !SSticker.IsRoundInProgress())
 		return
 	var/area/A = get_area(character)
 	var/message = "<span class='game deadsay'><span class='name'>\
@@ -588,7 +539,7 @@
 	deadchat_broadcast(message, follow_target = character, message_type=DEADCHAT_ARRIVALRATTLE)
 	if((!GLOB.announcement_systems.len) || (!character.mind))
 		return
-	if((character.mind.assigned_role == "Cyborg") || (character.mind.assigned_role == character.mind.special_role))
+	if((character.mind.assigned_role == JOB_NAME_CYBORG) || (character.mind.assigned_role == character.mind.special_role))
 		return
 
 	var/obj/machinery/announcement_system/announcer = pick(GLOB.announcement_systems)
@@ -602,7 +553,7 @@
 	if(!istype(environment))
 		return
 	var/pressure = environment.return_pressure()
-	if(pressure <= LAVALAND_EQUIPMENT_EFFECT_PRESSURE)
+	if(pressure <= MAXIMUM_LAVALAND_EQUIPMENT_EFFECT_PRESSURE) //NSV13 makes PKAs work in space again
 		. = TRUE
 
 /proc/ispipewire(item)

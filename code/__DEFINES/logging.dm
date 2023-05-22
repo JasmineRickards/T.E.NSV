@@ -5,8 +5,7 @@
 #define INVESTIGATE_EXPERIMENTOR	"experimentor"
 #define INVESTIGATE_GRAVITY			"gravity"
 #define INVESTIGATE_RECORDS			"records"
-#define INVESTIGATE_SINGULO			"singulo"
-#define INVESTIGATE_SUPERMATTER		"supermatter"
+#define INVESTIGATE_ENGINES			"engines"
 #define INVESTIGATE_TELESCI			"telesci"
 #define INVESTIGATE_WIRES			"wires"
 #define INVESTIGATE_PORTAL			"portals"
@@ -15,8 +14,12 @@
 #define INVESTIGATE_RADIATION		"radiation"
 #define INVESTIGATE_EXONET			"exonet"
 #define INVESTIGATE_NANITES			"nanites"
-#define INVESTIGATE_CIRCUIT			"circuit"
 #define INVESTIGATE_PRESENTS		"presents"
+#define INVESTIGATE_ITEMS			"items"
+
+#define INVESTIGATE_VERB_PICKEDUP	"picked up"
+#define INVESTIGATE_VERB_DROPPED	"dropped"
+#define INVESTIGATE_VERB_EQUIPPED   "equipped"
 
 // Logging types for log_message()
 #define LOG_ATTACK			(1 << 0)
@@ -38,6 +41,7 @@
 #define LOG_VIRUS			(1 << 16)
 #define LOG_CLONING			(1 << 17)
 #define LOG_ID				(1 << 18)
+#define LOG_RADIO_EMOTE		(1 << 19) //NSV13 - Radio emotes
 
 //Individual logging panel pages
 #define INDIVIDUAL_ATTACK_LOG		(LOG_ATTACK)
@@ -50,3 +54,7 @@
 
 #define LOGSRC_CLIENT "Client"
 #define LOGSRC_MOB "Mob"
+
+
+// object admin notice flags
+#define ADMIN_INVESTIGATE_TARGET   (1<<0) // used for investigate_log

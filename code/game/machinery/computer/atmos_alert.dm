@@ -13,7 +13,7 @@
 
 	light_color = LIGHT_COLOR_CYAN
 
-/obj/machinery/computer/atmos_alert/Initialize()
+/obj/machinery/computer/atmos_alert/Initialize(mapload)
 	. = ..()
 	set_frequency(receive_frequency)
 
@@ -57,7 +57,8 @@
 				to_chat(usr, "<span class='notice'>Minor alarm for [zone] cleared.</span>")
 				minor_alarms -= zone
 				. = TRUE
-	update_icon()
+	if(.)
+		update_icon()
 
 /obj/machinery/computer/atmos_alert/proc/set_frequency(new_frequency)
 	SSradio.remove_object(src, receive_frequency)
@@ -81,11 +82,12 @@
 	else if (severity == "minor")
 		minor_alarms += zone
 	update_icon()
+	ui_update()
 	return
 
 /obj/machinery/computer/atmos_alert/update_icon()
 	..()
-	if(stat & (NOPOWER|BROKEN))
+	if(machine_stat & (NOPOWER|BROKEN))
 		return
 	if(priority_alarms.len)
 		add_overlay("alert:2")

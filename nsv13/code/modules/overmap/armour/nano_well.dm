@@ -62,9 +62,9 @@ Starting Materials
 	var/resourcing_system = FALSE //System for generating additional RR
 	var/repair_resources = 0 //Pool of liquid metal ready to be pumped out for repairs
 	var/repair_resources_processing = FALSE
-	var/repair_efficiency = 2 //modifier for how much repairs we get per cycle
+	var/repair_efficiency = 0 //modifier for how much repairs we get per cycle
 	var/power_allocation = 0 //how much power we are pumping into the system
-	var/maximum_power_allocation = 5000000 //5MW
+	var/maximum_power_allocation = 3000000 //3MW
 	var/system_allocation = 0 //the load on the system
 	var/system_stress = 0 //how overloaded the system has been over time
 	var/system_stress_threshold = 100 //Threshold at which stress beings to build up
@@ -73,26 +73,18 @@ Starting Materials
 	var/material_tier = 0 //The selected tier recipe producing RR
 	var/apnw_id = null //The ID by which we identify our child devices - These should match the child devices and follow the formula: 1 - Main Ship, 2 - Secondary Ship, 3 - Syndie PvP Ship
 
-/obj/machinery/armour_plating_nanorepair_well/Initialize()
+/obj/machinery/armour_plating_nanorepair_well/Initialize(mapload)
 	.=..()
 	return INITIALIZE_HINT_LATELOAD
 
 /obj/machinery/armour_plating_nanorepair_well/LateInitialize()
 	. = ..()
 	AddComponent(/datum/component/material_container,\
-				list(/datum/material/iron,\
-					/datum/material/silver,\
-					/datum/material/titanium,\
-					/datum/material/plasma),
-					1000000,
-					FALSE,
-					/obj/item/stack,
-					null,
-					null,
-					FALSE)
+		list(/datum/material/iron, /datum/material/silver, /datum/material/titanium, /datum/material/plasma),\
+		1000000, FALSE, /obj/item/stack, null, null, FALSE)
 
 	OM = get_overmap()
-	addtimer(CALLBACK(src, .proc/handle_linking), 10 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(handle_linking)), 30 SECONDS)
 
 /obj/machinery/armour_plating_nanorepair_well/examine(mob/user)
 	.=..()
@@ -116,7 +108,7 @@ Starting Materials
 			update_icon()
 			return FALSE
 
-		if(is_operational())
+		if(is_operational)
 			handle_repair_resources()
 			handle_repair_efficiency()
 			update_icon()
@@ -357,6 +349,7 @@ Starting Materials
 	if(!ui)
 		ui = new(user, src, "ArmourPlatingNanorepairWell")
 		ui.open()
+		ui.set_autoupdate(TRUE)
 
 /obj/machinery/armour_plating_nanorepair_well/ui_act(action, params, datum/tgui/ui)
 	if(..())

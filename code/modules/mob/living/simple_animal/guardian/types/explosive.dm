@@ -46,13 +46,15 @@
 		if(bomb_cooldown <= world.time && !stat)
 			to_chat(src, "<span class='danger'><B>Success! Bomb armed!</B></span>")
 			bomb_cooldown = world.time + 200
-			RegisterSignal(A, COMSIG_PARENT_EXAMINE, .proc/display_examine)
-			RegisterSignal(A, boom_signals, .proc/kaboom)
-			addtimer(CALLBACK(src, .proc/disable, A), 600, TIMER_UNIQUE|TIMER_OVERRIDE)
+			RegisterSignal(A, COMSIG_PARENT_EXAMINE, PROC_REF(display_examine))
+			RegisterSignal(A, boom_signals, PROC_REF(kaboom))
+			addtimer(CALLBACK(src, PROC_REF(disable), A), 600, TIMER_UNIQUE|TIMER_OVERRIDE)
 		else
 			to_chat(src, "<span class='danger'><B>Your powers are on cooldown! You must wait 20 seconds between bombs.</B></span>")
 
 /mob/living/simple_animal/hostile/guardian/bomb/proc/kaboom(atom/source, mob/living/explodee)
+	SIGNAL_HANDLER
+
 	if(!istype(explodee))
 		return
 	if(explodee == src || explodee == summoner || hasmatchingsummoner(explodee))
@@ -70,6 +72,8 @@
 	UNREGISTER_BOMB_SIGNALS(A)
 
 /mob/living/simple_animal/hostile/guardian/bomb/proc/display_examine(datum/source, mob/user, text)
+	SIGNAL_HANDLER
+
 	text += "<span class='holoparasite'>It glows with a strange <font color=\"[guardiancolor]\">light</font>!</span>"
 
 #undef UNREGISTER_BOMB_SIGNALS

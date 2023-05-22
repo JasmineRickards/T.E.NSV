@@ -135,12 +135,12 @@
 					hearing_mobs += M
 		if(SOUND_EMITTER_ZLEVEL)
 			for(var/mob/M in GLOB.player_list)
-				if(M.z == z)
+				if(M.get_virtual_z_level() == get_virtual_z_level())
 					hearing_mobs += M
 		if(SOUND_EMITTER_GLOBAL)
 			hearing_mobs = GLOB.player_list.Copy()
 	for(var/mob/M in hearing_mobs)
-		if(M.client.prefs.toggles & SOUND_MIDI)
+		if(M.client.prefs.toggles & PREFTOGGLE_SOUND_MIDI)
 			M.playsound_local(M, sound_file, sound_volume, FALSE, channel = CHANNEL_ADMIN, pressure_affected = FALSE)
 	if(user)
 		log_admin("[ADMIN_LOOKUPFLW(user)] activated a sound emitter with file \"[sound_file]\" at [AREACOORD(src)]")

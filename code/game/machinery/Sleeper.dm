@@ -12,6 +12,7 @@
 	density = FALSE
 	state_open = TRUE
 	circuit = /obj/item/circuitboard/machine/sleeper
+	clicksound = 'sound/machines/pda_button1.ogg'
 
 	var/efficiency = 1
 	var/min_health = -25
@@ -28,7 +29,7 @@
 	var/enter_message = "<span class='notice'><b>You feel cool air surround you. You go numb as your senses turn inward.</b></span>"
 	payment_department = ACCOUNT_MED
 	fair_market_price = 5
-/obj/machinery/sleeper/Initialize()
+/obj/machinery/sleeper/Initialize(mapload)
 	. = ..()
 	occupant_typecache = GLOB.typecache_living
 	update_icon()
@@ -48,6 +49,7 @@
 	for(var/i in 1 to I)
 		available_chems |= possible_chems[i]
 	reset_chem_buttons()
+	ui_update()
 
 /obj/machinery/sleeper/update_icon()
 	if(state_open)
@@ -60,14 +62,16 @@
 		"<span class='notice'>You climb out of [src]!</span>")
 	open_machine()
 
-/obj/machinery/sleeper/Exited(atom/movable/user)
-	if (!state_open && user == occupant)
-		container_resist(user)
+/obj/machinery/sleeper/Exited(atom/movable/gone, direction)
+	. = ..()
+	if (!state_open && gone == occupant)
+		container_resist(gone)
 
 /obj/machinery/sleeper/relaymove(mob/user)
 	if (!state_open)
 		container_resist(user)
 
+//Note: open_machine and close_machine already ui_update()
 /obj/machinery/sleeper/open_machine()
 	if(!state_open && !panel_open)
 		flick("[initial(icon_state)]-anim", src)
@@ -85,7 +89,7 @@
 	. = ..()
 	if (. & EMP_PROTECT_SELF)
 		return
-	if(is_operational() && occupant)
+	if(is_operational && occupant)
 		open_machine()
 
 /obj/machinery/sleeper/MouseDrop_T(mob/target, mob/user)
@@ -128,6 +132,12 @@
 		visible_message("<span class='notice'>[usr] pries open [src].</span>", "<span class='notice'>You pry open [src].</span>")
 		open_machine()
 
+
+/obj/machinery/sleeper/ui_requires_update(mob/user, datum/tgui/ui)
+	. = ..()
+
+	if(occupant)
+		. = TRUE // Only autoupdate when occupied
 
 /obj/machinery/sleeper/ui_state(mob/user)
 	if(controls_inside)
@@ -215,7 +225,7 @@
 			. = TRUE
 		if("inject")
 			var/chem = text2path(params["chem"])
-			if(!is_operational() || !mob_occupant || isnull(chem))
+			if(!is_operational || !mob_occupant || isnull(chem))
 				return
 			if(mob_occupant.health < min_health && chem != /datum/reagent/medicine/epinephrine)
 				return
@@ -232,6 +242,7 @@
 	if((chem in available_chems) && chem_allowed(chem))
 		occupant.reagents.add_reagent(chem_buttons[chem], 10) //emag effect kicks in here so that the "intended" chem is used for all checks, for extra FUUU
 		if(user)
+			playsound(src, pick('sound/items/hypospray.ogg','sound/items/hypospray2.ogg'), 50, TRUE, 2)
 			log_combat(user, occupant, "injected [chem] into", addition = "via [src]")
 		use_power(100)
 		return TRUE

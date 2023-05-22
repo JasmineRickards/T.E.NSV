@@ -19,7 +19,7 @@
 
 /obj/item/clothing/shoes/ComponentInitialize()
 	. = ..()
-	RegisterSignal(src, COMSIG_COMPONENT_CLEAN_ACT, .proc/clean_blood)
+	RegisterSignal(src, COMSIG_COMPONENT_CLEAN_ACT, PROC_REF(clean_blood))
 
 /obj/item/clothing/shoes/suicide_act(mob/living/carbon/user)
 	if(rand(2)>1)
@@ -40,7 +40,7 @@
 			playsound(user, 'sound/weapons/genhit2.ogg', 50, 1)
 		return(BRUTELOSS)
 
-/obj/item/clothing/shoes/worn_overlays(isinhands = FALSE)
+/obj/item/clothing/shoes/worn_overlays(mutable_appearance/standing, isinhands = FALSE)
 	. = list()
 	if(!isinhands)
 		var/bloody = FALSE
@@ -68,9 +68,9 @@
 	worn_y_dimension = world.icon_size
 
 /obj/item/clothing/shoes/dropped(mob/user)
+	..()
 	if(offset && equipped_before_drop)
 		restore_offsets(user)
-	. = ..()
 
 /obj/item/clothing/shoes/update_clothes_damaged_state(damaging = TRUE)
 	..()
@@ -79,6 +79,8 @@
 		M.update_inv_shoes()
 
 /obj/item/clothing/shoes/proc/clean_blood(datum/source, strength)
+	SIGNAL_HANDLER
+
 	if(strength < CLEAN_STRENGTH_BLOOD)
 		return
 	bloody_shoes = list(BLOOD_STATE_HUMAN = 0,BLOOD_STATE_XENO = 0, BLOOD_STATE_OIL = 0, BLOOD_STATE_NOT_BLOODY = 0)

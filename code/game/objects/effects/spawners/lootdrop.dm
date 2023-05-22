@@ -1,5 +1,5 @@
 /obj/effect/spawner/lootdrop
-	icon = 'icons/effects/landmarks_static.dmi'
+	icon = 'icons/effects/landmarks_spawners.dmi'
 	icon_state = "random_loot"
 	layer = OBJ_LAYER
 	var/lootcount = 1		//how many items will be spawned
@@ -31,6 +31,7 @@
 	return INITIALIZE_HINT_QDEL
 
 /obj/effect/spawner/lootdrop/donkpockets
+	icon_state = "random_donk"
 	name = "donk pocket box spawner"
 	lootdoubles = FALSE
 
@@ -43,13 +44,23 @@
 			/obj/item/storage/box/donkpockets = 1
 		)
 
+/obj/effect/spawner/lootdrop/donkpocketsfinlandia
+	icon_state = "random_donk"
+	name = "5% gondola pocket spawner"
+	lootdoubles = FALSE
+
+	loot = list(
+			/obj/item/storage/box/donkpockets = 19,
+			/obj/item/storage/box/donkpockets/donkpocketgondolafinlandia = 1
+		)
 
 /obj/effect/spawner/lootdrop/armory_contraband
+	icon_state = "random_contrabband"
 	name = "armory contraband gun spawner"
 	lootdoubles = FALSE
 
 	loot = list(
-				/obj/item/gun/ballistic/automatic/pistol = 8,
+				/obj/item/gun/ballistic/automatic/pistol/locker = 8,
 				/obj/item/gun/ballistic/shotgun/automatic/combat = 3,
 				/obj/item/gun/ballistic/revolver/mateba,
 				/obj/item/gun/ballistic/automatic/pistol/deagle,
@@ -57,21 +68,8 @@
 				/obj/item/grenade/clusterbuster
 				)
 
-/obj/effect/spawner/lootdrop/armory_contraband/metastation
-	loot = list(/obj/item/gun/ballistic/automatic/pistol = 5,
-				/obj/item/gun/ballistic/shotgun/automatic/combat = 5,
-				/obj/item/gun/ballistic/revolver/mateba,
-				/obj/item/gun/ballistic/automatic/pistol/deagle,
-				/obj/item/storage/box/syndie_kit/throwing_weapons = 3)
-
-/obj/effect/spawner/lootdrop/armory_contraband/donutstation
-	loot = list(/obj/item/grenade/clusterbuster/teargas = 5,
-				/obj/item/gun/ballistic/shotgun/automatic/combat = 5,
-				/obj/item/bikehorn/golden,
-				/obj/item/grenade/clusterbuster,
-				/obj/item/storage/box/syndie_kit/throwing_weapons = 3)
-
 /obj/effect/spawner/lootdrop/gambling
+	icon_state = "random_gambling"
 	name = "gambling valuables spawner"
 	loot = list(
 				/obj/item/gun/ballistic/revolver/russian = 5,
@@ -80,6 +78,7 @@
 				)
 
 /obj/effect/spawner/lootdrop/grille_or_trash
+	icon_state = "random_grille"
 	name = "maint grille or trash spawner"
 	loot = list(/obj/structure/grille = 5,
 			/obj/item/cigbutt = 1,
@@ -129,6 +128,13 @@
 
 /obj/effect/spawner/lootdrop/maintenance/Initialize(mapload)
 	loot = GLOB.maintenance_loot
+
+	if(HAS_TRAIT(SSstation, STATION_TRAIT_FILLED_MAINT))
+		lootcount = FLOOR(lootcount * 1.5, 1)
+
+	else if(HAS_TRAIT(SSstation, STATION_TRAIT_EMPTY_MAINT))
+		lootcount = FLOOR(lootcount * 0.5, 1)
+
 	. = ..()
 
 /obj/effect/spawner/lootdrop/maintenance/two
@@ -230,9 +236,36 @@
 		/obj/item/organ/vocal_cords/adamantine = 1,
 		/obj/effect/gibspawner/xeno = 1,
 		/obj/effect/mob_spawn/human/corpse/assistant = 1,
-		/obj/effect/mob_spawn/teratomamonkey = 5,
 		/obj/item/organ/wings/moth/robust = 1,
 		/obj/item/organ/wings/dragon = 1)
+
+/obj/effect/spawner/lootdrop/teratoma/robot
+	name = "robotic teratoma spawner"
+	loot = list(
+		/obj/item/organ/ears/robot = 5,
+		/obj/item/organ/eyes/robotic = 5,
+		/obj/item/organ/eyes/robotic/flashlight = 1,
+		/obj/item/organ/eyes/night_vision = 1,
+		/obj/item/organ/liver/cybernetic = 4,
+		/obj/item/organ/liver/cybernetic/upgraded/ipc = 3,
+		/obj/item/organ/lungs/cybernetic = 4,
+		/obj/item/organ/lungs/cybernetic/upgraded= 2,
+		/obj/item/organ/stomach/battery/ipc = 4,
+		/obj/item/organ/heart/clockwork = 6,
+		/obj/item/organ/stomach/clockwork = 6,
+		/obj/item/organ/liver/clockwork = 6,
+		/obj/item/organ/lungs/clockwork = 6,
+		/obj/item/organ/tail/clockwork = 6,
+		/obj/item/organ/adamantine_resonator = 1,
+		/obj/item/organ/eyes/robotic/thermals = 2,
+		/obj/item/organ/heart/gland/viral = 1,
+		/obj/item/organ/eyes/robotic/shield = 2,
+		/obj/item/organ/eyes/robotic/glow = 2,
+		/obj/item/organ/heart/cybernetic = 2,
+		/obj/item/organ/wings/cybernetic = 2,
+		/obj/item/organ/tongue/robot/clockwork/better = 2,
+		/obj/effect/gibspawner/robot = 4,
+		/obj/item/drone_shell = 1)
 
 /obj/effect/spawner/lootdrop/teratoma/major/clown
 	name = "funny teratoma spawner"
@@ -248,14 +281,21 @@
 
 /obj/effect/spawner/lootdrop/two_percent_xeno_egg_spawner
 	name = "2% chance xeno egg spawner"
+	icon_state = "random_xenoegg"
 	loot = list(
 		/obj/effect/decal/remains/xeno = 49,
 		/obj/effect/spawner/xeno_egg_delivery = 1)
 
-/obj/effect/spawner/lootdrop/two_percent_xeno_egg_spawner/Initialize()
+/obj/effect/spawner/lootdrop/two_percent_xeno_egg_spawner/Initialize(mapload)
 	if(prob(40) && SSevents.holidays && SSevents.holidays[APRIL_FOOLS])
 		loot = list(/obj/effect/spawner/xeno_egg_delivery_troll = 1)
 	. = ..()
+
+/obj/effect/spawner/lootdrop/ten_percent_girlfriend_spawner
+	name = "10% chance girlfriend spawner"
+	loot = list(
+		/mob/living/simple_animal/pet/dog/corgi = 9,
+		/mob/living/simple_animal/pet/dog/corgi/Lisa = 1)
 
 /obj/effect/spawner/lootdrop/sanitarium
 	name = "patient spawner"
@@ -275,9 +315,10 @@
 		/mob/living/simple_animal/hostile/retaliate/frog = 2)
 
 /obj/effect/spawner/lootdrop/costume
+	icon_state = "random_costume"
 	name = "random costume spawner"
 
-/obj/effect/spawner/lootdrop/costume/Initialize()
+/obj/effect/spawner/lootdrop/costume/Initialize(mapload)
 	loot = list()
 	for(var/path in subtypesof(/obj/effect/spawner/bundle/costume))
 		loot[path] = TRUE
@@ -316,6 +357,7 @@
 		"" = 75)
 
 /obj/effect/spawner/lootdrop/aimodule_harmless // These shouldn't allow the AI to start butchering people
+	icon_state = "random_board"
 	name = "harmless AI module spawner"
 	loot = list(
 				/obj/item/aiModule/core/full/asimov,
@@ -327,6 +369,7 @@
 				)
 
 /obj/effect/spawner/lootdrop/aimodule_neutral // These shouldn't allow the AI to start butchering people without reason
+	icon_state = "random_board"
 	name = "neutral AI module spawner"
 	loot = list(
 				/obj/item/aiModule/core/full/corp,
@@ -340,6 +383,7 @@
 				)
 
 /obj/effect/spawner/lootdrop/aimodule_harmful // These will get the shuttle called
+	icon_state = "random_board"
 	name = "harmful AI module spawner"
 	loot = list(
 				/obj/item/aiModule/core/full/antimov,
@@ -352,7 +396,9 @@
 // Tech storage circuit board spawners
 
 /obj/effect/spawner/lootdrop/techstorage
+
 	name = "generic circuit board spawner"
+	icon_state = "random_board"
 	lootdoubles = FALSE
 	fan_out_items = TRUE
 	lootcount = INFINITY
@@ -386,7 +432,9 @@
 				/obj/item/circuitboard/computer/nanite_cloud_controller,
 				/obj/item/circuitboard/machine/nanite_chamber,
 				/obj/item/circuitboard/machine/nanite_programmer,
-				/obj/item/circuitboard/machine/nanite_program_hub
+				/obj/item/circuitboard/machine/nanite_program_hub,
+				/obj/item/circuitboard/machine/xenoartifact_inbox,
+				/obj/item/circuitboard/computer/xenoartifact_console
 				)
 
 /obj/effect/spawner/lootdrop/techstorage/security
@@ -475,3 +523,19 @@
 		/obj/effect/trap/nexus/trickyspawner/clownmutant = 2,
 		/obj/effect/trap/nexus/trickyspawner/honkling = 3,
 		/obj/effect/trap/nexus/cluwnecurse = 1)
+
+/obj/effect/spawner/lootdrop/megafaunaore
+	name = "megafauna ore drop"
+	lootcount = 100
+	lootdoubles = TRUE
+	loot = list(
+		/obj/item/stack/ore/iron = 5,
+		/obj/item/stack/ore/glass/basalt = 5,
+		/obj/item/stack/ore/plasma = 3,
+		/obj/item/stack/ore/silver = 3,
+		/obj/item/stack/ore/gold = 3,
+		/obj/item/stack/ore/copper = 3,
+		/obj/item/stack/ore/titanium = 2,
+		/obj/item/stack/ore/uranium = 2,
+		/obj/item/stack/ore/diamond = 2)
+

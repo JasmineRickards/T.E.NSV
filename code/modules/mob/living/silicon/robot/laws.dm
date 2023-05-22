@@ -1,11 +1,3 @@
-/mob/living/silicon/robot/verb/cmd_show_laws()
-	set category = "Robot Commands"
-	set name = "Show Laws"
-
-	if(usr.stat == DEAD)
-		return //won't work if dead
-	show_laws()
-
 /mob/living/silicon/robot/deadchat_lawchange()
 	if(lawupdate)
 		return
@@ -29,7 +21,7 @@
 				to_chat(src, "<b>Laws synced with AI, be sure to note any changes.</b>")
 		else
 			to_chat(src, "<b>No AI selected to sync laws with, disabling lawsync protocol.</b>")
-			lawupdate = 0
+			lawupdate = FALSE
 
 	to_chat(who, "<b>Obey these laws:</b>")
 	laws.show_laws(who)
@@ -84,4 +76,12 @@
 			if (length(temp) > 0)
 				laws.supplied[index] = temp
 
+		var/datum/computer_file/program/borg_self_monitor/program = modularInterface.get_self_monitoring()
+		if(program)
+			program.force_full_update()
+
 	picturesync()
+
+/mob/living/silicon/robot/post_lawchange(announce = TRUE)
+	. = ..()
+	addtimer(CALLBACK(src, PROC_REF(logevent),"Law update processed."), 0, TIMER_UNIQUE | TIMER_OVERRIDE) //Post_Lawchange gets spammed by some law boards, so let's wait it out

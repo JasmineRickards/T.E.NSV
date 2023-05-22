@@ -15,19 +15,21 @@
 	var/maximum_pressure = 90 * ONE_ATMOSPHERE
 
 /obj/machinery/portable_atmospherics/New()
-	. = ..()
-	SSair.atmos_machinery += src
+	..()
+	SSair.atmos_air_machinery += src
+
 	air_contents = new(volume)
 	air_contents.set_temperature(T20C)
 
 	return 1
 
 /obj/machinery/portable_atmospherics/Destroy()
-	SSair.atmos_machinery -= src
-
+	SSair.atmos_air_machinery -= src
 	disconnect()
 	qdel(air_contents)
 	air_contents = null
+
+	SSair.atmos_machinery -= src
 
 	return ..()
 
@@ -119,7 +121,7 @@
 
 /obj/machinery/portable_atmospherics/attackby(obj/item/W, mob/user, params)
 	if(istype(W, /obj/item/tank))
-		if(!(stat & BROKEN))
+		if(!(machine_stat & BROKEN))
 			var/obj/item/tank/T = W
 			if(!user.transferItemToLoc(T, src))
 				return
@@ -128,7 +130,7 @@
 			replace_tank(user, FALSE, T)
 			update_icon()
 	else if(W.tool_behaviour == TOOL_WRENCH)
-		if(!(stat & BROKEN))
+		if(!(machine_stat & BROKEN))
 			if(connected_port)
 				investigate_log("was disconnected from [connected_port] by [key_name(user)].", INVESTIGATE_ATMOS)
 				disconnect()
@@ -158,7 +160,7 @@
 		return ..()
 
 /obj/machinery/portable_atmospherics/attacked_by(obj/item/I, mob/user)
-	if(I.force < 10 && !(stat & BROKEN))
+	if(I.force < 10 && !(machine_stat & BROKEN))
 		take_damage(0)
 	else
 		investigate_log("was smacked with \a [I] by [key_name(user)].", INVESTIGATE_ATMOS)

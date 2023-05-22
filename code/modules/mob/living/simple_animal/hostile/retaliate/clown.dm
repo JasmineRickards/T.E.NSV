@@ -1,5 +1,5 @@
 /mob/living/simple_animal/hostile/retaliate/clown
-	name = "Clown"
+	name = JOB_NAME_CLOWN
 	desc = "A denizen of clown planet."
 	icon = 'icons/mob/clown_mobs.dmi'
 	icon_state = "clown"
@@ -23,7 +23,7 @@
 	attack_sound = 'sound/items/bikehorn.ogg'
 	obj_damage = 0
 	environment_smash = ENVIRONMENT_SMASH_NONE
-	del_on_death = 1
+	del_on_death = TRUE
 	loot = list(/obj/effect/mob_spawn/human/clown/corpse)
 
 	mobchatspan = "clown"
@@ -151,6 +151,7 @@
 	maxHealth = 150
 	health = 150
 	pixel_x = -16
+	base_pixel_x = -16
 	speed = 10
 	melee_damage = 5
 	attacktext = "YA-HONKs"
@@ -171,6 +172,7 @@
 	maxHealth = 400
 	health = 400
 	pixel_x = -16
+	base_pixel_x = -16
 	speed = 2
 	melee_damage = 17
 	attacktext = "pummels"
@@ -250,6 +252,7 @@
 	maxHealth = 130
 	health = 130
 	pixel_x = -16
+	base_pixel_x = -16
 	speed = -5
 	melee_damage = 15
 	attacktext = "awkwardly flails at"

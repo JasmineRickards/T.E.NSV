@@ -21,6 +21,7 @@
 	ventcrawler = VENTCRAWLER_ALWAYS
 	var/datum/mind/origin
 	var/egg_lain = 0
+	discovery_points = 2000
 
 /mob/living/simple_animal/hostile/headcrab/proc/Infect(mob/living/carbon/victim)
 	var/obj/item/organ/body_egg/changeling_egg/egg = new(victim)
@@ -46,7 +47,7 @@
 				return
 			Infect(target)
 			to_chat(src, "<span class='userdanger'>With our egg laid, our death approaches rapidly...</span>")
-			addtimer(CALLBACK(src, .proc/death), 100)
+			addtimer(CALLBACK(src, PROC_REF(death)), 100)
 
 /obj/item/organ/body_egg/changeling_egg
 	name = "changeling egg"

@@ -8,6 +8,9 @@
 	anchored = TRUE
 	max_integrity = 200
 	integrity_failure = 100
+	flags_ricochet = RICOCHET_SHINY
+	layer = ABOVE_WINDOW_LAYER
+	var/magical = FALSE
 
 /obj/structure/mirror/Initialize(mapload)
 	. = ..()
@@ -21,14 +24,14 @@
 	if(broken || !Adjacent(user))
 		return
 
-	if(ishuman(user))
+	if(ishuman(user) && !magical)
 		var/mob/living/carbon/human/H = user
 
 		//see code/modules/mob/dead/new_player/preferences.dm at approx line 545 for comments!
 		//this is largely copypasted from there.
 
 		//handle facial hair (if necessary)
-		if(H.gender == MALE)
+		if(H.gender != FEMALE)
 			var/new_style = input(user, "Select a facial hair style", "Grooming")  as null|anything in GLOB.facial_hair_styles_list
 			if(!user.canUseTopic(src, BE_CLOSE, FALSE, NO_TK))
 				return	//no tele-grooming
@@ -92,32 +95,32 @@
 		if(BURN)
 			playsound(src, 'sound/effects/hit_on_shattered_glass.ogg', 70, 1)
 
-
 /obj/structure/mirror/magic
 	name = "magic mirror"
 	desc = "Turn and face the strange... face."
 	icon_state = "magic_mirror"
 	var/list/choosable_races = list()
+	magical = TRUE
 
-/obj/structure/mirror/magic/New()
+/obj/structure/mirror/magic/Initialize(mapload)
+	. = ..()
 	if(!choosable_races.len)
 		for(var/speciestype in subtypesof(/datum/species))
 			var/datum/species/S = speciestype
 			if(initial(S.changesource_flags) & MIRROR_MAGIC)
 				choosable_races += initial(S.id)
 		choosable_races = sortList(choosable_races)
-	..()
 
-/obj/structure/mirror/magic/lesser/New()
+/obj/structure/mirror/magic/lesser/Initialize(mapload)
 	choosable_races = GLOB.roundstart_races.Copy()
-	..()
+	return ..()
 
-/obj/structure/mirror/magic/badmin/New()
+/obj/structure/mirror/magic/badmin/Initialize(mapload)
 	for(var/speciestype in subtypesof(/datum/species))
 		var/datum/species/S = speciestype
 		if(initial(S.changesource_flags) & MIRROR_BADMIN)
 			choosable_races += initial(S.id)
-	..()
+	return ..()
 
 /obj/structure/mirror/magic/attack_hand(mob/user)
 	. = ..()
@@ -183,7 +186,7 @@
 
 			H.update_body()
 			H.update_hair()
-			H.update_body_parts()
+			H.update_body_parts(TRUE)
 			H.update_mutations_overlay() // no hulk lizard
 
 		if("gender")
@@ -243,3 +246,25 @@
 
 /obj/structure/mirror/magic/proc/curse(mob/living/user)
 	return
+
+
+//basically stolen from human_defense.dm
+/obj/structure/mirror/bullet_act(obj/item/projectile/P)
+	if(P.reflectable & REFLECT_NORMAL)
+		if(P.starting)
+			var/new_x = P.starting.x + pick(0, 0, 0, 0, 0, -1, 1, -2, 2)
+			var/new_y = P.starting.y + pick(0, 0, 0, 0, 0, -1, 1, -2, 2)
+			var/turf/curloc = get_turf(src)
+
+			// redirect the projectile
+			P.original = locate(new_x, new_y, P.z)
+			P.starting = curloc
+			P.firer = src
+			P.yo = new_y - curloc.y
+			P.xo = new_x - curloc.x
+			var/new_angle_s = P.Angle + 180
+			while(new_angle_s > 180)	// Translate to regular projectile degrees
+				new_angle_s -= 360
+			P.setAngle(new_angle_s)
+
+	return BULLET_ACT_FORCE_PIERCE // complete projectile permutation

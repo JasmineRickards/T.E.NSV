@@ -19,14 +19,13 @@
 	var/ban_cache = null
 	/// Contains the last message sent by this client - used to protect against copy-paste spamming.
 	var/last_message	= ""
-	/// Contains a number of how many times a message identical to last_message was sent.
-	var/last_message_count = 0
 	/// How many messages sent in the last 10 seconds
 	var/total_message_count = 0
 	/// Next tick to reset the total message counter
-	var/total_count_reset = 0
-	var/ircreplyamount = 0
+	COOLDOWN_DECLARE(total_count_reset)
+	var/externalreplyamount = 0
 	var/cryo_warned = -3000//when was the last time we warned them about not cryoing without an ahelp, set to -5 minutes so that rounstart cryo still warns
+	var/staff_check_rate = 0 //when was the last time they checked online staff
 
 		/////////
 		//OTHER//
@@ -34,20 +33,18 @@
 	/// The client's preferences
 	var/datum/preferences/prefs = null
 	var/list/keybindings[0]
+	var/movement_locked = FALSE
 
 	/// The last world.time that the client's mob turned
 	var/last_turn = 0
 
 	/// The next world.time this client is allowed to move
 	var/move_delay = 0
+
 	var/area			= null
 
-		///////////////
-		//SOUND STUFF//
-		///////////////
-	var/ambient_buzz_playing = null // What buzz ambience is currently playing
-	var/ambient_buzz = null
-	var/ambient_effect_last_played = 0 // What was the last time we played an ambient effect noise?
+	var/buzz_playing = null
+	var/ambient_effect_last_played = 0 // Nsv13 -  What was the last time we played an ambient effect noise?
 	var/music_last_played = 0 // Nsv13 - What was the last time we played an ambient music track?
 		////////////
 		//SECURITY//
@@ -124,5 +121,5 @@
 	//Tick when ghost roles are useable again
 	var/next_ghost_role_tick = 0
 
-	/// Messages currently seen by this client
-	var/list/seen_messages
+	/// If the client is currently under the restrictions of the interview system
+	var/interviewee = FALSE

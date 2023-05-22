@@ -2,13 +2,15 @@
 	. = ..()
 	if(!ismovableatom(target))
 		return ELEMENT_INCOMPATIBLE
-	RegisterSignal(target, COMSIG_MOVABLE_MOVED, .proc/Clean)
+	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(Clean))
 
 /datum/element/cleaning/Detach(datum/target)
 	. = ..()
 	UnregisterSignal(target, COMSIG_MOVABLE_MOVED)
 
 /datum/element/cleaning/proc/Clean(datum/source)
+	SIGNAL_HANDLER
+
 	var/atom/movable/AM = source
 	var/turf/tile = AM.loc
 	if(!isturf(tile))

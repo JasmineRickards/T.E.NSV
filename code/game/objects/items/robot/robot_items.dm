@@ -11,6 +11,7 @@
 	var/charge_cost = 30
 
 /obj/item/borg/stun/attack(mob/living/M, mob/living/user)
+	var/armor_block = M.run_armor_check(attack_flag = "stamina")
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
 		if(H.check_shields(src, 0, "[M]'s [name]", MELEE_ATTACK))
@@ -20,9 +21,8 @@
 		var/mob/living/silicon/robot/R = user
 		if(!R.cell.use(charge_cost))
 			return
-
+	M.apply_damage(80, STAMINA, blocked = armor_block)
 	user.do_attack_animation(M)
-	M.adjustStaminaLoss(80)
 	M.apply_effect(EFFECT_STUTTER, 5)
 
 	M.visible_message("<span class='danger'>[user] has prodded [M] with [src]!</span>", \
@@ -146,65 +146,55 @@
 /obj/item/borg/cyborghug/medical
 	boop = TRUE
 
+#define MODE_DRAW "draw"
+#define MODE_CHARGE "charge"
+
 /obj/item/borg/charger
 	name = "power connector"
 	icon_state = "charger_draw"
 	item_flags = NOBLUDGEON
-	var/mode = "draw"
+	var/mode = MODE_DRAW
+	var/work_mode	// mode the loops have been started with, to check with do_after
 	var/active = FALSE
+	var/cyborg_minimum_charge = 500 	// minimum charge cyborgs cannot go under when charging things
 	var/static/list/charge_machines = typecacheof(list(/obj/machinery/cell_charger, /obj/machinery/recharger, /obj/machinery/recharge_station, /obj/machinery/mech_bay_recharge_port))
 	var/static/list/charge_items = typecacheof(list(/obj/item/stock_parts/cell, /obj/item/gun/energy))
-
-/obj/item/borg/charger/Initialize()
-	. = ..()
 
 /obj/item/borg/charger/update_icon()
 	..()
 	icon_state = "charger_[mode]"
 
 /obj/item/borg/charger/attack_self(mob/user)
-	if(mode == "draw")
-		mode = "charge"
+	if(mode == MODE_DRAW)
+		mode = MODE_CHARGE
 	else
-		mode = "draw"
-	to_chat(user, "<span class='notice'>You toggle [src] to \"[mode]\" mode.</span>")
+		mode = MODE_DRAW
+	balloon_alert(user, "You toggle [src] to [mode] mode")
 	update_icon()
 
 /obj/item/borg/charger/afterattack(obj/item/target, mob/living/silicon/robot/user, proximity_flag)
 	. = ..()
 	if(!proximity_flag || !iscyborg(user))
 		return
-	if(mode == "draw")
+	if(active)
+		if(mode == MODE_DRAW)
+			to_chat(user, "<span class='warning'>You're already drawing power from something!</span>")
+		else
+			to_chat(user, "<span class='warning'>You're already charging something!</span>")
+		return
+
+	if(mode == MODE_DRAW)
 		if(is_type_in_list(target, charge_machines))
 			var/obj/machinery/M = target
 
-			if((M.stat & (NOPOWER|BROKEN)) || !M.anchored)
+			if((M.machine_stat & (NOPOWER|BROKEN)) || !M.anchored)
 				to_chat(user, "<span class='warning'>[M] is unpowered!</span>")
 				return
 
-			if (active) //Prevents charge stacking from the same or multiple targets.
-				to_chat(user, "<span class ='notice'>You're already charging from [target].</span>")
-				return
-
+			to_chat(user, "<span class='notice'>You connect to [M]'s power line...</span>")
 			active = TRUE
 
-			to_chat(user, "<span class='notice'>You connect to [M]'s power line...</span>")
-			while(do_after(user, 15, target = M, progress = 0))
-
-				if(!user || !user.cell || mode != "draw")
-					return
-
-				if((M.stat & (NOPOWER|BROKEN)) || !M.anchored)
-					break
-
-				if(!user.cell.give(150))
-					break
-
-				M.use_power(200)
-
-			active = FALSE
-
-			to_chat(user, "<span class='notice'>You stop charging yourself.</span>")
+			powerdraw_loop(user, M)
 
 		else if(is_type_in_list(target, charge_items))
 			var/obj/item/stock_parts/cell/cell = target
@@ -222,75 +212,154 @@
 
 			if(!cell.charge)
 				to_chat(user, "<span class='warning'>[target] has no power!</span>")
-
-
-			to_chat(user, "<span class='notice'>You connect to [target]'s power port...</span>")
-
-			while(do_after(user, 15, target = target, progress = 0))
-				if(!user || !user.cell || mode != "draw")
-					return
-
-				if(!cell || !target)
-					return
-
-				if(cell != target && cell.loc != target)
-					return
-
-				var/draw = min(cell.charge, cell.chargerate*0.5, user.cell.maxcharge-user.cell.charge)
-				if(!cell.use(draw))
-					break
-				if(!user.cell.give(draw))
-					break
-				target.update_icon()
-
-			to_chat(user, "<span class='notice'>You stop charging yourself.</span>")
-
-	else if(is_type_in_list(target, charge_items))
-		var/obj/item/stock_parts/cell/cell = target
-		if(!istype(cell))
-			cell = locate(/obj/item/stock_parts/cell) in target
-		if(!cell)
-			to_chat(user, "<span class='warning'>[target] has no power cell!</span>")
-			return
-
-		if(istype(target, /obj/item/gun/energy))
-			var/obj/item/gun/energy/E = target
-			if(!E.can_charge)
-				to_chat(user, "<span class='warning'>[target] has no power port!</span>")
 				return
 
-		if(cell.charge >= cell.maxcharge)
-			to_chat(user, "<span class='warning'>[target] is already charged!</span>")
+			to_chat(user, "<span class='notice'>You connect to [target]'s power port...</span>")
+			active = TRUE
 
-		if (active) //Prevents stacking charging on the target.
-			to_chat(user, "<span class ='notice'>You're already charging [target].</span>")
-			return
+			powerdraw_loop(user, target, cell)
 
-		to_chat(user, "<span class='notice'>You connect to [target]'s power port...</span>")
+	else
+		if(is_type_in_list(target, charge_items))
+			if(user.cell.charge <= cyborg_minimum_charge) //leave them a bit
+				to_chat(user, "<span class='warning'>You don't have enough power to charge [target]!</span>")
+				return
 
-		active = TRUE
+			var/obj/item/stock_parts/cell/cell = target
+			if(!istype(cell))
+				cell = locate(/obj/item/stock_parts/cell) in target
+			if(!cell)
+				to_chat(user, "<span class='warning'>[target] has no power cell!</span>")
+				return
 
-		while(do_after(user, 15, target = target, progress = 0))
+			if(istype(target, /obj/item/gun/energy))
+				var/obj/item/gun/energy/E = target
+				if(!E.can_charge)
+					to_chat(user, "<span class='warning'>[target] has no power port!</span>")
+					return
 
-			if(!user || !user.cell || mode != "charge")
+			if(cell.charge >= cell.maxcharge)
+				to_chat(user, "<span class='warning'>[target] is already fully charged!</span>")
+				return
+
+			to_chat(user, "<span class='notice'>You connect to [target]'s power port...</span>")
+			active = TRUE
+
+			charging_loop(user, target, cell)
+
+/obj/item/borg/charger/proc/powerdraw_loop(mob/living/silicon/robot/user, atom/target, obj/item/stock_parts/cell/cell)
+	work_mode = mode
+
+	if(istype(cell))
+		while(do_after(user, 15, target = target, extra_checks = CALLBACK(src, PROC_REF(mode_check))))
+			if(!user?.cell)
+				active = FALSE
 				return
 
 			if(!cell || !target)
+				active = FALSE
 				return
 
 			if(cell != target && cell.loc != target)
+				active = FALSE
 				return
 
-			var/draw = min(user.cell.charge, cell.chargerate*0.5, cell.maxcharge-cell.charge)
-			if(!user.cell.use(draw))
+			var/draw = min(cell.charge, cell.chargerate*0.5, user.cell.maxcharge-user.cell.charge)
+			if(!cell.use(draw))
 				break
-			if(!cell.give(draw))
+
+			if(!user.cell.give(draw))
 				break
+
 			target.update_icon()
 
+			if(!cell.charge)
+				to_chat(user, "<span class='warning'>[target] has no power!</span>")
+				active = FALSE
+				return
+
+			if(user.cell.charge == user.cell.maxcharge)
+				to_chat(user, "<span class='notice'>You finish charging from [target].</span>")
+				active = FALSE
+				return
+
+		to_chat(user, "<span class='notice'>You stop drawing power from [target].</span>")
+		active = FALSE
+	else
+		var/obj/machinery/M = target
+		while(do_after(user, 15, target = M, extra_checks = CALLBACK(src, PROC_REF(mode_check))))
+			if(!user?.cell)
+				active = FALSE
+				return
+
+			if(!target)
+				active = FALSE
+				return
+
+			if((M.machine_stat & (NOPOWER|BROKEN)) || !M.anchored)
+				break
+
+			if(!user.cell.give(150))
+				break
+
+			M.use_power(200)
+
+			if(user.cell.charge == user.cell.maxcharge)
+				to_chat(user, "<span class='notice'>You finish charging from [target].</span>")
+				active = FALSE
+				return
+
+		to_chat(user, "<span class='notice'>You stop charging yourself.</span>")
 		active = FALSE
 
-		to_chat(user, "<span class='notice'>You stop charging [target].</span>")
+/obj/item/borg/charger/proc/charging_loop(mob/living/silicon/robot/user, atom/target, obj/item/stock_parts/cell/cell)
+	work_mode = mode
+
+	while(do_after(user, 15, target = target, extra_checks = CALLBACK(src, PROC_REF(mode_check))))
+		if(!user?.cell)
+			active = FALSE
+			return
+
+		if(!cell || !target)
+			active = FALSE
+			return
+
+		if(cell != target && cell.loc != target)
+			active = FALSE
+			return
+
+		var/draw = min(max(user.cell.charge - cyborg_minimum_charge, 0), cell.chargerate*0.5, cell.maxcharge-cell.charge)
+		if(!draw)
+			to_chat(user, "<span class='warning'>Safeties prevent you from going under [cyborg_minimum_charge] charge!</span>")
+			active = FALSE
+			return
+
+		if(!user.cell.use(draw))
+			break
+
+		if(!cell.give(draw))
+			break
+
+		target.update_icon()
+
+		if(cell.charge == cell.maxcharge)
+			to_chat(user, "<span class='notice'>You finish charging [target].</span>")
+			active = FALSE
+			return
+
+		if(user.cell.charge <= cyborg_minimum_charge) //leave them a bit
+			to_chat(user, "<span class='warning'>You don't have enough power to continue charging [target]!</span>")
+			active = FALSE
+			return
+
+	to_chat(user, "<span class='notice'>You stop charging [target].</span>")
+	active = FALSE
+
+/obj/item/borg/charger/proc/mode_check()
+	return mode == work_mode
+
+#undef MODE_DRAW
+#undef MODE_CHARGE
 
 /obj/item/harmalarm
 	name = "\improper Sonic Harm Prevention Tool"
@@ -383,13 +452,14 @@
 	check_amount()
 
 /obj/item/borg/lollipop/dropped()
+	..()
 	check_amount()
 
 /obj/item/borg/lollipop/proc/check_amount()	//Doesn't even use processing ticks.
 	if(charging)
 		return
 	if(candy < candymax)
-		addtimer(CALLBACK(src, .proc/charge_lollipops), charge_delay)
+		addtimer(CALLBACK(src, PROC_REF(charge_lollipops)), charge_delay)
 		charging = TRUE
 
 /obj/item/borg/lollipop/proc/charge_lollipops()
@@ -541,7 +611,7 @@
 	var/color2 = rgb(0, 0, 0)
 	nodamage = TRUE
 
-/obj/item/projectile/bullet/reusable/lollipop/Initialize()
+/obj/item/projectile/bullet/reusable/lollipop/Initialize(mapload)
 	. = ..()
 	var/obj/item/reagent_containers/food/snacks/lollipop/S = new ammo_type(src)
 	color2 = S.headcolor
@@ -566,15 +636,17 @@
 	icon_state = "shield"
 	var/maxenergy = 1500
 	var/energy = 1500
-	var/energy_recharge = 7.5
+	/// Recharging rate in energy per second
+	var/energy_recharge = 37.5
 	var/energy_recharge_cyborg_drain_coefficient = 0.4
 	var/cyborg_cell_critical_percentage = 0.05
 	var/mob/living/silicon/robot/host = null
 	var/datum/proximity_monitor/advanced/dampening_field
 	var/projectile_damage_coefficient = 0.5
-	var/projectile_damage_tick_ecost_coefficient = 2	//Lasers get half their damage chopped off, drains 50 power/tick. Note that fields are processed 5 times per second.
+	/// Energy cost per tracked projectile damage amount per second
+	var/projectile_damage_tick_ecost_coefficient = 10
 	var/projectile_speed_coefficient = 1.5		//Higher the coefficient slower the projectile.
-	var/projectile_tick_speed_ecost = 15
+	var/projectile_tick_speed_ecost = 75
 	var/list/obj/item/projectile/tracked
 	var/image/projectile_effect
 	var/field_radius = 3
@@ -586,7 +658,7 @@
 	energy = 50000
 	energy_recharge = 5000
 
-/obj/item/borg/projectile_dampen/Initialize()
+/obj/item/borg/projectile_dampen/Initialize(mapload)
 	. = ..()
 	projectile_effect = image('icons/effects/fields.dmi', "projectile_dampen_effect")
 	tracked = list()
@@ -645,7 +717,7 @@
 	return null
 
 /obj/item/borg/projectile_dampen/dropped()
-	. = ..()
+	..()
 	host = loc
 
 /obj/item/borg/projectile_dampen/equipped()
@@ -656,38 +728,38 @@
 	deactivate_field()
 	. = ..()
 
-/obj/item/borg/projectile_dampen/process()
-	process_recharge()
-	process_usage()
+/obj/item/borg/projectile_dampen/process(delta_time)
+	process_recharge(delta_time)
+	process_usage(delta_time)
 	update_location()
 
 /obj/item/borg/projectile_dampen/proc/update_location()
 	if(dampening_field)
 		dampening_field.HandleMove()
 
-/obj/item/borg/projectile_dampen/proc/process_usage()
+/obj/item/borg/projectile_dampen/proc/process_usage(delta_time)
 	var/usage = 0
 	for(var/I in tracked)
 		var/obj/item/projectile/P = I
 		if(!P.stun && P.nodamage)	//No damage
 			continue
-		usage += projectile_tick_speed_ecost
-		usage += (tracked[I] * projectile_damage_tick_ecost_coefficient)
+		usage += projectile_tick_speed_ecost * delta_time
+		usage += (tracked[I] * projectile_damage_tick_ecost_coefficient * delta_time)
 	energy = CLAMP(energy - usage, 0, maxenergy)
 	if(energy <= 0)
 		deactivate_field()
 		visible_message("<span class='warning'>[src] blinks \"ENERGY DEPLETED\".</span>")
 
-/obj/item/borg/projectile_dampen/proc/process_recharge()
+/obj/item/borg/projectile_dampen/proc/process_recharge(delta_time)
 	if(!istype(host))
 		if(iscyborg(host.loc))
 			host = host.loc
 		else
-			energy = CLAMP(energy + energy_recharge, 0, maxenergy)
+			energy = CLAMP(energy + energy_recharge * delta_time, 0, maxenergy)
 			return
 	if(host.cell && (host.cell.charge >= (host.cell.maxcharge * cyborg_cell_critical_percentage)) && (energy < maxenergy))
-		host.cell.use(energy_recharge*energy_recharge_cyborg_drain_coefficient)
-		energy += energy_recharge
+		host.cell.use(energy_recharge * delta_time * energy_recharge_cyborg_drain_coefficient)
+		energy += energy_recharge * delta_time
 
 /obj/item/borg/projectile_dampen/proc/dampen_projectile(obj/item/projectile/P, track_projectile = TRUE)
 	if(tracked[P])
@@ -747,7 +819,7 @@
 	name = "medical hud"
 	icon_state = "healthhud"
 
-/obj/item/borg/sight/hud/med/Initialize()
+/obj/item/borg/sight/hud/med/Initialize(mapload)
 	. = ..()
 	hud = new /obj/item/clothing/glasses/hud/health(src)
 
@@ -756,7 +828,7 @@
 	name = "security hud"
 	icon_state = "securityhud"
 
-/obj/item/borg/sight/hud/sec/Initialize()
+/obj/item/borg/sight/hud/sec/Initialize(mapload)
 	. = ..()
 	hud = new /obj/item/clothing/glasses/hud/security(src)
 
@@ -773,9 +845,9 @@
 	var/obj/item/stored
 	var/list/storable = list()
 
-/obj/item/borg/apparatus/Initialize()
+/obj/item/borg/apparatus/Initialize(mapload)
 	. = ..()
-	RegisterSignal(loc.loc, COMSIG_BORG_SAFE_DECONSTRUCT, .proc/safedecon)
+	RegisterSignal(loc.loc, COMSIG_BORG_SAFE_DECONSTRUCT, PROC_REF(safedecon))
 
 /obj/item/borg/apparatus/Destroy()
 	if(stored)
@@ -784,16 +856,18 @@
 
 ///If we're safely deconstructed, we put the item neatly onto the ground, rather than deleting it.
 /obj/item/borg/apparatus/proc/safedecon()
+	SIGNAL_HANDLER
+
 	if(stored)
 		stored.forceMove(get_turf(src))
 		stored = null
 
-/obj/item/borg/apparatus/Exited(atom/A)
-	if(A == stored) //sanity check
+/obj/item/borg/apparatus/Exited(atom/movable/gone, direction)
+	if(gone == stored) //sanity check
 		UnregisterSignal(stored, COMSIG_ATOM_UPDATE_ICON)
 		stored = null
 	update_icon()
-	. = ..()
+	return ..()
 
 ///A right-click verb, for those not using hotkey mode.
 /obj/item/borg/apparatus/verb/verb_dropHeld()
@@ -808,10 +882,13 @@
 /obj/item/borg/apparatus/attack_self(mob/living/silicon/robot/user)
 	if(!stored)
 		return ..()
-	if(user.client?.keys_held["Alt"])
-		stored.forceMove(get_turf(user))
-		return
 	stored.attack_self(user)
+
+//Alt click drops stored item
+/obj/item/borg/apparatus/AltClick(mob/living/silicon/robot/user)
+	if(!stored)
+		return ..()
+	stored.forceMove(get_turf(user))
 
 /obj/item/borg/apparatus/pre_attack(atom/A, mob/living/user, params)
 	if(!stored)
@@ -824,7 +901,7 @@
 			var/obj/item/O = A
 			O.forceMove(src)
 			stored = O
-			RegisterSignal(stored, COMSIG_ATOM_UPDATE_ICON, /atom/.proc/update_icon)
+			RegisterSignal(stored, COMSIG_ATOM_UPDATE_ICON, TYPE_PROC_REF(/atom, update_icon))
 			update_icon()
 			return
 	else
@@ -844,15 +921,15 @@
 
 /obj/item/borg/apparatus/beaker
 	name = "beaker storage apparatus"
-	desc = "A special apparatus for carrying beakers without spilling the contents. Alt-Z or right-click to drop the beaker."
+	desc = "A special apparatus for carrying beakers without spilling the contents."
 	icon_state = "borg_beaker_apparatus"
 	storable = list(/obj/item/reagent_containers/glass/beaker,
 				/obj/item/reagent_containers/glass/bottle)
 
-/obj/item/borg/apparatus/beaker/Initialize()
+/obj/item/borg/apparatus/beaker/Initialize(mapload)
 	. = ..()
 	stored = new /obj/item/reagent_containers/glass/beaker/large(src)
-	RegisterSignal(stored, COMSIG_ATOM_UPDATE_ICON, /atom/.proc/update_icon)
+	RegisterSignal(stored, COMSIG_ATOM_UPDATE_ICON, TYPE_PROC_REF(/atom, update_icon))
 	update_icon()
 
 /obj/item/borg/apparatus/beaker/Destroy()
@@ -872,6 +949,7 @@
 				. += "[R.volume] units of [R.name]"
 		else
 			. += "Nothing."
+		. += "<span class='notice'<i>Alt-click</i> will drop the currently stored [stored].</span>"
 
 /obj/item/borg/apparatus/beaker/update_icon()
 	cut_overlays()
@@ -909,12 +987,12 @@
 
 /obj/item/borg/apparatus/circuit
 	name = "circuit manipulation apparatus"
-	desc = "A special apparatus for carrying and manipulating circuit boards. Alt-Z or right-click to drop the stored object."
+	desc = "A special apparatus for carrying and manipulating circuit boards."
 	icon_state = "borg_hardware_apparatus"
 	storable = list(/obj/item/circuitboard,
 				/obj/item/electronics)
 
-/obj/item/borg/apparatus/circuit/Initialize()
+/obj/item/borg/apparatus/circuit/Initialize(mapload)
 	. = ..()
 	update_icon()
 
@@ -941,6 +1019,7 @@
 	. = ..()
 	if(stored)
 		. += "The apparatus currently has [stored] secured."
+		. += "<span class='notice'<i>Alt-click</i> will drop the currently stored [stored].</span>"
 
 /obj/item/borg/apparatus/circuit/pre_attack(atom/A, mob/living/user, params)
 	. = ..()
@@ -953,7 +1032,7 @@
 
 /obj/item/borg/apparatus/beaker/service
 	name = "versatile service grasper"
-	desc = "Specially designed for carrying glasses, food and seeds. Alt-Z or right-click to drop the stored object."
+	desc = "Specially designed for carrying glasses, food and seeds."
 	storable = list(/obj/item/reagent_containers/food,
 	/obj/item/seeds,
 	/obj/item/storage/fancy/donut_box,
@@ -969,3 +1048,4 @@
 	. = ..()
 	if(stored)
 		. += "You are currently holding [stored]."
+		. += "<span class='notice'<i>Alt-click</i> will drop the currently stored [stored].</span>"

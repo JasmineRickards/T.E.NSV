@@ -37,7 +37,6 @@
 "aj" = (
 /obj/structure/table,
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -45,7 +44,6 @@
 "ak" = (
 /obj/machinery/door/airlock/atmos,
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/engine,
@@ -126,11 +124,6 @@
 	icon_state = "damaged5"
 	},
 /area/ruin/powered)
-"aC" = (
-/obj/structure/grille,
-/obj/structure/window/reinforced/fulltile,
-/turf/closed/mineral/random,
-/area/ruin/powered)
 "aD" = (
 /obj/structure/window/reinforced{
 	dir = 1
@@ -139,8 +132,8 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/outlet_injector/on{
-	icon_state = "inje_map-2";
-	dir = 4
+	dir = 4;
+	icon_state = "inje_map-2"
 	},
 /turf/open/floor/engine/air,
 /area/ruin/powered)
@@ -157,7 +150,6 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/vent_pump/siphon{
-	icon_state = "vent_map-2";
 	dir = 4
 	},
 /turf/open/floor/engine/air,
@@ -170,8 +162,8 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/outlet_injector/on{
-	icon_state = "inje_map-2";
-	dir = 4
+	dir = 4;
+	icon_state = "inje_map-2"
 	},
 /turf/open/floor/engine/n2,
 /area/ruin/powered)
@@ -188,7 +180,6 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/vent_pump/siphon{
-	icon_state = "vent_map-2";
 	dir = 4
 	},
 /turf/open/floor/engine/n2,
@@ -201,8 +192,8 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/outlet_injector/on{
-	icon_state = "inje_map-2";
-	dir = 4
+	dir = 4;
+	icon_state = "inje_map-2"
 	},
 /turf/open/floor/engine/o2,
 /area/ruin/powered)
@@ -219,7 +210,6 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/vent_pump/siphon{
-	icon_state = "vent_map-2";
 	dir = 4
 	},
 /turf/open/floor/engine/o2,
@@ -232,8 +222,8 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/outlet_injector/on{
-	icon_state = "inje_map-2";
-	dir = 4
+	dir = 4;
+	icon_state = "inje_map-2"
 	},
 /turf/open/floor/engine/co2,
 /area/ruin/powered)
@@ -250,7 +240,6 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/components/unary/vent_pump/siphon{
-	icon_state = "vent_map-2";
 	dir = 4
 	},
 /turf/open/floor/engine/co2,
@@ -260,7 +249,6 @@
 	dir = 1
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -276,7 +264,6 @@
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plating/airless{
@@ -344,7 +331,6 @@
 	},
 /obj/machinery/portable_atmospherics/canister/carbon_dioxide,
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel,
@@ -383,8 +369,8 @@
 /area/ruin/powered)
 "bh" = (
 /obj/machinery/computer/atmos_alert{
-	icon_state = "computer";
-	dir = 8
+	dir = 8;
+	icon_state = "computer"
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
@@ -395,8 +381,8 @@
 /area/ruin/powered)
 "bj" = (
 /obj/machinery/computer/atmos_control{
-	icon_state = "computer";
-	dir = 8
+	dir = 8;
+	icon_state = "computer"
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
@@ -432,7 +418,7 @@
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "bq" = (
-/obj/machinery/autolathe,
+/obj/machinery/modular_fabricator/autolathe,
 /turf/open/floor/engine,
 /area/ruin/powered)
 "br" = (
@@ -465,7 +451,6 @@
 	icon_state = "0-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/supply/visible{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel/airless,
@@ -523,7 +508,6 @@
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 6
 	},
 /turf/open/floor/plasteel,
@@ -594,7 +578,6 @@
 /obj/structure/cable,
 /obj/machinery/power/apc/auto_name/east,
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 9
 	},
 /turf/open/floor/plasteel,
@@ -618,7 +601,6 @@
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -631,7 +613,6 @@
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -644,7 +625,6 @@
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel/airless,
@@ -657,7 +637,6 @@
 	icon_state = "1-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 10
 	},
 /turf/open/floor/plasteel/airless,
@@ -701,7 +680,6 @@
 /area/ruin/powered)
 "cD" = (
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plating/airless{
@@ -710,14 +688,12 @@
 /area/ruin/powered)
 "cP" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/closed/wall/r_wall,
 /area/ruin/powered)
 "em" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/green/visible,
@@ -732,7 +708,6 @@
 /area/ruin/powered)
 "fw" = (
 /obj/machinery/atmospherics/pipe/manifold/cyan/visible{
-	icon_state = "manifold-2";
 	dir = 4
 	},
 /turf/open/floor/plating/airless{
@@ -755,14 +730,13 @@
 "gU" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible,
 /obj/machinery/atmospherics/components/binary/valve{
-	icon_state = "mvalve_map-2";
-	dir = 4
+	dir = 4;
+	icon_state = "mvalve_map-2"
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
 "ha" = (
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -776,7 +750,6 @@
 /area/ruin/powered)
 "hz" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/cyan/visible,
@@ -794,7 +767,6 @@
 /area/ruin/powered)
 "jR" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 10
 	},
 /turf/open/floor/plating/airless{
@@ -811,14 +783,12 @@
 /area/ruin/powered)
 "oz" = (
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on{
-	icon_state = "scrub_map_on-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
 "oC" = (
 /obj/machinery/atmospherics/pipe/simple/supply/visible{
-	icon_state = "pipe11-2";
 	dir = 10
 	},
 /turf/open/floor/plasteel/airless,
@@ -831,8 +801,8 @@
 /area/ruin/powered)
 "qr" = (
 /obj/machinery/atmospherics/components/trinary/mixer/airmix{
-	icon_state = "mixer_on";
-	dir = 1
+	dir = 1;
+	icon_state = "mixer_on"
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
@@ -847,7 +817,6 @@
 /area/ruin/powered)
 "rD" = (
 /obj/machinery/atmospherics/pipe/manifold/cyan/visible{
-	icon_state = "manifold-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel/airless,
@@ -857,14 +826,12 @@
 /area/ruin/powered)
 "sv" = (
 /obj/machinery/atmospherics/pipe/simple/supply/visible{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
 "sw" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 10
 	},
 /turf/open/floor/plasteel/airless,
@@ -887,7 +854,6 @@
 "uK" = (
 /obj/structure/table,
 /obj/machinery/atmospherics/pipe/manifold/scrubbers/hidden{
-	icon_state = "manifold-2";
 	dir = 1
 	},
 /turf/open/floor/plasteel,
@@ -897,7 +863,6 @@
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -909,21 +874,18 @@
 /area/ruin/powered)
 "vB" = (
 /obj/machinery/atmospherics/pipe/manifold/scrubbers/hidden{
-	icon_state = "manifold-2";
 	dir = 1
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "wP" = (
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on{
-	icon_state = "scrub_map_on-2";
 	dir = 1
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "xo" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plating/airless,
@@ -934,21 +896,18 @@
 /area/ruin/powered)
 "yM" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/closed/wall/r_wall,
 /area/ruin/powered)
 "zv" = (
 /obj/machinery/atmospherics/pipe/manifold/supply/hidden{
-	icon_state = "manifold-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "Cz" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel,
@@ -969,7 +928,6 @@
 /area/ruin/powered)
 "Eq" = (
 /obj/machinery/atmospherics/pipe/manifold/scrubbers/hidden{
-	icon_state = "manifold-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -988,14 +946,12 @@
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on{
-	icon_state = "scrub_map_on-2";
 	dir = 4
 	},
 /turf/open/floor/engine,
 /area/ruin/powered)
 "EV" = (
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on{
-	icon_state = "scrub_map_on-2";
 	dir = 1
 	},
 /obj/machinery/airalarm/directional/north,
@@ -1006,7 +962,6 @@
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -1016,18 +971,15 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/components/binary/pump{
-	icon_state = "pump_map-2";
 	dir = 1
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
 "FU" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 9
 	},
 /turf/open/floor/plating/airless{
@@ -1053,7 +1005,6 @@
 /area/ruin/powered)
 "HW" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/green/visible,
@@ -1063,7 +1014,6 @@
 /area/ruin/powered)
 "Ij" = (
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 9
 	},
 /turf/open/floor/plasteel/airless,
@@ -1077,21 +1027,18 @@
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
 "JF" = (
 /obj/machinery/atmospherics/pipe/manifold/supply/hidden{
-	icon_state = "manifold-2";
 	dir = 1
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "Mc" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -1116,7 +1063,6 @@
 	dir = 4
 	},
 /obj/machinery/atmospherics/pipe/simple/scrubbers/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -1126,7 +1072,6 @@
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/yellow{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /turf/open/floor/plasteel/airless,
@@ -1137,7 +1082,6 @@
 /area/ruin/powered)
 "Rv" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/components/binary/pump,
@@ -1145,14 +1089,12 @@
 /area/ruin/powered)
 "RC" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 5
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "RV" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible{
-	icon_state = "pipe11-2";
 	dir = 8
 	},
 /obj/machinery/atmospherics/pipe/simple/cyan/visible,
@@ -1160,14 +1102,12 @@
 /area/ruin/powered)
 "Tf" = (
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 10
 	},
 /turf/open/floor/plasteel,
 /area/ruin/powered)
 "Th" = (
 /obj/machinery/atmospherics/pipe/simple/green/visible{
-	icon_state = "pipe11-2";
 	dir = 5
 	},
 /turf/open/floor/plasteel/airless,
@@ -1186,7 +1126,6 @@
 "VU" = (
 /obj/machinery/atmospherics/pipe/simple/supply/hidden,
 /obj/machinery/atmospherics/pipe/simple/scrubbers/hidden{
-	icon_state = "pipe11-2";
 	dir = 4
 	},
 /turf/open/floor/plasteel,
@@ -1195,6 +1134,10 @@
 /obj/machinery/atmospherics/pipe/simple/green/visible,
 /turf/open/floor/plasteel/airless,
 /area/ruin/powered)
+"WJ" = (
+/obj/effect/landmark/dropship_entry,
+/turf/template_noop,
+/area/template_noop)
 "WV" = (
 /obj/machinery/atmospherics/pipe/simple/cyan/visible,
 /turf/open/floor/plating/airless{
@@ -1531,7 +1474,7 @@ aa
 aa
 aa
 aa
-aa
+WJ
 aa
 aa
 aa
@@ -2303,7 +2246,7 @@ af
 ap
 ap
 ap
-aC
+ap
 ap
 ap
 ap

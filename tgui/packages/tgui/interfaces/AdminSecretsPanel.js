@@ -102,9 +102,9 @@ export const AdminSecretsPanel = (props, context) => {
 
   return (
     <Window
+      theme="admin"
       width={720}
-      height={480}
-      resizable>
+      height={480}>
       <Window.Content scrollable>
         {Header}
         <Section>

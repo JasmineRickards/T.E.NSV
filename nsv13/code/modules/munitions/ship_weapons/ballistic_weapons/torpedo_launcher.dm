@@ -16,17 +16,29 @@
 
 /obj/machinery/ship_weapon/torpedo_launcher/north
 	dir = NORTH
+	pixel_x = -16
+	pixel_y = -32
+	bound_height = 96
+	bound_width = 32
 
 /obj/machinery/ship_weapon/torpedo_launcher/south
 	dir = SOUTH
+	pixel_x = -16
+	pixel_y = -64
+	bound_height = 96
+	bound_width = 32
+	bound_y = -64
 
 /obj/machinery/ship_weapon/torpedo_launcher/east
 	dir = EAST
 
 /obj/machinery/ship_weapon/torpedo_launcher/west
 	dir = WEST
+	pixel_x = -64
+	pixel_y = -74
+	bound_x = -64
 
-/obj/machinery/ship_weapon/torpedo_launcher/Initialize()
+/obj/machinery/ship_weapon/torpedo_launcher/Initialize(mapload)
 	..()
 	component_parts = list()
 	component_parts += new/obj/item/ship_weapon/parts/firing_electronics
@@ -42,7 +54,7 @@
 			to_chat(user, "<span class='notice'>You unscrew the door panel on the [src].</span>")
 			spawn_frame(TRUE)
 			return TRUE
-	. = ..()
+	return ..()
 
 /obj/machinery/ship_weapon/torpedo_launcher/spawn_frame(disassembled)
 	var/obj/structure/ship_weapon/torpedo_launcher_assembly/M = new /obj/structure/ship_weapon/torpedo_launcher_assembly(loc)
@@ -65,11 +77,8 @@
 	// We have different sprites and behaviors for each torpedo
 	var/obj/item/ship_weapon/ammunition/torpedo/T = chambered
 	if(T)
-		if(istype(T, /obj/item/projectile/guided_munition/torpedo/dud)) //Some brainlet MAA loaded an incomplete torp
-			linked.fire_projectile(T.projectile_type, target, homing = FALSE, lateral=TRUE)
-		else
-			var/obj/item/projectile/P = linked.fire_projectile(T.projectile_type, target, homing = TRUE, lateral = TRUE)
-			if(T.contents.len)
-				for(var/atom/movable/AM in T.contents)
-					to_chat(AM, "<span class='warning'>You feel slightly nauseous as you're shot out into space...</span>")
-					AM.forceMove(P)
+		var/obj/item/projectile/P = linked.fire_projectile(T.projectile_type, target, lateral = TRUE)
+		if(T.contents.len)
+			for(var/atom/movable/AM in T.contents)
+				to_chat(AM, "<span class='warning'>You feel slightly nauseous as you're shot out into space...</span>")
+				AM.forceMove(P)

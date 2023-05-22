@@ -1,10 +1,6 @@
 //Command
 
 
-
-
-
-
 /obj/item/circuitboard/machine/bsa/back
 	name = "bluespace artillery generator (Machine Board)"
 	icon_state = "command"
@@ -53,7 +49,7 @@
 /obj/item/circuitboard/machine/autolathe
 	name = "autolathe (Machine Board)"
 	icon_state = "engineering"
-	build_path = /obj/machinery/autolathe
+	build_path = /obj/machinery/modular_fabricator/autolathe
 	req_components = list(
 		/obj/item/stock_parts/matter_bin = 3,
 		/obj/item/stock_parts/manipulator = 1,
@@ -155,7 +151,7 @@
 #define PATH_POWERCOIL /obj/machinery/power/tesla_coil/power
 #define PATH_RPCOIL /obj/machinery/power/tesla_coil/research
 
-/obj/item/circuitboard/machine/tesla_coil/Initialize()
+/obj/item/circuitboard/machine/tesla_coil/Initialize(mapload)
 	. = ..()
 	if(build_path)
 		build_path = PATH_POWERCOIL
@@ -261,6 +257,14 @@
 		/obj/item/stack/cable_coil = 5,
 		/obj/item/stock_parts/capacitor = 6)
 
+/obj/item/circuitboard/machine/igniter
+	name = "igniter (Machine Board)"
+	icon_state = "engineering"
+	build_path = /obj/machinery/igniter
+	req_components = list(
+		/obj/item/assembly/igniter = 1
+	)
+
 /obj/item/circuitboard/machine/protolathe/department/engineering
 	name = "departmental protolathe - engineering (Machine Board)"
 	icon_state = "engineering"
@@ -322,6 +326,15 @@
 	build_path = /obj/machinery/atmospherics/components/unary/shuttle/heater
 	req_components = list(/obj/item/stock_parts/micro_laser = 2,
 		/obj/item/stock_parts/matter_bin = 1)
+
+/obj/item/circuitboard/machine/plasma_refiner
+	name = "plasma refinery (Machine Board)"
+	build_path = /obj/machinery/atmospherics/components/unary/plasma_refiner
+	req_components = list(
+		/obj/item/stock_parts/micro_laser = 2,
+		/obj/item/stack/sheet/glass = 1,
+		/obj/item/assembly/igniter = 1
+	)
 
 /obj/item/circuitboard/machine/scanner_gate
 	name = "scanner gate (Machine Board)"
@@ -545,7 +558,7 @@
 		/obj/machinery/vending/hydroseeds = "MegaSeed Servitor",
 		/obj/machinery/vending/sustenance = "Sustenance Vendor",
 		/obj/machinery/vending/dinnerware = "Plasteel Chef's Dinnerware Vendor",
-		/obj/machinery/vending/cart = "PTech",
+		/obj/machinery/vending/job_disk = "PTech",
 		/obj/machinery/vending/robotics = "Robotech Deluxe",
 		/obj/machinery/vending/engineering = "Robco Tool Maker",
 		/obj/machinery/vending/sovietsoda = "BODA",
@@ -803,19 +816,6 @@
 
 //Science
 
-/obj/item/circuitboard/machine/bluespace_miner
-	name = "bluespace miner (Machine Board)"
-	icon_state = "science"
-	build_path = /obj/machinery/mineral/bluespace_miner
-	req_components = list(
-		/obj/item/stock_parts/capacitor/quadratic = 1,
-		/obj/item/stock_parts/matter_bin = 3,
-		/obj/item/stock_parts/micro_laser = 1,
-		/obj/item/stock_parts/manipulator/femto = 3,
-		/obj/item/stock_parts/scanning_module = 1,
-		/obj/item/stack/ore/bluespace_crystal = 11)
-	needs_anchored = FALSE
-
 /obj/item/circuitboard/machine/circuit_imprinter/department/science
 	name = "departmental circuit imprinter - science (Machine Board)"
 	icon_state = "science"
@@ -860,7 +860,7 @@
 /obj/item/circuitboard/machine/mechfab
 	name = "exosuit fabricator (Machine Board)"
 	icon_state = "science"
-	build_path = /obj/machinery/mecha_part_fabricator
+	build_path = /obj/machinery/modular_fabricator/exosuit_fab
 	req_components = list(
 		/obj/item/stock_parts/matter_bin = 2,
 		/obj/item/stock_parts/manipulator = 1,
@@ -956,7 +956,11 @@
 	icon_state = "science"
 	build_path = /obj/machinery/rnd/production/techfab/department/science
 
-
+/obj/item/circuitboard/machine/ecto_sniffer
+	name = "Ectoscopic Sniffer (Machine Board)"
+	build_path = /obj/machinery/ecto_sniffer
+	req_components = list(
+		/obj/item/stock_parts/scanning_module = 1)
 //Security
 
 
@@ -1091,6 +1095,14 @@
 		/obj/item/stack/sheet/glass = 2)
 	needs_anchored = FALSE
 
+/obj/item/circuitboard/machine/mass_driver
+	name = "mass driver (Machine Board)"
+	build_path = /obj/machinery/mass_driver
+	req_components = list(
+		/obj/item/stock_parts/manipulator = 2,
+		/obj/item/stock_parts/capacitor = 1
+	)
+
 /obj/item/circuitboard/machine/plantgenes
 	name = "plant DNA manipulator (Machine Board)"
 	icon_state = "service"
@@ -1163,14 +1175,23 @@
 /obj/item/circuitboard/machine/mining_equipment_vendor
 	name = "mining equipment vendor (Machine Board)"
 	icon_state = "supply"
-	build_path = /obj/machinery/mineral/equipment_vendor
+	build_path = /obj/machinery/vendor/mining
 	req_components = list(
 		/obj/item/stack/sheet/glass = 1,
 		/obj/item/stock_parts/matter_bin = 3)
 
+/obj/item/circuitboard/machine/exploration_equipment_vendor
+	name = "exploration equipment vendor (Machine Board)"
+	icon_state = "supply"
+	build_path = /obj/machinery/vendor/exploration
+	req_components = list(
+		/obj/item/stack/sheet/glass = 1,
+		/obj/item/stock_parts/matter_bin = 3)
+
+
 /obj/item/circuitboard/machine/mining_equipment_vendor/golem
 	name = "golem ship equipment vendor (Machine Board)"
-	build_path = /obj/machinery/mineral/equipment_vendor/golem
+	build_path = /obj/machinery/vendor/mining/golem
 
 /obj/item/circuitboard/machine/pump
 	name = "portable liquid pump (Machine Board)"
@@ -1220,6 +1241,19 @@
 		/obj/item/stack/sheet/glass = 2,
 		/obj/item/stack/cable_coil = 5)
 
+/obj/item/circuitboard/machine/processing_unit
+	name = "furnace (Machine Board)"
+	build_path = /obj/machinery/mineral/processing_unit
+	req_components = list(
+		/obj/item/stock_parts/micro_laser = 1,
+		/obj/item/stock_parts/matter_bin = 2,
+		/obj/item/assembly/igniter = 1)
+
+/obj/item/circuitboard/machine/processing_unit_console
+	name = "furnace console (Machine Board)"
+	build_path = /obj/machinery/mineral/processing_unit_console
+	req_components = list()
+
 
 //Misc
 
@@ -1258,3 +1292,11 @@
 /obj/item/circuitboard/machine/clockwork
 	name = "clockwork board (Report This)"
 	icon_state = "clock_mod"
+
+/obj/item/circuitboard/machine/allaccess
+	name = "all access dispenser"
+	icon_state = "generic"
+	build_path = /obj/machinery/allaccess
+	req_components = list(
+		/obj/item/stock_parts/manipulator = 1,
+		/obj/item/stock_parts/micro_laser = 1)

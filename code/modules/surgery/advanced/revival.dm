@@ -18,7 +18,7 @@
 		return FALSE
 	if(target.stat != DEAD)
 		return FALSE
-	if(target.suiciding || target.hellbound || HAS_TRAIT(target, TRAIT_HUSK))
+	if(target.suiciding || target.ishellbound() || HAS_TRAIT(target, TRAIT_HUSK))
 		return FALSE
 	var/obj/item/organ/brain/B = target.getorganslot(ORGAN_SLOT_BRAIN)
 	if(!B)
@@ -26,16 +26,18 @@
 	return TRUE
 
 /datum/surgery_step/revive
-	name = "revive body"
-	implements = list(/obj/item/twohanded/shockpaddles = 100, /obj/item/melee/baton = 75, /obj/item/gun/energy = 60)
+	name = "shock body"
+	implements = list(/obj/item/shockpaddles = 100, /obj/item/melee/baton = 75, /obj/item/gun/energy = 60)
+	repeatable = TRUE
 	time = 120
+	success_sound = 'sound/magic/lightningbolt.ogg'
+	failure_sound = 'sound/magic/lightningbolt.ogg'
 
 /datum/surgery_step/revive/tool_check(mob/user, obj/item/tool)
 	. = TRUE
-	if(istype(tool, /obj/item/twohanded/shockpaddles))
-		var/obj/item/twohanded/shockpaddles/S = tool
-		var/wielded = SEND_SIGNAL(S, COMSIG_ITEM_IS_WIELDED) & COMPONENT_WIELDED
-		if((S.req_defib && !S.defib.powered) || !wielded || S.cooldown || S.busy)
+	if(istype(tool, /obj/item/shockpaddles))
+		var/obj/item/shockpaddles/S = tool
+		if((S.req_defib && !S.defib.powered) || !ISWIELDED(S) || S.cooldown || S.busy)
 			to_chat(user, "<span class='warning'>You need to wield both paddles, and [S.defib] must be powered!</span>")
 			return FALSE
 	if(istype(tool, /obj/item/melee/baton))
@@ -68,6 +70,7 @@
 	if(target.revive())
 		target.visible_message("...[target] wakes up, alive and aware!")
 		target.emote("gasp")
+		to_chat(target, "<span class='warning'><b>You have been revived via Revival Surgery. You cannot remember how exactly you died (or who killed you), but you may remember certain details such as the weapon used or the place of death.</b></span>") //NSV13
 		target.adjustOrganLoss(ORGAN_SLOT_BRAIN, 50, 199) //MAD SCIENCE
 		return TRUE
 	else

@@ -5,7 +5,7 @@
 	dynamic_lighting = DYNAMIC_LIGHTING_FORCED
 	requires_power = FALSE
 	has_gravity = STANDARD_GRAVITY
-	valid_territory = FALSE
+	area_flags = BLOBS_ALLOWED | UNIQUE_AREA
 
 //Survival Capsule
 /obj/item/survivalcapsule
@@ -33,8 +33,9 @@
 /obj/item/survivalcapsule/examine(mob/user)
 	. = ..()
 	get_template()
-	. += "This capsule has the [template.name] stored."
-	. += template.description
+	if(template)
+		. += "This capsule has the [template.name] stored."
+		. += template.description
 
 /obj/item/survivalcapsule/attack_self()
 	//Can't grab when capsule is New() because templates aren't loaded then
@@ -226,10 +227,14 @@
 		return
 	attack_self(user)
 
-//Bed
+//Beds
 /obj/structure/bed/pod
 	icon = 'icons/obj/lavaland/survival_pod.dmi'
 	icon_state = "bed"
+
+/obj/structure/bed/double/pod
+	icon = 'icons/obj/lavaland/survival_pod.dmi'
+	icon_state = "bed_double"
 
 //Survival Storage Unit
 /obj/machinery/smartfridge/survival_pod
@@ -350,7 +355,7 @@
 						/obj/item/energy_katana,
 						/obj/item/hierophant_club,
 						/obj/item/his_grace,
-						/obj/item/gun/ballistic/minigun,
+						/obj/item/gun/energy/minigun,
 						/obj/item/gun/ballistic/automatic/l6_saw,
 						/obj/item/gun/magic/staff/chaos,
 						/obj/item/gun/magic/staff/spellblade,
@@ -361,7 +366,7 @@
 						/obj/item/phylactery,
 						/obj/item/banhammer)
 
-/obj/item/fakeartefact/Initialize()
+/obj/item/fakeartefact/Initialize(mapload)
 	. = ..()
 	var/obj/item/I = pick(possible)
 	name = initial(I.name)

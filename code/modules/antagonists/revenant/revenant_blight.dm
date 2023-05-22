@@ -11,7 +11,7 @@
 	viable_mobtypes = list(/mob/living/carbon/human)
 	disease_flags = CURABLE
 	permeability_mod = 1
-	severity = DISEASE_SEVERITY_HARMFUL
+	danger = DISEASE_HARMFUL
 	var/stagedamage = 0 //Highest stage reached.
 	var/finalstage = 0 //Because we're spawning off the cure in the final stage, we need to check if we've done the final stage's effects.
 
@@ -62,6 +62,6 @@
 					affected_mob.dna.species.handle_hair(affected_mob,"#1d2953")
 				affected_mob.visible_message("<span class='warning'>[affected_mob] looks terrifyingly gaunt...</span>", "<span class='revennotice'>You suddenly feel like your skin is <i>wrong</i>...</span>")
 				affected_mob.add_atom_colour("#1d2953", TEMPORARY_COLOUR_PRIORITY)
-				addtimer(CALLBACK(src, .proc/cure), 100)
+				addtimer(CALLBACK(src, PROC_REF(cure)), 100)
 		else
 			return

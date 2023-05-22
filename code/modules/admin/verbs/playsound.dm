@@ -31,7 +31,7 @@
 	message_admins("[key_name_admin(src)] played sound [S]")
 
 	for(var/mob/M in GLOB.player_list)
-		if(M.client.prefs.toggles & SOUND_MIDI)
+		if(M.client.prefs.toggles & PREFTOGGLE_SOUND_MIDI)
 			admin_sound.volume = vol * M.client.admin_music_volume
 			SEND_SOUND(M, admin_sound)
 			admin_sound.volume = vol
@@ -101,6 +101,8 @@
 					var/res = alert(usr, "Show the title of and link to this song to the players?\n[title]",, "No", "Yes", "Cancel")
 					switch(res)
 						if("Yes")
+							music_extra_data["title"] = data["title"]
+							music_extra_data["link"] = data["webpage_url"]
 							to_chat(world, "<span class='boldannounce'>An admin played: [webpage_url]</span>")
 						if("Cancel")
 							return
@@ -126,7 +128,7 @@
 			for(var/m in GLOB.player_list)
 				var/mob/M = m
 				var/client/C = M.client
-				if(C.prefs.toggles & SOUND_MIDI)
+				if(C.prefs.toggles & PREFTOGGLE_SOUND_MIDI)
 					if(!stop_web_sounds)
 						C.tgui_panel?.play_music(web_sound_url, music_extra_data)
 					else

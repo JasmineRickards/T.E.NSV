@@ -1,8 +1,12 @@
+#define GHOUL_MAX_HEALTH 25
+#define MUTE_MAX_HEALTH 50
+#define ORIGINAL_MAX_HEALTH 100
+
 /datum/eldritch_knowledge/base_flesh
 	name = "Principle of Hunger"
 	desc = "Opens up the Path of Flesh to you. Allows you to transmute a pool of blood with a kitchen knife, or its derivatives, into a Flesh Blade."
 	gain_text = "Hundreds of us starved, but not me... I found strength in my greed."
-	banned_knowledge = list(/datum/eldritch_knowledge/base_ash,/datum/eldritch_knowledge/base_rust,/datum/eldritch_knowledge/final/ash_final,/datum/eldritch_knowledge/final/rust_final)
+	banned_knowledge = list(/datum/eldritch_knowledge/base_ash,/datum/eldritch_knowledge/base_rust,/datum/eldritch_knowledge/last/ash_final,/datum/eldritch_knowledge/last/rust_final)
 	next_knowledge = list(/datum/eldritch_knowledge/flesh_grasp)
 	required_atoms = list(/obj/item/kitchen/knife,/obj/effect/decal/cleanable/blood)
 	result_atoms = list(/obj/item/melee/sickly_blade/flesh)
@@ -41,7 +45,7 @@
 			return
 		var/mob/dead/observer/C = pick(candidates)
 		message_admins("[key_name_admin(C)] has taken control of ([key_name_admin(humie)]) to replace an AFK player.")
-		humie.ghostize(0)
+		humie.ghostize(FALSE,SENTIENCE_ERASE)
 		humie.key = C.key
 
 	log_game("[key_name_admin(humie)] has become a voiceless dead, their master is [user.real_name]")
@@ -52,21 +56,26 @@
 	ADD_TRAIT(humie, TRAIT_IGNOREDAMAGESLOWDOWN, MAGIC_TRAIT)
 	ADD_TRAIT(humie, TRAIT_NOSTAMCRIT, MAGIC_TRAIT)
 	ADD_TRAIT(humie, TRAIT_NOLIMBDISABLE, MAGIC_TRAIT)
-	humie.setMaxHealth(50)
-	humie.health = 50 // Voiceless dead are much tougher than ghouls
+	humie.setMaxHealth(MUTE_MAX_HEALTH)
+	humie.health = MUTE_MAX_HEALTH // Voiceless dead are much tougher than ghouls
 	humie.become_husk()
 	humie.faction |= "heretics"
+	humie.apply_status_effect(/datum/status_effect/ghoul)
 
 	var/datum/antagonist/heretic_monster/heretic_monster = humie.mind.add_antag_datum(/datum/antagonist/heretic_monster)
 	var/datum/antagonist/heretic/master = user.mind.has_antag_datum(/datum/antagonist/heretic)
 	heretic_monster.set_owner(master)
 	atoms -= humie
-	RegisterSignal(humie,COMSIG_MOB_DEATH,.proc/remove_ghoul)
+	RegisterSignal(humie,COMSIG_MOB_DEATH,PROC_REF(remove_ghoul))
 	ghouls += humie
 
 /datum/eldritch_knowledge/flesh_ghoul/proc/remove_ghoul(datum/source)
+	SIGNAL_HANDLER
+
 	var/mob/living/carbon/human/humie = source
 	ghouls -= humie
+	humie.setMaxHealth(ORIGINAL_MAX_HEALTH)
+	humie.remove_status_effect(/datum/status_effect/ghoul)
 	humie.mind.remove_antag_datum(/datum/antagonist/heretic_monster)
 	UnregisterSignal(source,COMSIG_MOB_DEATH)
 
@@ -107,21 +116,26 @@
 	log_game("[key_name_admin(human_target)] has become a ghoul, their master is [user.real_name]")
 	//we change it to true only after we know they passed all the checks
 	. = TRUE
-	RegisterSignal(human_target,COMSIG_MOB_DEATH,.proc/remove_ghoul)
+	RegisterSignal(human_target,COMSIG_MOB_DEATH, PROC_REF(remove_ghoul))
 	human_target.revive(full_heal = TRUE, admin_revive = TRUE)
 	ADD_TRAIT(human_target, TRAIT_NOSTAMCRIT, MAGIC_TRAIT)
 	ADD_TRAIT(human_target, TRAIT_NOLIMBDISABLE, MAGIC_TRAIT)
-	human_target.setMaxHealth(25)
-	human_target.health = 25
+	human_target.setMaxHealth(GHOUL_MAX_HEALTH)
+	human_target.health = GHOUL_MAX_HEALTH
 	human_target.become_husk()
+	human_target.apply_status_effect(/datum/status_effect/ghoul)
 	human_target.faction |= "heretics"
 	var/datum/antagonist/heretic_monster/heretic_monster = human_target.mind.add_antag_datum(/datum/antagonist/heretic_monster)
 	var/datum/antagonist/heretic/master = user.mind.has_antag_datum(/datum/antagonist/heretic)
 	heretic_monster.set_owner(master)
 
 /datum/eldritch_knowledge/flesh_grasp/proc/remove_ghoul(datum/source)
+	SIGNAL_HANDLER
+
 	var/mob/living/carbon/human/humie = source
 	spooky_scaries -= humie
+	humie.setMaxHealth(ORIGINAL_MAX_HEALTH)
+	humie.remove_status_effect(/datum/status_effect/ghoul)
 	humie.mind.remove_antag_datum(/datum/antagonist/heretic_monster)
 	UnregisterSignal(source, COMSIG_MOB_DEATH)
 
@@ -171,20 +185,20 @@
 	cost = 1
 	required_atoms = list(/obj/item/organ/eyes,/obj/item/bodypart/l_arm,/obj/item/bodypart/r_arm,/obj/effect/decal/cleanable/blood)
 	mob_to_summon = /mob/living/simple_animal/hostile/eldritch/raw_prophet
-	next_knowledge = list(/datum/eldritch_knowledge/flesh_blade_upgrade,/datum/eldritch_knowledge/spell/blood_siphon,/datum/eldritch_knowledge/curse/paralysis)
+	next_knowledge = list(/datum/eldritch_knowledge/flesh_blade_upgrade,/datum/eldritch_knowledge/spell/blood_siphon,/datum/eldritch_knowledge/curse/alteration)
 	route = PATH_FLESH
 
 /datum/eldritch_knowledge/summon/stalker
 	name = "Lonely Ritual"
 	gain_text = "I was able to combine my greed and desires to summon an eldritch beast I had never seen before. An ever shapeshifting mass of flesh, it knew well my goals."
-	desc = "You can now summon a Stalker by transmutating a pair of eyes, a candle, a pen and a piece of paper. Stalkers can shapeshift into harmless animals to get close to the victim."
+	desc = "You can now summon a Stalker by transmutating a knife, a flower, a pen and a piece of paper. Stalkers can shapeshift into harmless animals to get close to the victim."
 	cost = 1
 	required_atoms = list(/obj/item/kitchen/knife,/obj/item/reagent_containers/food/snacks/grown/poppy,/obj/item/pen,/obj/item/paper)
 	mob_to_summon = /mob/living/simple_animal/hostile/eldritch/stalker
-	next_knowledge = list(/datum/eldritch_knowledge/summon/ashy,/datum/eldritch_knowledge/summon/rusty,/datum/eldritch_knowledge/final/flesh_final)
+	next_knowledge = list(/datum/eldritch_knowledge/summon/ashy,/datum/eldritch_knowledge/summon/rusty,/datum/eldritch_knowledge/last/flesh_final)
 	route = PATH_FLESH
 
-/datum/eldritch_knowledge/final/flesh_final
+/datum/eldritch_knowledge/last/flesh_final
 	name = "Priest's Final Hymn"
 	gain_text = "Man of this world. Hear me! For the time of the lord of arms has come! Emperor of Flesh guides my army!"
 	desc = "Bring 3 bodies onto a transmutation rune to gain the ability of shedding your human form, and gaining untold power."
@@ -192,9 +206,9 @@
 	cost = 3
 	route = PATH_FLESH
 
-/datum/eldritch_knowledge/final/flesh_final/on_finished_recipe(mob/living/user, list/atoms, loc)
+/datum/eldritch_knowledge/last/flesh_final/on_finished_recipe(mob/living/user, list/atoms, loc)
 	. = ..()
-	priority_announce("$^@&#*$^@(#&$(@&#^$&#^@# Ever coiling vortex. Reality unfolded. THE LORD OF ARMS, [user.real_name] has ascended! Fear the ever twisting hand! $^@&#*$^@(#&$(@&#^$&#^@#","#$^@&#*$^@(#&$(@&#^$&#^@#", 'sound/ai/spanomalies.ogg')
+	priority_announce("$^@&#*$^@(#&$(@&#^$&#^@# Ever coiling vortex. Reality unfolded. THE LORD OF ARMS, [user.real_name] has ascended! Fear the ever twisting hand! $^@&#*$^@(#&$(@&#^$&#^@#","#$^@&#*$^@(#&$(@&#^$&#^@#", ANNOUNCER_SPANOMALIES)
 	user.mind.AddSpell(new /obj/effect/proc_holder/spell/targeted/shed_human_form)
 	if(!ishuman(user))
 		return
@@ -206,3 +220,7 @@
 	ghoul1.ghoul_amt *= 3
 	var/datum/eldritch_knowledge/flesh_ghoul/ghoul2 = heretic.get_knowledge(/datum/eldritch_knowledge/flesh_ghoul)
 	ghoul2.max_amt *= 3
+
+#undef GHOUL_MAX_HEALTH
+#undef MUTE_MAX_HEALTH
+#undef ORIGINAL_MAX_HEALTH

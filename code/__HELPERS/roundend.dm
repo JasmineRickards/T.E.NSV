@@ -6,73 +6,91 @@
 	gather_antag_data()
 	record_nuke_disk_location()
 	var/json_file = file("[GLOB.log_directory]/round_end_data.json")
+	// All but npcs sublists and ghost category contain only mobs with minds
 	var/list/file_data = list("escapees" = list("humans" = list(), "silicons" = list(), "others" = list(), "npcs" = list()), "abandoned" = list("humans" = list(), "silicons" = list(), "others" = list(), "npcs" = list()), "ghosts" = list(), "additional data" = list())
-	var/num_survivors = 0
-	var/num_escapees = 0
-	var/num_shuttle_escapees = 0
+	var/num_survivors = 0 //Count of non-brain non-camera mobs with mind that are alive
+	var/num_escapees = 0 //Above and on centcom z
+	var/num_shuttle_escapees = 0 //Above and on escape shuttle
 	var/list/area/shuttle_areas
 	if(SSshuttle?.emergency)
 		shuttle_areas = SSshuttle.emergency.shuttle_areas
-	for(var/mob/m in GLOB.mob_list)
-		var/escaped
-		var/category
+
+	for(var/mob/M in GLOB.mob_list)
 		var/list/mob_data = list()
-		if(isnewplayer(m))
+		if(isnewplayer(M))
 			continue
-		if(m.mind)
-			if(m.stat != DEAD && !isbrain(m) && !iscameramob(m))
+
+		var/escape_status = "abandoned" //default to abandoned
+		var/category = "npcs" //Default to simple count only bracket
+		var/count_only = TRUE //Count by name only or full info
+
+		mob_data["name"] = M.name
+		if(M.mind)
+			count_only = FALSE
+			mob_data["ckey"] = M.mind.key
+			if(M.stat != DEAD && !isbrain(M) && !iscameramob(M))
 				num_survivors++
-			mob_data += list("name" = m.name, "ckey" = ckey(m.mind.key))
-			if(isobserver(m))
-				escaped = "ghosts"
-			else if(isliving(m))
-				var/mob/living/L = m
-				mob_data += list("location" = get_area(L), "health" = L.health)
+				if(EMERGENCY_ESCAPED_OR_ENDGAMED && (M.onCentCom() || M.onSyndieBase()))
+					num_escapees++
+					escape_status = "escapees"
+					if(shuttle_areas[get_area(M)])
+						num_shuttle_escapees++
+			if(isliving(M))
+				var/mob/living/L = M
+				mob_data["location"] = get_area(L)
+				mob_data["health"] = L.health
 				if(ishuman(L))
 					var/mob/living/carbon/human/H = L
 					category = "humans"
-					mob_data += list("job" = H.mind.assigned_role, "species" = H.dna.species.name)
+					if(H.mind)
+						mob_data["job"] = H.mind.assigned_role
+					else
+						mob_data["job"] = "Unknown"
+					mob_data["species"] = H.dna.species.name
 				else if(issilicon(L))
 					category = "silicons"
 					if(isAI(L))
-						mob_data += list("module" = "AI")
-					if(isAI(L))
-						mob_data += list("module" = "pAI")
-					if(iscyborg(L))
+						mob_data["module"] = "AI"
+					else if(ispAI(L))
+						mob_data["module"] = "pAI"
+					else if(iscyborg(L))
 						var/mob/living/silicon/robot/R = L
-						mob_data += list("module" = R.module)
-			else
-				category = "others"
-				mob_data += list("typepath" = m.type)
-		if(!escaped)
-			if(EMERGENCY_ESCAPED_OR_ENDGAMED && (m.onCentCom() || m.onSyndieBase()))
-				escaped = "escapees"
-				num_escapees++
-				if(shuttle_areas[get_area(m)])
-					num_shuttle_escapees++
-			else
-				escaped = "abandoned"
-		if(!m.mind && (!ishuman(m) || !issilicon(m)))
-			var/list/npc_nest = file_data["[escaped]"]["npcs"]
-			if(npc_nest.Find(initial(m.name)))
-				file_data["[escaped]"]["npcs"]["[initial(m.name)]"] += 1
-			else
-				file_data["[escaped]"]["npcs"]["[initial(m.name)]"] = 1
-		else
-			if(isobserver(m))
-				var/pos = length(file_data["[escaped]"]) + 1
-				file_data["[escaped]"]["[pos]"] = mob_data
-			else
-				if(!category)
+						mob_data["module"] = R.module.name
+				else
 					category = "others"
-					mob_data += list("name" = m.name, "typepath" = m.type)
-				var/pos = length(file_data["[escaped]"]["[category]"]) + 1
-				file_data["[escaped]"]["[category]"]["[pos]"] = mob_data
+					mob_data["typepath"] = M.type
+		//Ghosts don't care about minds, but we want to retain ckey data etc
+		if(isobserver(M))
+			count_only = FALSE
+			escape_status = "ghosts"
+			if(!M.mind)
+				mob_data["ckey"] = M.key
+			category = null //ghosts are one list deep
+		//All other mindless stuff just gets counts by name
+		if(count_only)
+			var/list/npc_nest = file_data["[escape_status]"]["npcs"]
+			var/name_to_use = initial(M.name)
+			if(ishuman(M))
+				name_to_use = "Unknown Human" //Monkeymen and other mindless corpses
+			if(npc_nest.Find(name_to_use))
+				file_data["[escape_status]"]["npcs"][name_to_use] += 1
+			else
+				file_data["[escape_status]"]["npcs"][name_to_use] = 1
+		else
+			//Mobs with minds and ghosts get detailed data
+			if(category)
+				var/pos = length(file_data["[escape_status]"]["[category]"]) + 1
+				file_data["[escape_status]"]["[category]"]["[pos]"] = mob_data
+			else
+				var/pos = length(file_data["[escape_status]"]) + 1
+				file_data["[escape_status]"]["[pos]"] = mob_data
+
 	var/datum/station_state/end_state = new /datum/station_state()
 	end_state.count()
 	var/station_integrity = min(PERCENT(GLOB.start_state.score(end_state)), 100)
 	file_data["additional data"]["station integrity"] = station_integrity
 	WRITE_FILE(json_file, json_encode(file_data))
+
 	SSblackbox.record_feedback("nested tally", "round_end_stats", num_survivors, list("survivors", "total"))
 	SSblackbox.record_feedback("nested tally", "round_end_stats", num_escapees, list("escapees", "total"))
 	SSblackbox.record_feedback("nested tally", "round_end_stats", GLOB.joined_player_list.len, list("players", "total"))
@@ -91,7 +109,7 @@
 
 	var/list/greentexters = list()
 
-	for(var/datum/antagonist/A in GLOB.antagonists)
+	for(var/datum/antagonist/A as() in GLOB.antagonists)
 		if(!A.owner)
 			continue
 
@@ -114,7 +132,7 @@
 		var/greentexted = TRUE
 
 		if(A.objectives.len)
-			for(var/datum/objective/O in A.objectives)
+			for(var/datum/objective/O as() in A.objectives)
 				var/result = O.check_completion() ? "SUCCESS" : "FAIL"
 
 				if (result == "FAIL")
@@ -199,7 +217,7 @@
 			if(CONFIG_GET(flag/allow_crew_objectives))
 				var/mob/M = C?.mob
 				if(M?.mind?.current && LAZYLEN(M.mind.crew_objectives))
-					for(var/datum/objective/crew/CO in M.mind.crew_objectives)
+					for(var/datum/objective/crew/CO as() in M.mind.crew_objectives)
 						if(!C) //Yes, the client can be null here. BYOND moment.
 							break
 						if(CO.check_completion())
@@ -210,7 +228,7 @@
 	log_game("The round has ended.")
 	SSstat.send_global_alert("Round Over", "The round has ended, the game will restart soon.")
 	if(LAZYLEN(GLOB.round_end_notifiees))
-		send2irc("Notice", "[GLOB.round_end_notifiees.Join(", ")] the round has ended.")
+		send2tgs("Notice", "[GLOB.round_end_notifiees.Join(", ")] the round has ended.")
 
 	RollCredits()
 
@@ -230,7 +248,7 @@
 	//Set news report and mode result
 	mode.set_round_result()
 
-	send2irc("Server", "Round just ended.")
+	send2tgs("Server", "Round just ended.")
 
 	if(length(CONFIG_GET(keyed_list/cross_server)))
 		send_news_report()
@@ -251,6 +269,20 @@
 
 	CHECK_TICK
 
+	//Process veteran achievements
+	for(var/client/C as() in GLOB.clients)
+		var/hours = round(C?.get_exp_living(TRUE)/60)
+		if(hours > 1000)
+			C?.give_award(/datum/award/achievement/misc/onekhours, C.mob)
+		if(hours > 2000)
+			C?.give_award(/datum/award/achievement/misc/twokhours, C.mob)
+		if(hours > 3000)
+			C?.give_award(/datum/award/achievement/misc/threekhours, C.mob)
+		if(hours > 4000)
+			C?.give_award(/datum/award/achievement/misc/fourkhours, C.mob)
+
+	CHECK_TICK
+
 	//Now print them all into the log!
 	log_game("Antagonists at round end were...")
 	for(var/antag_name in total_antagonists)
@@ -267,7 +299,8 @@
 	SSblackbox.Seal()
 
 	if(CONFIG_GET(flag/automapvote))
-		SSvote.initiate_vote("map", "BeeBot", forced=TRUE, popup=TRUE) //automatic map voting
+		if((world.time - SSticker.round_start_time) >= (CONFIG_GET(number/automapvote_threshold) MINUTES))
+			SSvote.initiate_vote("map", "BeeBot", forced=TRUE, popup=TRUE) //automatic map voting
 
 	sleep(50)
 	ready_for_reboot = TRUE
@@ -285,6 +318,9 @@
 //Common part of the report
 /datum/controller/subsystem/ticker/proc/build_roundend_report()
 	var/list/parts = list()
+
+	//NSV13 Gamemode Report
+	parts += overmap_report()
 
 	//Gamemode specific things. Should be empty most of the time.
 	parts += mode.special_report()
@@ -337,6 +373,10 @@
 		var/datum/game_mode/dynamic/mode = SSticker.mode
 		parts += "[FOURSPACES]Threat level: [mode.threat_level]"
 		parts += "[FOURSPACES]Threat left: [mode.mid_round_budget]"
+		if(mode.roundend_threat_log.len)
+			parts += "[FOURSPACES]Threat edits:"
+			for(var/entry as anything in mode.roundend_threat_log)
+				parts += "[FOURSPACES][FOURSPACES][entry]<BR>"
 		parts += "[FOURSPACES]Executed rules:"
 		for(var/datum/dynamic_ruleset/rule in mode.executed_rules)
 			parts += "[FOURSPACES][FOURSPACES][rule.ruletype] - <b>[rule.name]</b>: -[rule.cost + rule.scaled_times * rule.scaling_cost] threat"
@@ -391,7 +431,7 @@
 
 		if(CONFIG_GET(flag/allow_crew_objectives))
 			if(M.mind.current && LAZYLEN(M.mind.crew_objectives))
-				for(var/datum/objective/crew/CO in M.mind.crew_objectives)
+				for(var/datum/objective/crew/CO as() in M.mind.crew_objectives)
 					if(CO.check_completion())
 						parts += "<br><br><B>Your optional objective</B>: [CO.explanation_text] <span class='greentext'><B>Success!</B></span><br>"
 					else
@@ -413,6 +453,40 @@
 		give_show_report_button(C)
 		CHECK_TICK
 
+/datum/controller/subsystem/ticker/proc/overmap_report() //NSV13
+	var/list/parts = list()
+	parts += "<b>[SSovermap_mode.mode.name]</b>"
+	parts += "" //Line Break
+	parts += "Objectives:"
+	for(var/datum/overmap_objective/O in SSovermap_mode.mode.objectives)
+		switch(O.status)
+			if(0,2)
+				parts += "[O.brief]: <font color=red><b>FAILED</b></font>"
+			if(1,3)
+				parts += "[O.brief]: <font color=green><b>COMPLETED</b></font>"
+
+	parts += "" //Line Break
+	var/did_you_win_son = FALSE
+	var/objective_check = 0
+	for(var/datum/overmap_objective/O in SSovermap_mode.mode.objectives)
+		if(O.status == 3) //Victory override check
+			did_you_win_son = TRUE
+			break
+
+		else if(O.status == 1)
+			objective_check ++
+
+	if(objective_check >= SSovermap_mode.mode.objectives.len)
+		did_you_win_son = TRUE
+
+	if(did_you_win_son)
+		parts += "The crew of the [GLOB.station_name] <font color=green><b>COMPLETED</b></font> their mission for [capitalize(SSovermap_mode.mode.starting_faction)]<b>"
+		return "<div class='panel greenborder'>[parts.Join("<br>")]</div>"
+
+	else
+		parts += "The crew of the [GLOB.station_name] <font color=red><b>FAILED</b></font> their mission for [capitalize(SSovermap_mode.mode.starting_faction)]<b>"
+		return "<div class='panel redborder'>[parts.Join("<br>")]</div>"
+
 /datum/controller/subsystem/ticker/proc/law_report()
 	var/list/parts = list()
 	var/borg_spacer = FALSE //inserts an extra linebreak to seperate AIs from independent borgs, and then multiple independent borgs.
@@ -427,7 +501,7 @@
 
 		if(aiPlayer.law_change_counter >= 15)
 			if (aiPlayer.client)
-				SSmedals.UnlockMedal(MEDAL_15_AI_LAW_CHANGES,aiPlayer.client)
+				aiPlayer.client.give_award(/datum/award/achievement/misc/laws)
 
 
 		if (aiPlayer.connected_robots.len)
@@ -498,7 +572,7 @@
 	var/currrent_category
 	var/datum/antagonist/previous_category
 
-	sortTim(all_antagonists, /proc/cmp_antag_category)
+	sortTim(all_antagonists, GLOBAL_PROC_REF(cmp_antag_category))
 
 	for(var/datum/antagonist/A in all_antagonists)
 		if(!A.show_in_roundend)
@@ -586,7 +660,7 @@
 		return
 	var/list/objective_parts = list()
 	var/count = 1
-	for(var/datum/objective/objective in objectives)
+	for(var/datum/objective/objective as() in objectives)
 		if(objective.check_completion())
 			objective_parts += "<b>Objective #[count]</b>: [objective.explanation_text] <span class='greentext'>Success!</span>"
 		else
@@ -665,6 +739,7 @@
 /datum/controller/subsystem/ticker/proc/sendtodiscord(var/survivors, var/escapees, var/integrity)
     var/discordmsg = ""
     discordmsg += "--------------ROUND END--------------\n"
+    discordmsg += "Server: [CONFIG_GET(string/servername)]\n"
     discordmsg += "Round Number: [GLOB.round_id]\n"
     discordmsg += "Duration: [DisplayTimeText(world.time - SSticker.round_start_time)]\n"
     discordmsg += "Players: [GLOB.player_list.len]\n"
@@ -672,6 +747,13 @@
     discordmsg += "Escapees: [escapees]\n"
     discordmsg += "Integrity: [integrity]\n"
     discordmsg += "Gamemode: [SSticker.mode.name]\n"
+    if(istype(SSticker.mode, /datum/game_mode/dynamic))
+        var/datum/game_mode/dynamic/mode = SSticker.mode
+        discordmsg += "Threat level: [mode.threat_level]\n"
+        discordmsg += "Threat left: [mode.mid_round_budget]\n"
+        discordmsg += "Executed rules:\n"
+        for(var/datum/dynamic_ruleset/rule in mode.executed_rules)
+            discordmsg += "[rule.ruletype] - [rule.name]: -[rule.cost + rule.scaled_times * rule.scaling_cost] threat\n"
     discordsendmsg("ooc", discordmsg)
     discordmsg = ""
     var/list/ded = SSblackbox.first_death

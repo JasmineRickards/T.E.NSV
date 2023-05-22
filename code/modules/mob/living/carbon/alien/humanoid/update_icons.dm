@@ -34,15 +34,15 @@
 			icon = alt_icon
 			alt_icon = old_icon
 		icon_state = "alien[caste]_leap"
-		pixel_x = -32
-		pixel_y = -32
+		pixel_x = base_pixel_x - 32
+		pixel_y = base_pixel_y - 32
 	else
 		if(alt_icon != initial(alt_icon))
 			var/old_icon = icon
 			icon = alt_icon
 			alt_icon = old_icon
-		pixel_x = get_standard_pixel_x_offset(mobility_flags & MOBILITY_STAND)
-		pixel_y = get_standard_pixel_y_offset(mobility_flags & MOBILITY_STAND)
+		pixel_x = base_pixel_x + get_standard_pixel_x_offset(mobility_flags & MOBILITY_STAND)
+		pixel_y = base_pixel_y + get_standard_pixel_y_offset(mobility_flags & MOBILITY_STAND)
 	update_inv_hands()
 	update_inv_handcuffed()
 
@@ -53,7 +53,7 @@
 
 /mob/living/carbon/alien/humanoid/update_transform() //The old method of updating lying/standing was update_icons(). Aliens still expect that.
 	if(lying)
-		lying = 90 //Anything else looks retarded
+		lying = 90 //Anything else looks stupid
 	..()
 	update_icons()
 

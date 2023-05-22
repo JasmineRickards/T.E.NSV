@@ -89,7 +89,7 @@
 ///HTML for internal damage.
 /obj/mecha/proc/report_internal_damage()
 	. = ""
-	var/static/list/dam_reports = list(
+	var/list/dam_reports = list(
 		"[MECHA_INT_FIRE]" = "<span class='userdanger'>INTERNAL FIRE.</span>",
 		"[MECHA_INT_TEMP_CONTROL]" = "<span class='userdanger'>LIFE SUPPORT SYSTEM MALFUNCTION.</span>",
 		"[MECHA_INT_TANK_BREACH]" = "<span class='userdanger'>GAS TANK BREACH.</span>",
@@ -410,7 +410,7 @@
 	if(href_list["repair_int_control_lost"])
 		occupant_message("Recalibrating coordination system.")
 		log_message("Recalibration of coordination system started.", LOG_MECHA)
-		addtimer(CALLBACK(src, .proc/stationary_repair, loc), 100, TIMER_UNIQUE)
+		addtimer(CALLBACK(src, PROC_REF(stationary_repair), loc), 100, TIMER_UNIQUE)
 
 ///Repairs internal damage if the mech hasn't moved.
 /obj/mecha/proc/stationary_repair(location)

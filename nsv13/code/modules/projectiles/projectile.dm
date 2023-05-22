@@ -1,8 +1,8 @@
 //The collider for projectiles is universal. We can keep this as a singleton and scrape off an load of memory usage ~K
-GLOBAL_LIST_INIT(projectile_hitbox, list(new /datum/vector2d(-2,16),\
-										new /datum/vector2d(2,16),\
-										new /datum/vector2d(2,-15),\
-										new /datum/vector2d(-2,-15)))
+GLOBAL_LIST_INIT(projectile_hitbox, list(new /matrix/vector(-2,16),\
+										new /matrix/vector(2,16),\
+										new /matrix/vector(2,-15),\
+										new /matrix/vector(-2,-15)))
 
 /obj/item/projectile
 	var/datum/component/physics2d/physics2d = null
@@ -11,6 +11,10 @@ GLOBAL_LIST_INIT(projectile_hitbox, list(new /datum/vector2d(-2,16),\
 /obj/item/projectile/proc/setup_collider()
 	physics2d = AddComponent(/datum/component/physics2d)
 	physics2d.setup(GLOB.projectile_hitbox, Angle)
+
+// we don't want to collide with other projectiles
+/obj/item/projectile/physics_collide(atom/movable/A)
+	return !istype(A, /obj/item/projectile)
 
 /obj/item/projectile/proc/check_faction(atom/movable/A)
 	var/obj/structure/overmap/OM = A

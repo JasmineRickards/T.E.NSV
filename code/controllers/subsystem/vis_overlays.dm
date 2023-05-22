@@ -56,7 +56,7 @@ SUBSYSTEM_DEF(vis_overlays)
 
 	if(!thing.managed_vis_overlays)
 		thing.managed_vis_overlays = list(overlay)
-		RegisterSignal(thing, COMSIG_ATOM_DIR_CHANGE, .proc/rotate_vis_overlay)
+		RegisterSignal(thing, COMSIG_ATOM_DIR_CHANGE, PROC_REF(rotate_vis_overlay))
 	else
 		thing.managed_vis_overlays += overlay
 
@@ -84,6 +84,8 @@ SUBSYSTEM_DEF(vis_overlays)
 		UnregisterSignal(thing, COMSIG_ATOM_DIR_CHANGE)
 
 /datum/controller/subsystem/vis_overlays/proc/rotate_vis_overlay(atom/thing, old_dir, new_dir)
+	SIGNAL_HANDLER
+
 	if(old_dir == new_dir)
 		return
 	var/rotation = dir2angle(old_dir) - dir2angle(new_dir)

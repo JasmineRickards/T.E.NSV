@@ -5,7 +5,7 @@
 	icon_state = "centcom"
 	desc = "It's good to be emperor."
 	item_state = "that"
-	flags_inv = 0
+	flags_inv = NONE
 	armor = list("melee" = 30, "bullet" = 15, "laser" = 30, "energy" = 10, "bomb" = 25, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50, "stamina" = 30)
 	strip_delay = 80
 	clothing_flags = SNUG_FIT // prevents bypassing the strip delay
@@ -46,13 +46,6 @@
 	icon_state = "plaguedoctor"
 	permeability_coefficient = 0.01
 
-/obj/item/clothing/head/hasturhood
-	name = "hastur's hood"
-	desc = "It's <i>unspeakably</i> stylish."
-	icon_state = "hasturhood"
-	flags_inv = HIDEHAIR
-	flags_cover = HEADCOVERSEYES
-
 /obj/item/clothing/head/nursehat
 	name = "nurse's hat"
 	desc = "It allows quick identification of trained medical personnel."
@@ -66,7 +59,7 @@
 	icon_state = "syndicate-helm-black-red"
 	item_state = "syndicate-helm-black-red"
 	desc = "A plastic replica of a Syndicate agent's space helmet. You'll look just like a real murderous Syndicate agent in this! This is a toy, it is not made for use in space!"
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/cueball
@@ -75,7 +68,7 @@
 	icon_state = "cueball"
 	item_state="cueball"
 	flags_cover = HEADCOVERSEYES|HEADCOVERSMOUTH
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/snowman
@@ -84,7 +77,7 @@
 	icon_state = "snowman_h"
 	item_state = "snowman_h"
 	flags_cover = HEADCOVERSEYES
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/justice
@@ -92,7 +85,7 @@
 	desc = "Fight for what's righteous!"
 	icon_state = "justicered"
 	item_state = "justicered"
-	flags_inv = HIDEHAIR|HIDEEARS|HIDEEYES|HIDEFACE|HIDEFACIALHAIR
+	flags_inv = HIDEHAIR|HIDEEARS|HIDEEYES|HIDEFACE|HIDEFACIALHAIR|HIDESNOUT
 	flags_cover = HEADCOVERSEYES
 	clothing_flags = SNUG_FIT
 
@@ -111,16 +104,6 @@
 /obj/item/clothing/head/justice/pink
 	icon_state = "justicepink"
 	item_state = "justicepink"
-
-/obj/item/clothing/head/rabbitears
-	name = "rabbit ears"
-	desc = "Wearing these makes you look useless, and only good for your sex appeal."
-	icon_state = "bunny"
-	clothing_flags = SNUG_FIT
-	dynamic_hair_suffix = ""
-
-	dog_fashion = /datum/dog_fashion/head/rabbit
-
 
 /obj/item/clothing/head/flatcap
 	name = "flat cap"
@@ -146,10 +129,11 @@
 		to_chat(user, "You suddenly know how to speak like a pirate!")
 
 /obj/item/clothing/head/pirate/dropped(mob/user)
+	..()
 	if(!ishuman(user))
 		return
 	var/mob/living/carbon/human/H = user
-	if(H.get_item_by_slot(ITEM_SLOT_HEAD) == src)
+	if(H.get_item_by_slot(ITEM_SLOT_HEAD) == src && !QDELETED(src)) //This can be called as a part of destroy
 		user.remove_language(/datum/language/piratespeak/, TRUE, TRUE, LANGUAGE_HAT)
 		to_chat(user, "You can no longer speak like a pirate.")
 
@@ -183,7 +167,7 @@
 	desc = "Bkaw!"
 	icon_state = "chickenhead"
 	item_state = "chickensuit"
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/griffin
@@ -191,7 +175,7 @@
 	desc = "Why not 'eagle head'? Who knows."
 	icon_state = "griffinhat"
 	item_state = "griffinhat"
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/bearpelt
@@ -205,7 +189,7 @@
 	icon_state = "xenos"
 	item_state = "xenos_helm"
 	desc = "A helmet made out of chitinous alien hide."
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
+	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/fedora
@@ -249,7 +233,7 @@
 	desc = "Once it's on, it never comes off."
 	dog_fashion = null
 
-/obj/item/clothing/head/sombrero/shamebrero/Initialize()
+/obj/item/clothing/head/sombrero/shamebrero/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NODROP, SHAMEBRERO_TRAIT)
 
@@ -311,14 +295,14 @@
 	name = "paper sack hat"
 	desc = "A paper sack with crude holes cut out for eyes. Useful for hiding one's identity or ugliness."
 	icon_state = "papersack"
-	flags_inv = HIDEHAIR|HIDEFACE|HIDEEARS
+	flags_inv = HIDEHAIR|HIDEFACE|HIDEEARS|HIDESNOUT
 	clothing_flags = SNUG_FIT
 
 /obj/item/clothing/head/papersack/smiley
 	name = "paper sack hat"
 	desc = "A paper sack with crude holes cut out for eyes and a sketchy smile drawn on the front. Not creepy at all."
 	icon_state = "papersack_smile"
-	flags_inv = HIDEHAIR|HIDEFACE|HIDEEARS
+	flags_inv = HIDEHAIR|HIDEFACE|HIDEEARS|HIDESNOUT
 
 /obj/item/clothing/head/crown
 	name = "crown"
@@ -382,8 +366,8 @@
 
 /obj/item/clothing/head/frenchberet/equipped(mob/M, slot)
 	. = ..()
-	if (slot == ITEM_SLOT_HEAD)
-		RegisterSignal(M, COMSIG_MOB_SAY, .proc/handle_speech)
+	if(slot == ITEM_SLOT_HEAD)
+		RegisterSignal(M, COMSIG_MOB_SAY, PROC_REF(handle_speech))
 	else
 		UnregisterSignal(M, COMSIG_MOB_SAY)
 
@@ -392,10 +376,12 @@
 	UnregisterSignal(M, COMSIG_MOB_SAY)
 
 /obj/item/clothing/head/frenchberet/proc/handle_speech(datum/source, mob/speech_args)
+	SIGNAL_HANDLER
+
 	var/message = speech_args[SPEECH_MESSAGE]
 	if(message[1] != "*")
 		message = " [message]"
-		var/list/french_words = strings("french_replacement.json", "french")
+		var/list/french_words = strings(FRENCH_TALK_FILE, "french")
 
 		for(var/key in french_words)
 			var/value = french_words[key]
@@ -443,6 +429,50 @@
 	icon_state = "intern_hat"
 	item_state = "intern_hat"
 
+/obj/item/clothing/head/rainbowbunchcrown
+	name = "rainbow flower crown"
+	desc = "A flower crown made out of the flowers of the rainbow bunch plant."
+	dynamic_hair_suffix = ""
+	attack_verb = list("crowned")
+
+/obj/item/clothing/head/rainbowbunchcrown/Initialize(mapload)
+	. = ..()
+	var/crown_type = rand(1,4)
+	switch(crown_type)
+		if(1)
+			desc += " This one has red, yellow and white flowers."
+			icon_state = "rainbow_bunch_crown_1"
+		if(2)
+			desc += " This one has blue, yellow, green and white flowers."
+			icon_state = "rainbow_bunch_crown_2"
+		if(3)
+			desc += " This one has red, blue, purple and pink flowers."
+			icon_state = "rainbow_bunch_crown_3"
+		if(4)
+			desc += " This one has yellow, green and white flowers."
+			icon_state = "rainbow_bunch_crown_4"
+
+/obj/item/clothing/head/sunflowercrown
+	name = "sunflower crown"
+	desc = "A bright flower crown made out sunflowers that is sure to brighten up anyone's day!"
+	icon_state = "sunflower_crown"
+	dynamic_hair_suffix = ""
+	attack_verb = list("crowned")
+
+/obj/item/clothing/head/poppycrown
+	name = "poppy crown"
+	desc = "A flower crown made out of a string of bright red poppies."
+	icon_state = "poppy_crown"
+	dynamic_hair_suffix = ""
+	attack_verb = list("crowned")
+
+/obj/item/clothing/head/lilycrown
+	name = "lily crown"
+	desc = "A leafy flower crown with a cluster of large white lilies at at the front."
+	icon_state = "lily_crown"
+	dynamic_hair_suffix = ""
+	attack_verb = list("crowned")
+
 /////////////////
 //DONATOR ITEMS//
 /////////////////
@@ -463,3 +493,13 @@
 	desc = "There's nothing quite like the ocean breeze in the morning."
 	icon_state = "marine"
 
+/obj/item/clothing/head/chicken_head_retro
+	name = "chicken head"
+	desc = "Looks just like a real one."
+	icon_state = "chicken"
+	flags_inv = HIDEHAIR
+
+/obj/item/clothing/head/maidheadband
+	name = "maid headband"
+	desc = "Just like from one of those chinese cartoons!"
+	icon_state = "maid_headband"

@@ -7,9 +7,9 @@
 	var/rod_integrity = 100
 	var/rod_effectiveness = 1
 
-/obj/item/control_rod/Initialize()
+/obj/item/control_rod/Initialize(mapload)
 	.=..()
-	AddComponent(/datum/component/twohanded/required)
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
 
 /obj/item/control_rod/inferior
 	name = "\improper Techfab Manufactured Reactor Control Rod"
@@ -37,7 +37,7 @@
 	rod_integrity = 0
 	rod_effectiveness = 0
 
-/obj/item/control_rod/irradiated/Initialize()
+/obj/item/control_rod/irradiated/Initialize(mapload)
 	.=..()
 	AddComponent(/datum/component/radioactive, 500, src)
 

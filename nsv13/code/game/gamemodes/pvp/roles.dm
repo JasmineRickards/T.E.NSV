@@ -119,61 +119,67 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 
 //Syndicate ID card that isn't the agent card for the crew
 /obj/item/card/id/syndi_crew
-	name = "Syndicate ID Card"
+	name = "\improper Syndicate ID Card"
 	icon_state = "syndicate"
 	item_state = "syndicate_id"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE)
 	assignment = "Crew"
 
 /obj/item/card/id/syndi_crew/captain
-	name = "Captain's ID"
+	name = "\improper Captain's ID"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE, ACCESS_SYNDICATE_LEADER, ACCESS_SYNDICATE_ENGINEERING, ACCESS_SYNDICATE_REQUISITIONS, ACCESS_SYNDICATE_MARINE_ARMOURY)
-	assignment = "Captain"
+	assignment = JOB_NAME_CAPTAIN
 
 /obj/item/card/id/syndi_crew/admiral
-	name = "Strategist's ID"
+	name = "\improper Strategist's ID"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE, ACCESS_SYNDICATE_LEADER, ACCESS_SYNDICATE_ENGINEERING, ACCESS_SYNDICATE_REQUISITIONS, ACCESS_SYNDICATE_MARINE_ARMOURY)
 	assignment = "Strategist"
 
 /obj/item/card/id/syndi_crew/requisitions_officer
-	name = "Requisitions Officer's ID"
+	name = "\improper Requisitions Officer's ID"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE, ACCESS_SYNDICATE_REQUISITIONS)
 	assignment = "Requisitions Officer"
 
 /obj/item/card/id/syndi_crew/bridge
-	name = "Bridge Crew's ID"
+	name = "\improper Bridge Crew's ID"
 	assignment = "Bridge Crew"
 
 /obj/item/card/id/syndi_crew/technician
-	name = "Ship Technician's ID"
+	name = "\improper Ship Technician's ID"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE, ACCESS_SYNDICATE_ENGINEERING)
 	assignment = "Ship Technician"
 
 /obj/item/card/id/syndi_crew/cag
-	name = "Commander Air Group's ID"
+	name = "\improper Commander Air Group's ID"
 	assignment = "Commander Air Group"
 
 /obj/item/card/id/syndi_crew/pilot
-	name = "Pilot's ID"
-	assignment = "Pilot"
+	name = "\improper Pilot's ID"
+	assignment = JOB_NAME_PILOT
 
 /obj/item/card/id/syndi_crew/marine_sergeant
-	name = "Marine Sergeant's ID"
+	name = "\improper Marine Sergeant's ID"
 	access = list(ACCESS_MAINT_TUNNELS, ACCESS_SYNDICATE, ACCESS_SYNDICATE_MARINE_ARMOURY)
 
 /obj/item/card/id/syndi_crew/chef
-	name = "Line Cook's ID"
+	name = "\improper Line Cook's ID"
 	assignment = "Line Cook"
 
 /obj/item/card/id/syndi_crew/marine
-	name = "Marine's ID"
-	assignment = "Marine"
+	name = "\improper Marine's ID"
+	assignment = JOB_NAME_ASSISTANT
 
 //Syndicate crew outfits
 
 /datum/outfit/syndicate/no_crystals/syndi_crew/post_equip(mob/living/carbon/human/H)
+	var/obj/item/radio/R = H.ears
+	R.set_frequency(FREQ_SYNDICATE)
+	R.freqlock = TRUE
+	if(command_radio)
+		R.command = TRUE
 	H.faction += "Syndicate"
 	var/obj/item/card/id/W = H.wear_id
+	implants = list(/obj/item/implant/weapons_auth)
 	W.registered_name = H.real_name
 	W.update_label()
 
@@ -191,8 +197,10 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 	//r_hand = /obj/item/nuclear_challenge //Not made my mind up on this one yet...
 	head = /obj/item/clothing/head/helmet/space/beret
 	suit = /obj/item/clothing/suit/space/officer
-	backpack_contents = list(/obj/item/storage/box/syndie=1,\
-	/obj/item/kitchen/knife/combat/survival=1,)
+	backpack_contents = list(
+		/obj/item/storage/box/syndie = 1,
+		/obj/item/kitchen/knife/combat/survival = 1
+	)
 	command_radio = TRUE
 	implants = list()
 	uplink_type = null //Nope :) Go to the req officer you ungas.
@@ -208,7 +216,7 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/ops.ogg',100,0)
 	to_chat(owner, "<span class='notice'>You are a [title] in the Syndicate navy. Your ship is a highly advanced modular battlecruiser, choose a ship loadout wisely, and consult with your crew! <br> You are second only to the <b>admiral</b>, but you have autonomy over the ship unless otherwise ordered.</span>")
 	to_chat(owner, "<span class='warning'>Diminish Nanotrasen's presence in this sector by destroying NT fleets and claiming systems with your lighthouse beacon. Destruction of the [station_name()] via superstructure crit or nuclear detonation are also options. For Abassi!</span>")
-	addtimer(CALLBACK(src, .proc/nuketeam_name_assign), 1)
+	addtimer(CALLBACK(src, PROC_REF(nuketeam_name_assign)), 1)
 	owner.announce_objectives()
 
 //Syndicate crew roles, defined in order of priority.
@@ -260,7 +268,6 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 	name = "Syndicate Requisitions Officer's Jacket"
 	desc = "A suit worn by the man who decides whether the ship has enough budget to buy another fighter because you exploded yours."
 	icon_state = "syndicate_requisitions"
-	item_color = "syndicate_requisitions"
 
 /datum/outfit/syndicate/no_crystals/syndi_crew/requisitions
 	name = "Syndicate requisitions officer"
@@ -379,7 +386,7 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 	job_rank = ROLE_SYNDI_CREW
 
 /datum/antagonist/nukeop/syndi_crew/clown/give_alias()
-	owner.current.fully_replace_character_name(owner.current.real_name,owner.current.client.prefs.custom_names["clown"])
+	owner.current.fully_replace_character_name(owner.current.real_name, owner.current.client.prefs.active_character.custom_names["clown"])
 
 /datum/outfit/syndicate/clownop/no_crystals/jojo_reference
 	name = "Syndicate Clown (Jojo Reference)"
@@ -414,12 +421,10 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 /obj/item/clothing/suit/space/syndicate/odst/marine
 	icon_state = "syndiemarine"
 	item_state = "syndiemarine"
-	item_color = "syndiemarine"
 
 /obj/item/clothing/head/helmet/space/syndicate/odst/marine
 	icon_state = "syndiemarine"
 	item_state = "syndiemarine"
-	item_color = "syndiemarine"
 
 /datum/antagonist/nukeop/syndi_crew/marine
 	name = "Syndicate Marine"
@@ -437,9 +442,9 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 /mob/proc/get_stat_tab_faction()
 	var/list/tab_data = list()
 	for(var/datum/faction/F in SSstar_system.factions)
-		if (F) //No nulls!
-			tab_data["[F?.name]"] = list(
-				text = "[F?.tickets]",
+		if(F) //No nulls!
+			tab_data["[F.name]"] = list(
+				text = "[F.tickets]",
 				type = STAT_TEXT
 			)
 	return tab_data
@@ -495,7 +500,7 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 		return "<div class='panel redborder'>[parts.Join("<br>")]</div>"
 
 	else
-		. = ..()
+		return ..()
 
 /client/proc/create_syndie_job_icons()
 	set name = "Generate syndicate crew icons"
@@ -526,7 +531,7 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 
 //Ultra stripped down ID console for assigning secondary ship accesses.
 /obj/machinery/computer/secondary_ship_id_console
-	name = "Secondary Ship ID console"
+	name = "secondary ship ID console"
 	circuit = /obj/item/circuitboard/computer/card/secondary_ship_id_console
 	icon_screen = "idhos"
 	light_color = LIGHT_COLOR_RED
@@ -549,9 +554,10 @@ Singleton to handle conquest roles. This exists to populate the roles list and n
 
 /obj/machinery/computer/secondary_ship_id_console/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
-	if(!ui)
-		ui = new(user, src, "SecondaryID")
-		ui.open()
+	if(ui)
+		return
+	ui = new(user, src, "SecondaryID")
+	ui.open()
 
 /obj/machinery/computer/secondary_ship_id_console/ui_data(mob/user)
 	var/list/data = list()

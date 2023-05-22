@@ -20,7 +20,7 @@ export const NotificationPreferences = (props, context) => {
 
   return (
     <Window
-      resizable
+      theme="generic"
       width={270}
       height={360}>
       <Window.Content scrollable>

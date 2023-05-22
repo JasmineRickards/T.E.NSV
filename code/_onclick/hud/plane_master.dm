@@ -16,6 +16,7 @@
 //Trust me, you need one. Period. If you don't think you do, you're doing something extremely wrong.
 /atom/movable/screen/plane_master/proc/backdrop(mob/mymob)
 
+///Things rendered on "openspace"; holes in multi-z
 /atom/movable/screen/plane_master/openspace
 	name = "open space plane master"
 	plane = OPENSPACE_BACKDROP_PLANE
@@ -23,21 +24,13 @@
 	blend_mode = BLEND_MULTIPLY
 	alpha = 255
 
-/atom/movable/screen/plane_master/openspace/backdrop(mob/mymob)
-	filters = list()
-	filters += filter(type = "drop_shadow", color = "#04080FAA", size = -10)
-	filters += filter(type = "drop_shadow", color = "#04080FAA", size = -15)
-	filters += filter(type = "drop_shadow", color = "#04080FAA", size = -20)
+/atom/movable/screen/plane_master/openspace/Initialize(mapload)
+	. = ..()
+	add_filter("first_stage_openspace", 1, drop_shadow_filter(color = "#04080FAA", size = -10))
+	add_filter("second_stage_openspace", 2, drop_shadow_filter(color = "#04080FAA", size = -15))
+	add_filter("third_stage_openspace", 2, drop_shadow_filter(color = "#04080FAA", size = -20))
 
-/atom/movable/screen/plane_master/proc/outline(_size, _color)
-	filters += filter(type = "outline", size = _size, color = _color)
-
-/atom/movable/screen/plane_master/proc/shadow(_size, _border, _offset = 0, _x = 0, _y = 0, _color = "#04080FAA")
-	filters += filter(type = "drop_shadow", x = _x, y = _y, color = _color, size = _size, offset = _offset)
-
-/atom/movable/screen/plane_master/proc/clear_filters()
-	filters = list()
-
+///Contains just the floor
 /atom/movable/screen/plane_master/floor
 	name = "floor plane master"
 	plane = FLOOR_PLANE
@@ -45,10 +38,11 @@
 	blend_mode = BLEND_OVERLAY
 
 /atom/movable/screen/plane_master/floor/backdrop(mob/mymob)
-	filters = list()
+	clear_filters()
 	if(istype(mymob) && mymob.eye_blurry)
-		filters += GAUSSIAN_BLUR(CLAMP(mymob.eye_blurry*0.1,0.6,3))
+		add_filter("eye_blur", 1, gauss_blur_filter(clamp(mymob.eye_blurry * 0.1, 0.6, 3)))
 
+///Contains most things in the game world
 /atom/movable/screen/plane_master/game_world
 	name = "game world plane master"
 	plane = GAME_PLANE
@@ -56,18 +50,46 @@
 	blend_mode = BLEND_OVERLAY
 
 /atom/movable/screen/plane_master/game_world/backdrop(mob/mymob)
-	filters = list()
-	if(istype(mymob) && mymob.client && mymob.client.prefs && mymob.client.prefs.ambientocclusion)
-		filters += AMBIENT_OCCLUSION
+	clear_filters()
+	if(istype(mymob) && mymob.client && mymob.client.prefs && (mymob.client.prefs.toggles2 & PREFTOGGLE_2_AMBIENT_OCCLUSION))
+		add_filter("AO", 1, drop_shadow_filter(x = 0, y = -2, size = 4, color = "#04080FAA"))
 	if(istype(mymob) && mymob.eye_blurry)
-		filters += GAUSSIAN_BLUR(CLAMP(mymob.eye_blurry*0.1,0.6,3))
+		add_filter("eye_blur", 1, gauss_blur_filter(clamp(mymob.eye_blurry * 0.1, 0.6, 3)))
 
+/atom/movable/screen/plane_master/data_hud
+	name = "data_hud plane master"
+	plane = DATA_HUD_PLANE
+	appearance_flags = PLANE_MASTER //should use client color
+	blend_mode = BLEND_OVERLAY
+
+///Contains all lighting objects
 /atom/movable/screen/plane_master/lighting
 	name = "lighting plane master"
 	plane = LIGHTING_PLANE
 	blend_mode = BLEND_MULTIPLY
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 
+/atom/movable/screen/plane_master/lighting/Initialize(mapload)
+	. = ..()
+	add_filter("emissives", 1, alpha_mask_filter(render_source = EMISSIVE_RENDER_TARGET, flags = MASK_INVERSE))
+	add_filter("lighting", 3, alpha_mask_filter(render_source = O_LIGHTING_VISUAL_RENDER_TARGET, flags = MASK_INVERSE))
+/**
+  * Things placed on this mask the lighting plane. Doesn't render directly.
+  *
+  * Gets masked by blocking plane. Use for things that you want blocked by
+  * mobs, items, etc.
+  */
+/atom/movable/screen/plane_master/emissive
+	name = "emissive plane master"
+	plane = EMISSIVE_PLANE
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	render_target = EMISSIVE_RENDER_TARGET
+
+/atom/movable/screen/plane_master/emissive/Initialize(mapload)
+	. = ..()
+	add_filter("em_block_masking", 1, color_matrix_filter(GLOB.em_mask_matrix))
+
+///Contains space parallax
 /atom/movable/screen/plane_master/parallax
 	name = "parallax plane master"
 	plane = PLANE_SPACE_PARALLAX
@@ -96,5 +118,13 @@
 
 /atom/movable/screen/plane_master/runechat/backdrop(mob/mymob)
 	filters = list()
-	if(istype(mymob) && mymob.client?.prefs?.ambientocclusion)
+	if(istype(mymob) && (mymob.client?.prefs?.toggles2 & PREFTOGGLE_2_AMBIENT_OCCLUSION))
 		add_filter("AO", 1, drop_shadow_filter(x = 0, y = -2, size = 4, color = "#04080FAA"))
+
+/atom/movable/screen/plane_master/o_light_visual
+	name = "overlight light visual plane master"
+	layer = O_LIGHTING_VISUAL_LAYER
+	plane = O_LIGHTING_VISUAL_PLANE
+	render_target = O_LIGHTING_VISUAL_RENDER_TARGET
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	blend_mode = BLEND_MULTIPLY

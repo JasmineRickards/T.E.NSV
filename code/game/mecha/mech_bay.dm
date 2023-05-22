@@ -25,7 +25,7 @@
 	var/on = FALSE
 	var/turf/recharging_turf = null
 
-/obj/machinery/mech_bay_recharge_port/Initialize()
+/obj/machinery/mech_bay_recharge_port/Initialize(mapload)
 	. = ..()
 	recharging_turf = get_step(loc, dir)
 
@@ -50,12 +50,13 @@
 		. += "<span class='notice'>The status display reads: Base recharge rate at <b>[max_charge]J</b> per cycle.</span>"
 
 /obj/machinery/mech_bay_recharge_port/process()
-	if(stat & NOPOWER || !recharge_console)
+	if(machine_stat & NOPOWER || !recharge_console)
 		return
 	if(!recharging_mech)
 		recharging_mech = locate(/obj/mecha) in recharging_turf
 		if(recharging_mech)
 			recharge_console.update_icon()
+			recharge_console.ui_update()
 	if(recharging_mech && recharging_mech.cell)
 		if(recharging_mech.cell.charge < recharging_mech.cell.maxcharge)
 			var/delta = min(max_charge, recharging_mech.cell.maxcharge - recharging_mech.cell.charge)
@@ -66,6 +67,7 @@
 		if(recharging_mech.loc != recharging_turf)
 			recharging_mech = null
 			recharge_console.update_icon()
+			recharge_console.ui_update()
 
 
 /obj/machinery/mech_bay_recharge_port/attackby(obj/item/I, mob/user, params)
@@ -91,6 +93,12 @@
 	var/obj/machinery/mech_bay_recharge_port/recharge_port
 	light_color = LIGHT_COLOR_PINK
 
+	var/had_mech = FALSE //Keep track of whether we had a mech last update
+
+/obj/machinery/computer/mech_bay_power_console/ui_requires_update(mob/user, datum/tgui/ui)
+	. = ..()
+	if(recharge_port?.recharging_mech) //Update while there's a mech connected
+		. = TRUE
 
 /obj/machinery/computer/mech_bay_power_console/ui_state(mob/user)
 	return GLOB.default_state
@@ -143,11 +151,11 @@
 
 /obj/machinery/computer/mech_bay_power_console/update_icon()
 	..()
-	if(!recharge_port || !recharge_port.recharging_mech || !recharge_port.recharging_mech.cell || !(recharge_port.recharging_mech.cell.charge < recharge_port.recharging_mech.cell.maxcharge) || stat & (NOPOWER|BROKEN))
+	if(!recharge_port || !recharge_port.recharging_mech || !recharge_port.recharging_mech.cell || !(recharge_port.recharging_mech.cell.charge < recharge_port.recharging_mech.cell.maxcharge) || machine_stat & (NOPOWER|BROKEN))
 		return
 	add_overlay("recharge_comp_on")
 
-/obj/machinery/computer/mech_bay_power_console/Initialize()
+/obj/machinery/computer/mech_bay_power_console/Initialize(mapload)
 	. = ..()
 	reconnect()
 

@@ -1,6 +1,5 @@
-import { Fragment } from 'inferno';
 import { useBackend, useSharedState } from '../backend';
-import { Box, Button, LabeledList, NoticeBox, Section, Tabs } from '../components';
+import { Box, Button, Flex, LabeledList, NoticeBox, Section, Tabs } from '../components';
 import { Window } from '../layouts';
 
 export const RoboticsControlConsole = (props, context) => {
@@ -8,12 +7,14 @@ export const RoboticsControlConsole = (props, context) => {
   const [tab, setTab] = useSharedState(context, 'tab', 1);
   const {
     can_hack,
+    is_silicon,
+    extracting,
     cyborgs = [],
     drones = [],
+    uploads = [],
   } = data;
   return (
     <Window
-      resizable
       width={500}
       height={460}>
       <Window.Content scrollable>
@@ -32,6 +33,13 @@ export const RoboticsControlConsole = (props, context) => {
             onClick={() => setTab(2)}>
             Drones ({drones.length})
           </Tabs.Tab>
+          <Tabs.Tab
+            icon="list"
+            lineHeight="23px"
+            selected={tab === 3}
+            onClick={() => setTab(3)}>
+            Uploads ({uploads.length})
+          </Tabs.Tab>
         </Tabs>
         {tab === 1 && (
           <Cyborgs cyborgs={cyborgs} can_hack={can_hack} />
@@ -39,6 +47,11 @@ export const RoboticsControlConsole = (props, context) => {
         {tab === 2 && (
           <Drones drones={drones} />
         )}
+        {tab === 3 && (
+          <>
+            <Uploads uploads={uploads} is_silicon={is_silicon} />
+            <Extracting is_silicon={is_silicon} extracting={extracting} />
+          </>)}
       </Window.Content>
     </Window>
   );
@@ -60,7 +73,7 @@ const Cyborgs = (props, context) => {
         key={cyborg.ref}
         title={cyborg.name}
         buttons={(
-          <Fragment>
+          <>
             {!!can_hack && !cyborg.emagged && (
               <Button
                 icon="terminal"
@@ -84,7 +97,7 @@ const Cyborgs = (props, context) => {
               onClick={() => act('killbot', {
                 ref: cyborg.ref,
               })} />
-          </Fragment>
+          </>
         )}>
         <LabeledList>
           <LabeledList.Item label="Status">
@@ -165,4 +178,58 @@ const Drones = (props, context) => {
       </Section>
     );
   });
+};
+
+
+const Uploads = (props, context) => {
+  const { uploads, is_silicon } = props;
+  if (!is_silicon) {
+    if (!uploads.length) {
+      return (
+        <NoticeBox>
+          No uploads detected within access parameters
+        </NoticeBox>
+      );
+    }
+
+    return uploads.map(upload => {
+      return (
+        <Flex key={upload.ref}>
+          <Section
+            title={upload.name[0].toUpperCase() + upload.name.substring(1)}>
+            <LabeledList>
+              <LabeledList.Item label="Location">
+                {upload.area}
+              </LabeledList.Item>
+              <LabeledList.Item label="Coordinates">
+                {upload.coords}
+              </LabeledList.Item>
+            </LabeledList>
+          </Section>
+        </Flex>
+      );
+    });
+  }
+  else {
+    return (
+      <NoticeBox>
+        For security reasons silicon forms are not permitted access
+      </NoticeBox>
+    );
+  }
+};
+
+const Extracting = (props, context) => {
+  const { is_silicon, extracting } = props;
+  const { act } = useBackend(context);
+  if (!is_silicon) {
+    return (
+      <Button
+        icon={extracting ? 'sync' : 'list'}
+        content={extracting ? 'Extraction in progress' : 'Extract Upload Key'}
+        selected={extracting}
+        onClick={() => act('extract')}
+      />
+    );
+  }
 };

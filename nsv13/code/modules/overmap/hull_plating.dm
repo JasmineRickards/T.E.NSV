@@ -8,7 +8,7 @@
 	layer = LATTICE_LAYER //under pipes
 	plane = FLOOR_PLANE
 	obj_integrity = 200
-	max_integrity = 400
+	max_integrity = 200
 	var/obj/structure/overmap/parent = null
 	var/armour_scale_modifier = 4
 	var/armour_broken = FALSE
@@ -17,7 +17,7 @@
 /obj/structure/hull_plate/end
 	icon_state = "tgmc_outerhull_dir"
 
-/obj/structure/hull_plate/Initialize()
+/obj/structure/hull_plate/Initialize(mapload)
 	. = ..()
 	return INITIALIZE_HINT_LATELOAD
 
@@ -50,11 +50,11 @@ Method to try locate an overmap object that we should attach to. Recursively cal
 	parent = get_overmap()
 	if(!parent)
 		tries --
-		addtimer(CALLBACK(src, .proc/try_find_parent), 10 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(try_find_parent)), 10 SECONDS)
 		return
 	parent.armour_plates ++
 	parent.max_armour_plates ++
-	RegisterSignal(parent, COMSIG_ATOM_DAMAGE_ACT, .proc/relay_damage)
+	RegisterSignal(parent, COMSIG_ATOM_DAMAGE_ACT, PROC_REF(relay_damage), override = TRUE)
 
 /obj/structure/hull_plate/Destroy()
 	parent?.armour_plates --
@@ -152,14 +152,14 @@ Method to try locate an overmap object that we should attach to. Recursively cal
 	icon_state = "[initial(icon_state)][progress]"
 
 /obj/structure/overmap/proc/check_armour() //Get the "max" armour plates value when all the armour plates have been initialized.
-	if(!linked_areas || !linked_areas.len)
+	if(!length(occupying_levels))
 		return
 	if(armour_plates <= 0)
-		addtimer(CALLBACK(src, .proc/check_armour), 20 SECONDS) //Recursively call the function until we've generated the armour plates value to account for lag / late initializations.
+		addtimer(CALLBACK(src, PROC_REF(check_armour)), 20 SECONDS) //Recursively call the function until we've generated the armour plates value to account for lag / late initializations.
 		return
 	max_armour_plates = armour_plates
 
-/obj/structure/overmap/slowprocess()
+/obj/structure/overmap/slowprocess(delta_time)
 	. = ..()
 	if(istype(src, /obj/structure/overmap/asteroid)) //Shouldn't be repairing over time
 		return

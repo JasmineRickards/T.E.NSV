@@ -1,6 +1,5 @@
-import { Fragment } from 'inferno';
 import { useBackend } from '../backend';
-import { Box, Button, LabeledList, ProgressBar, Section } from '../components';
+import { Box, Button, LabeledList, ProgressBar, Section, ColorBox, Dropdown } from '../components';
 import { NtosWindow } from '../layouts';
 
 export const NtosConfiguration = (props, context) => {
@@ -13,11 +12,26 @@ export const NtosConfiguration = (props, context) => {
     disk_size,
     disk_used,
     hardware = [],
+    PC_device_theme,
+    themes = {},
+    PC_theme_locked,
   } = data;
-
   return (
-    <NtosWindow resizable>
+    <NtosWindow>
       <NtosWindow.Content scrollable>
+        {!PC_theme_locked ? (
+          <Section title="Appearance">
+            <Dropdown
+              overflow-y="scroll"
+              width="240px"
+              options={Object.keys(themes)}
+              selected={Object.keys(themes).find(key => themes[key] === PC_device_theme) || "NtOS Default"}
+              onSelected={value => act('PC_select_theme', {
+                theme: value,
+              })} />
+            {PC_device_theme === "thinktronic-classic" ? <Button icon="palette" content="Set Color" onClick={() => act("PC_set_classic_color")} /> : null}
+          </Section>
+        ) : null}
         <Section
           title="Power Supply"
           buttons={(
@@ -64,7 +78,7 @@ export const NtosConfiguration = (props, context) => {
               title={component.name}
               level={2}
               buttons={(
-                <Fragment>
+                <>
                   {!component.critical && (
                     <Button.Checkbox
                       content="Enabled"
@@ -81,7 +95,7 @@ export const NtosConfiguration = (props, context) => {
                     mr={1}>
                     Power Usage: {component.powerusage}W
                   </Box>
-                </Fragment>
+                </>
               )}>
               {component.desc}
             </Section>

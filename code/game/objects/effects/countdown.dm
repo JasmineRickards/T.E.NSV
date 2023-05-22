@@ -14,7 +14,7 @@
 	var/displayed_text
 	var/atom/attached_to
 
-/obj/effect/countdown/Initialize()
+/obj/effect/countdown/Initialize(mapload)
 	. = ..()
 	attach(loc)
 
@@ -114,7 +114,7 @@
 	var/obj/machinery/power/supermatter_crystal/S = attached_to
 	if(!istype(S))
 		return
-	return "<div align='center' valign='middle' style='position:relative; top:0px; left:0px'>[round(S.get_integrity(), 1)]%</div>"
+	return "<div align='center' valign='middle' style='position:relative; top:0px; left:0px'>[round(S.get_integrity_percent(), 1)]%</div>"
 
 /obj/effect/countdown/transformer
 	name = "transformer countdown"
@@ -159,20 +159,6 @@
 	else
 		var/time_left = max(0, (H.finish_time - world.time) / 10)
 		return round(time_left)
-
-/obj/effect/countdown/dominator
-	name = "dominator countdown"
-	text_size = 1
-	color = "#ff00ff" // Overwritten when the dominator starts
-
-/obj/effect/countdown/dominator/get_value()
-	var/obj/machinery/dominator/D = attached_to
-	if(!istype(D))
-		return
-	else if(D.gang && D.gang.domination_time != NOT_DOMINATING)
-		return D.gang.domination_time_remaining()
-	else
-		return "OFFLINE"
 
 /obj/effect/countdown/arena
 	invisibility = 0

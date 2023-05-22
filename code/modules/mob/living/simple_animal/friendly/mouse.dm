@@ -28,9 +28,10 @@
 	chat_color = "#82AF84"
 	var/list/ratdisease = list()
 	can_be_held = TRUE
-	held_state = "mouse_gray"
+	worn_slot_flags = ITEM_SLOT_HEAD
 
-/mob/living/simple_animal/mouse/Initialize()
+
+/mob/living/simple_animal/mouse/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/squeak, list('sound/effects/mousesqueek.ogg'=1), 100)
 	if(!body_color)
@@ -38,9 +39,14 @@
 	icon_state = "mouse_[body_color]"
 	icon_living = "mouse_[body_color]"
 	icon_dead = "mouse_[body_color]_dead"
-	if(prob(40))
-		var/datum/disease/advance/R = new /datum/disease/advance/random(rand(2, 4))
+	held_state = "mouse_[body_color]"
+	if(prob(75))
+		var/datum/disease/advance/R = new /datum/disease/advance/random(rand(1, 6), 9, 1, infected = src)
 		ratdisease += R
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
 
 /mob/living/simple_animal/mouse/extrapolator_act(mob/user, var/obj/item/extrapolator/E, scan = TRUE)
 	if(!ratdisease.len)
@@ -58,7 +64,7 @@
 	death()
 
 /mob/living/simple_animal/mouse/death(gibbed, toast)
-	var/list/data = list("viruses" = ratdisease)
+	var/list/data = list("donor" = src.type, "viruses" = ratdisease) // NSV13 - Add mouse donor field for tracking later
 	if(!ckey)
 		..(1)
 		if(!gibbed)
@@ -73,17 +79,18 @@
 	else
 		..(gibbed)
 
-/mob/living/simple_animal/mouse/Crossed(AM as mob|obj)
+/mob/living/simple_animal/mouse/proc/on_entered(datum/source, AM as mob|obj)
+	SIGNAL_HANDLER
+
 	if( ishuman(AM) )
 		if(!stat)
 			var/mob/M = AM
 			to_chat(M, "<span class='notice'>[icon2html(src, M)] Squeak!</span>")
-	..()
 
 /mob/living/simple_animal/mouse/handle_automated_action()
 	if(prob(chew_probability))
 		var/turf/open/floor/F = get_turf(src)
-		if(istype(F) && !F.intact)
+		if(istype(F) && !F.intact && !(locate(/obj/structure/lattice/catwalk) in F)) // NSV13 - Do not eat wires through catwalks
 			var/obj/structure/cable/C = locate() in F
 			if(C && prob(15))
 				if(C.avail())

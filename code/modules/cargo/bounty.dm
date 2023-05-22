@@ -13,7 +13,7 @@ GLOBAL_LIST_EMPTY(bounties_list)
 
 // Displayed on bounty UI screen.
 /datum/bounty/proc/reward_string()
-	return "[reward] Credits"
+	return "[reward * SSeconomy.bounty_modifier] Credits"
 
 /datum/bounty/proc/can_claim()
 	return !claimed
@@ -21,9 +21,7 @@ GLOBAL_LIST_EMPTY(bounties_list)
 // Called when the claim button is clicked. Override to provide fancy rewards.
 /datum/bounty/proc/claim()
 	if(can_claim())
-		var/datum/bank_account/D = SSeconomy.get_dep_account(ACCOUNT_CAR)
-		if(D)
-			D.adjust_money(reward)
+		SSeconomy.distribute_funds(reward * SSeconomy.bounty_modifier * 3)
 		claimed = TRUE
 
 // If an item sent in the cargo shuttle can satisfy the bounty.
@@ -77,7 +75,7 @@ GLOBAL_LIST_EMPTY(bounties_list)
 
 // Returns a new bounty of random type, but does not add it to GLOB.bounties_list.
 /proc/random_bounty()
-	switch(rand(1, 13))
+	switch(rand(1, 12)) //NSV13 - This is annoying when it appears in the Warning List
 		if(1)
 			var/subtype = pick(subtypesof(/datum/bounty/item/assistant))
 			return new subtype

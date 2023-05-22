@@ -4,7 +4,7 @@
 
 /obj/machinery/camera
 	name = "security camera"
-	desc = "It's used to monitor rooms."
+	desc = "A wireless camera used to monitor rooms. It is powered by a long-life internal battery."
 	icon = 'icons/obj/machines/camera.dmi'
 	icon_state = "camera" //mapping icon to represent upgrade states. if you want a different base icon, update default_camera_icon as well as this.
 	use_power = ACTIVE_POWER_USE
@@ -23,8 +23,16 @@
 	var/start_active = FALSE //If it ignores the random chance to start broken on round start
 	var/invuln = null
 	var/obj/item/camera_bug/bug = null
-	var/obj/structure/camera_assembly/assembly = null
+	var/datum/weakref/assembly_ref = null
 	var/area/myarea = null
+
+	//Emp tracking
+	var/thisemp
+	var/list/previous_network
+
+	FASTDMM_PROP(\
+		pinned_vars = list("name", "network", "c_tag")\
+	)
 
 	//OTHER
 
@@ -57,11 +65,10 @@
 	for(var/i in network)
 		network -= i
 		network += lowertext(i)
+	var/obj/structure/camera_assembly/assembly
 	if(CA)
 		assembly = CA
-		if(assembly.xray_module)
-			upgradeXRay()
-		else if(assembly.malf_xray_firmware_present) //if it was secretly upgraded via the MALF AI Upgrade Camera Network ability
+		if(assembly.malf_xray_firmware_present) //if it was secretly upgraded via the MALF AI Upgrade Camera Network ability
 			upgradeXRay(TRUE)
 
 		if(assembly.emp_module)
@@ -74,6 +81,7 @@
 	else
 		assembly = new(src)
 		assembly.state = 4 //STATE_FINISHED
+	assembly_ref = WEAKREF(assembly)
 	GLOB.cameranet.cameras += src
 	GLOB.cameranet.addCamera(src)
 	if (isturf(loc))
@@ -89,11 +97,12 @@
 /obj/machinery/camera/Destroy()
 	if(can_use())
 		toggle_cam(null, 0) //kick anyone viewing out and remove from the camera chunks
+	GLOB.cameranet.removeCamera(src)
 	GLOB.cameranet.cameras -= src
 	cancelCameraAlarm()
 	if(isarea(myarea))
 		myarea.clear_camera(src)
-	QDEL_NULL(assembly)
+	QDEL_NULL(assembly_ref)
 	QDEL_NULL(emp_component)
 	if(bug)
 		bug.bugged_cameras -= c_tag
@@ -108,10 +117,6 @@
 		. += "It has electromagnetic interference shielding installed."
 	else
 		. += "<span class='info'>It can be shielded against electromagnetic interference with some <b>plasma</b>.</span>"
-	if(isXRay(TRUE)) //don't reveal it's upgraded if was done via MALF AI Upgrade Camera Network ability
-		. += "It has an X-ray photodiode installed."
-	else
-		. += "<span class='info'>It can be upgraded with an X-ray photodiode with an <b>analyzer</b>.</span>"
 	if(isMotion())
 		. += "It has a proximity sensor installed."
 	else
@@ -133,31 +138,30 @@
 	if(!(. & EMP_PROTECT_SELF))
 		if(prob(150/severity))
 			update_icon()
-			var/list/previous_network = network
+			previous_network = network
 			network = list()
 			GLOB.cameranet.removeCamera(src)
-			stat |= EMPED
 			set_light(0)
 			emped = emped+1  //Increase the number of consecutive EMP's
 			update_icon()
-			var/thisemp = emped //Take note of which EMP this proc is for
-			spawn(900)
-				if(loc) //qdel limbo
-					triggerCameraAlarm() //camera alarm triggers even if multiple EMPs are in effect.
-					if(emped == thisemp) //Only fix it if the camera hasn't been EMP'd again
-						network = previous_network
-						stat &= ~EMPED
-						update_icon()
-						if(can_use())
-							GLOB.cameranet.addCamera(src)
-						emped = 0 //Resets the consecutive EMP count
-						addtimer(CALLBACK(src, .proc/cancelCameraAlarm), 100)
+			thisemp = emped //Take note of which EMP this proc is for
 			for(var/i in GLOB.player_list)
 				var/mob/M = i
 				if (M.client.eye == src)
 					M.unset_machine()
 					M.reset_perspective(null)
 					to_chat(M, "The screen bursts into static.")
+
+/obj/machinery/camera/emp_reset()
+	..()
+	triggerCameraAlarm() //camera alarm triggers even if multiple EMPs are in effect.
+	if(emped == thisemp) //Only fix it if the camera hasn't been EMP'd again
+		network = previous_network
+		update_icon()
+		if(can_use())
+			GLOB.cameranet.addCamera(src)
+		emped = 0 //Resets the consecutive EMP count
+		addtimer(CALLBACK(src, PROC_REF(cancelCameraAlarm)), 100)
 
 /obj/machinery/camera/ex_act(severity, target)
 	if(invuln)
@@ -222,18 +226,11 @@
 /obj/machinery/camera/attackby(obj/item/I, mob/living/user, params)
 	// UPGRADES
 	if(panel_open)
-		if(I.tool_behaviour == TOOL_ANALYZER)
-			if(!isXRay(TRUE)) //don't reveal it was already upgraded if was done via MALF AI Upgrade Camera Network ability
-				if(!user.temporarilyRemoveItemFromInventory(I))
-					return
-				upgradeXRay(FALSE, TRUE)
-				to_chat(user, "<span class='notice'>You attach [I] into [assembly]'s inner circuits.</span>")
-				qdel(I)
-			else
-				to_chat(user, "<span class='notice'>[src] already has that upgrade!</span>")
-			return
+		var/obj/structure/camera_assembly/assembly = assembly_ref?.resolve()
+		if(!assembly)
+			assembly_ref = null
 
-		else if(istype(I, /obj/item/stack/sheet/mineral/plasma))
+		if(istype(I, /obj/item/stack/sheet/mineral/plasma))
 			if(!isEmpProof(TRUE)) //don't reveal it was already upgraded if was done via MALF AI Upgrade Camera Network ability
 				if(I.use_tool(src, user, 0, amount=1))
 					upgradeEmpProof(FALSE, TRUE)
@@ -254,21 +251,21 @@
 			return
 
 	// OTHER
-	if((istype(I, /obj/item/paper) || istype(I, /obj/item/pda)) && isliving(user))
+	if((istype(I, /obj/item/paper) || istype(I, /obj/item/modular_computer/tablet)) && isliving(user))
 		var/mob/living/U = user
-		var/obj/item/paper/X = null
-		var/obj/item/pda/P = null
 
 		var/itemname = ""
 		var/info = ""
 		if(istype(I, /obj/item/paper))
-			X = I
-			itemname = X.name
-			info = X.info
-		else
-			P = I
-			itemname = P.name
-			info = P.notehtml
+			var/obj/item/paper/pressed_paper = I
+			itemname = pressed_paper.name
+			info = pressed_paper.info
+		if(istype(I, /obj/item/modular_computer/tablet))
+			var/obj/item/modular_computer/tablet/computer = I
+			itemname = computer.name
+			info = computer.note
+
+		itemname = sanitize(itemname)
 		to_chat(U, "<span class='notice'>You hold \the [itemname] up to the camera...</span>")
 		U.changeNext_move(CLICK_CD_MELEE)
 		for(var/mob/O in GLOB.player_list)
@@ -297,7 +294,7 @@
 		else
 			to_chat(user, "<span class='notice'>Camera bugged.</span>")
 			bug = I
-			bug.bugged_cameras[src.c_tag] = src
+			bug.bugged_cameras[src.c_tag] = WEAKREF(src)
 		return
 
 	else if(istype(I, /obj/item/pai_cable))
@@ -308,24 +305,28 @@
 	return ..()
 
 /obj/machinery/camera/run_obj_armor(damage_amount, damage_type, damage_flag = 0, attack_dir)
-	if(damage_flag == "melee" && damage_amount < 12 && !(stat & BROKEN))
+	if(damage_flag == "melee" && damage_amount < 12 && !(machine_stat & BROKEN))
 		return 0
 	. = ..()
 
 /obj/machinery/camera/obj_break(damage_flag)
-	if(status && !(flags_1 & NODECONSTRUCT_1))
+	if(!status)
+		return
+	. = ..()
+	if(.)
 		triggerCameraAlarm()
 		toggle_cam(null, 0)
 
 /obj/machinery/camera/deconstruct(disassembled = TRUE)
 	if(!(flags_1 & NODECONSTRUCT_1))
 		if(disassembled)
+			var/obj/structure/camera_assembly/assembly = assembly_ref?.resolve()
 			if(!assembly)
 				assembly = new()
 			assembly.forceMove(drop_location())
 			assembly.state = 1
 			assembly.setDir(dir)
-			assembly = null
+			assembly_ref = null
 		else
 			var/obj/item/I = new /obj/item/wallframe/camera (loc)
 			I.obj_integrity = I.max_integrity * 0.5
@@ -333,17 +334,14 @@
 	qdel(src)
 
 /obj/machinery/camera/update_icon() //TO-DO: Make panel open states, xray camera, and indicator lights overlays instead.
-	var/xray_module
-	if(isXRay(TRUE))
-		xray_module = "xray"
 	if(!status)
-		icon_state = "[xray_module][default_camera_icon]_off"
-	else if (stat & EMPED)
-		icon_state = "[xray_module][default_camera_icon]_emp"
+		icon_state = "[default_camera_icon]_off"
+	else if (machine_stat & EMPED)
+		icon_state = "[default_camera_icon]_emp"
 	else
-		icon_state = "[xray_module][default_camera_icon][in_use_lights ? "_in_use" : ""]"
+		icon_state = "[default_camera_icon][in_use_lights ? "_in_use" : ""]"
 
-/obj/machinery/camera/proc/toggle_cam(mob/user, displaymessage = 1)
+/obj/machinery/camera/proc/toggle_cam(mob/user, displaymessage = TRUE)
 	status = !status
 	if(can_use())
 		GLOB.cameranet.addCamera(src)
@@ -362,7 +360,7 @@
 	if(status)
 		change_msg = "reactivates"
 		triggerCameraAlarm()
-		addtimer(CALLBACK(src, .proc/cancelCameraAlarm), 100)
+		addtimer(CALLBACK(src, PROC_REF(cancelCameraAlarm)), 100)
 	if(displaymessage)
 		if(user)
 			visible_message("<span class='danger'>[user] [change_msg] [src]!</span>")
@@ -395,7 +393,9 @@
 /obj/machinery/camera/proc/can_use()
 	if(!status)
 		return FALSE
-	if(stat & EMPED)
+	if(machine_stat & EMPED)
+		return FALSE
+	if(is_jammed())
 		return FALSE
 	return TRUE
 

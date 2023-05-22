@@ -14,6 +14,7 @@
 	var/illegal_shuttle = FALSE	//makes you able to buy the shuttle at a hacked/emagged comms console even if can_be_bought is FALSE
 
 	var/list/movement_force // If set, overrides default movement_force on shuttle
+	var/untowable = FALSE // If set, the shuttle becomes untowable
 
 	var/port_x_offset
 	var/port_y_offset
@@ -22,9 +23,14 @@
 /datum/map_template/shuttle/proc/prerequisites_met()
 	return TRUE
 
-/datum/map_template/shuttle/New()
+/datum/map_template/shuttle/New(path = null, rename = null, cache = FALSE, admin_load = null)
+	if(admin_load)//This data must be populated for the system to not shit itself apparently
+		suffix = admin_load
+		port_id = "custom"
+		can_be_bought = FALSE
 	shuttle_id = "[port_id]_[suffix]"
-	mappath = "[prefix][shuttle_id].dmm"
+	if(!admin_load)
+		mappath = "[prefix][port_id]/[shuttle_id].dmm"
 	. = ..()
 
 /datum/map_template/shuttle/preload_size(path, cache)
@@ -57,21 +63,29 @@
 				++xcrd
 			--ycrd
 
-/datum/map_template/shuttle/load(turf/T, centered, register=TRUE)
-	. = ..()
+/datum/map_template/shuttle/load(turf/T, centered, init_atmos = TRUE, finalize = TRUE, register=TRUE)
+	if(centered)
+		T = locate(T.x - round(width/2) , T.y - round(height/2) , T.z)
+		centered = FALSE
+	//This assumes a non-multi-z shuttle. If you are making a multi-z shuttle, you'll need to change the z bounds for this block. Good luck.
+	var/list/turfs = block(locate(max(T.x, 1), max(T.y, 1),  T.z),
+							locate(min(T.x+width, world.maxx), min(T.y+height, world.maxy), T.z))
+	for(var/turf/turf in turfs)
+		turfs[turf] = turf.loc
+	keep_cached_map = TRUE //We need to access some stuff here below for shuttle skipovers
+	. = ..(T, centered, init_atmos = TRUE, finalize = FALSE)
+	keep_cached_map = initial(keep_cached_map)
 	if(!.)
+		cached_map = keep_cached_map ? cached_map : null
 		return
-	var/list/turfs = block(	locate(.[MAP_MINX], .[MAP_MINY], .[MAP_MINZ]),
-							locate(.[MAP_MAXX], .[MAP_MAXY], .[MAP_MAXZ]))
-	for(var/i in 1 to turfs.len)
-		var/turf/place = turfs[i]
-		if(istype(place, /turf/open/space)) // This assumes all shuttles are loaded in a single spot then moved to their real destination.
+	var/obj/docking_port/mobile/my_port
+	for(var/turf/place in turfs)
+		if(place.loc == turfs[place] || !istype(place.loc, /area/shuttle)) //If not part of the shuttle, ignore it
+			turfs -= place
 			continue
-		if(length(place.baseturfs) < 2) // Some snowflake shuttle shit
-			continue
-		place.baseturfs.Insert(3, /turf/baseturf_skipover/shuttle)
-
 		for(var/obj/docking_port/mobile/port in place)
+			my_port = port
+			port.untowable = untowable
 			if(register)
 				port.register()
 			if(isnull(port_x_offset))
@@ -98,6 +112,58 @@
 					port.dwidth = port_y_offset - 1
 					port.dheight = width - port_x_offset
 
+	for(var/turf/shuttle_turf in turfs)
+		var/area/shuttle/turf_loc = turfs[shuttle_turf]
+		my_port.underlying_turf_area[shuttle_turf] = turf_loc
+		if(istype(turf_loc) && turf_loc.mobile_port)
+			turf_loc.mobile_port.towed_shuttles |= my_port
+
+		//Getting the amount of baseturfs added
+		var/z_offset = shuttle_turf.z - T.z
+		var/y_offset = shuttle_turf.y - T.y
+		var/x_offset = shuttle_turf.x - T.x
+		//retrieving our cache
+		var/line
+		var/list/cache
+		for(var/datum/grid_set/gset as() in cached_map.gridSets)
+			if(gset.zcrd - 1 != z_offset) //Not our Z-level
+				continue
+			if((gset.ycrd - 1 < y_offset) || (gset.ycrd - length(gset.gridLines) > y_offset)) //Our y coord isn't in the bounds
+				continue
+			line = gset.gridLines[length(gset.gridLines) - y_offset] //Y goes from top to bottom
+			if((gset.xcrd - 1 < x_offset) || (gset.xcrd + (length(line)/cached_map.key_len) - 2 > x_offset)) ///Our x coord isn't in the bounds
+				continue
+			cache = cached_map.modelCache[copytext(line, 1+((x_offset-gset.xcrd+1)*cached_map.key_len), 1+((x_offset-gset.xcrd+2)*cached_map.key_len))]
+			break
+		if(!cache) //Our turf isn't in the cached map, something went very wrong
+			continue
+
+		//How many baseturfs were added to this turf by the mapload
+		var/baseturf_length
+		var/turf/P //Typecasted for the initial call
+		for(P as() in cache[1])
+			if(ispath(P, /turf))
+				var/list/added_baseturfs = GLOB.created_baseturf_lists[initial(P.baseturfs)] //We can assume that our turf type will be included here because it was just generated in the mapload.
+				if(!islist(added_baseturfs))
+					added_baseturfs = list(added_baseturfs)
+				baseturf_length = length(added_baseturfs - GLOB.blacklisted_automated_baseturfs)
+				break
+		if(ispath(P, /turf/template_noop)) //No turf was added, don't add a skipover
+			continue
+
+		if(!islist(shuttle_turf.baseturfs))
+			shuttle_turf.baseturfs = list(shuttle_turf.baseturfs)
+		shuttle_turf.baseturfs.Insert(shuttle_turf.baseturfs.len + 1 - baseturf_length, /turf/baseturf_skipover/shuttle)
+
+	//If this is a superfunction call, we don't want to initialize atoms here, let the subfunction handle that
+	if(finalize)
+		//initialize things that are normally initialized after map load
+		initTemplateBounds(cached_map.bounds, init_atmos)
+
+		log_game("[name] loaded at [T.x],[T.y],[T.z]")
+
+	cached_map = keep_cached_map ? cached_map : null
+
 //Whatever special stuff you want
 /datum/map_template/shuttle/proc/post_load(obj/docking_port/mobile/M)
 	if(movement_force)
@@ -106,6 +172,7 @@
 /datum/map_template/shuttle/emergency
 	port_id = "emergency"
 	name = "Base Shuttle Template (Emergency)"
+	untowable = TRUE
 
 /datum/map_template/shuttle/cargo
 	port_id = "cargo"
@@ -130,6 +197,7 @@
 /datum/map_template/shuttle/arrival
 	port_id = "arrival"
 	can_be_bought = FALSE
+	untowable = TRUE
 
 /datum/map_template/shuttle/infiltrator
 	port_id = "infiltrator"
@@ -245,11 +313,24 @@
 	description = "The crew must pass through an otherworldy arena to board this shuttle. Expect massive casualties. The source of the Bloody Signal must be tracked down and eliminated to unlock this shuttle."
 	admin_notes = "RIP AND TEAR."
 	credit_cost = 10000
+	/// Whether the arena z-level has been created
+	var/arena_loaded = FALSE
 
 /datum/map_template/shuttle/emergency/arena/prerequisites_met()
 	if(SHUTTLE_UNLOCK_BUBBLEGUM in SSshuttle.shuttle_purchase_requirements_met)
 		return TRUE
 	return FALSE
+
+/datum/map_template/shuttle/emergency/arena/post_load(obj/docking_port/mobile/M)
+	. = ..()
+	if(!arena_loaded)
+		arena_loaded = TRUE
+		var/datum/map_template/arena/arena_template = new()
+		arena_template.load_new_z()
+
+/datum/map_template/arena
+	name = "The Arena"
+	mappath = "_maps/templates/the_arena.dmm"
 
 /datum/map_template/shuttle/emergency/birdboat
 	suffix = "birdboat"
@@ -268,13 +349,6 @@
 	name = "Box Station Emergency Shuttle"
 	credit_cost = 2000
 	description = "The gold standard in emergency exfiltration, this tried and true design is equipped with everything the crew needs for a safe flight home."
-
-/datum/map_template/shuttle/emergency/donut
-	suffix = "donut"
-	name = "Donutstation Emergency Shuttle"
-	description = "The perfect spearhead for any crude joke involving the station's shape, this shuttle supports a separate containment cell for prisoners and a compact medical wing."
-	admin_notes = "Has airlocks on both sides of the shuttle and will probably intersect near the front on some stations that build past departures."
-	credit_cost = 2500
 
 /datum/map_template/shuttle/emergency/clown
 	suffix = "clown"
@@ -308,6 +382,24 @@
 	credit_cost = 5000
 	description = "A fully functional shuttle including a complete infirmary, storage facilties and regular amenities."
 
+/datum/map_template/shuttle/emergency/corg
+	suffix = "corg"
+	name = "Corg Station Emergency Shuttle"
+	credit_cost = 4000
+	description = "A smaller shuttle with area for cargo, medical and security personnel."
+
+/datum/map_template/shuttle/emergency/fland
+	suffix = "fland"
+	name = "Flandstation Wide shuttle"
+	description = "It's a fat shuttle for a rather unusual station... huh..."
+	admin_notes = "It's big to spawn, it may or may not collide with the surrounding stuff on other maps that don't have a massive emergency docking area."
+	credit_cost = 8000
+
+/datum/map_template/shuttle/emergency/donut //NSV13 - we were using that shuttle
+	suffix = "donut"
+	name = "Donut Station Emergency Shuttle"
+	credit_cost = 4000
+
 /datum/map_template/shuttle/emergency/mini
 	suffix = "mini"
 	name = "Ministation emergency shuttle"
@@ -328,6 +420,11 @@
 	description = "Looks like this shuttle may have wandered into the darkness between the stars on route to the station. Let's not think too hard about where all the bodies came from."
 	admin_notes = "Contains real cult ruins, mob eyeballs, and inactive constructs. Cult mobs will automatically be sentienced by fun balloon. \
 	Cloning pods in 'medbay' area are showcases and nonfunctional."
+
+/datum/map_template/shuttle/emergency/narnar/prerequisites_met()
+	if(SHUTTLE_UNLOCK_NARNAR in SSshuttle.shuttle_purchase_requirements_met)
+		return TRUE
+	return FALSE
 
 /datum/map_template/shuttle/emergency/pubby
 	suffix = "pubby"
@@ -452,13 +549,13 @@
 	suffix = "kilo"
 	name = "supply shuttle (Kilo)"
 
+/datum/map_template/shuttle/cargo/corg
+	suffix = "corg"
+	name = "supply shuttle (Corg)"
+
 /datum/map_template/shuttle/cargo/birdboat
 	suffix = "birdboat"
 	name = "supply shuttle (Birdboat)"
-
-/datum/map_template/shuttle/cargo/donut
-	suffix = "donut"
-	name = "supply shuttle (Donut)"
 
 /datum/map_template/shuttle/emergency/delta
 	suffix = "delta"
@@ -505,9 +602,9 @@
 	suffix = "box"
 	name = "labour shuttle (Box)"
 
-/datum/map_template/shuttle/arrival/donut
-	suffix = "donut"
-	name = "arrival shuttle (Donut)"
+/datum/map_template/shuttle/arrival/corg
+	suffix = "corg"
+	name = "arrival shuttle (Corg)"
 
 /datum/map_template/shuttle/infiltrator/basic
 	suffix = "basic"
@@ -539,6 +636,24 @@
 	name = "science outpost shuttle"
 	can_be_bought = FALSE
 
+/datum/map_template/shuttle/exploration
+	port_id = "exploration"
+	suffix = "shuttle"
+	name = "exploration shuttle"
+	can_be_bought = FALSE
+
+/datum/map_template/shuttle/exploration/corg
+	suffix = "corg"
+	name = "corg exploration shuttle"
+
+/datum/map_template/shuttle/exploration/delta
+	suffix = "delta"
+	name = "delta exploration shuttle"
+
+/datum/map_template/shuttle/exploration/kilo
+	suffix = "kilo"
+	name = "kilo exploration shuttle"
+
 /datum/map_template/shuttle/labour/delta
 	suffix = "delta"
 	name = "labour shuttle (Delta)"
@@ -546,6 +661,10 @@
 /datum/map_template/shuttle/labour/kilo
 	suffix = "kilo"
 	name = "labour shuttle (Kilo)"
+
+/datum/map_template/shuttle/labour/corg
+	suffix = "corg"
+	name = "labour shuttle (Corg)"
 
 /datum/map_template/shuttle/arrival/delta
 	suffix = "delta"
@@ -632,8 +751,59 @@
 	port_id = "debug"
 	suffix = "primary"
 	name = "primary turbolift (multi-z debug)"
+	can_be_bought = FALSE
 
-/datum/map_template/shuttle/turbolift/semmes/aircraft
+/datum/map_template/shuttle/tram
+	port_id = "tram"
+	can_be_bought = FALSE
+
+/datum/map_template/shuttle/tram/corg
+	suffix = "corg"
+	name = "corgstation transport shuttle"
+
+//---------cargo_fland.dmm
+/datum/map_template/shuttle/cargo/fland
+	suffix = "fland"
+	name = "supply shuttle (fland)"
+
+//---------labour_fland.dmm
+/datum/map_template/shuttle/cargo/fland
+	suffix = "fland"
+	name = "cargo ferry (Fland)"
+
+//---------mining_fland.dmm
+/datum/map_template/shuttle/mining/fland
+	suffix = "fland"
+	name = "mining shuttle (fland)"
+
+//---------labour_fland.dmm
+/datum/map_template/shuttle/labour/fland
+	suffix = "fland"
+	name = "labour shuttle (Fland)"
+
+//---------arrival_fland.dmm
+/datum/map_template/shuttle/arrival/fland
+	suffix = "fland"
+	name = "arrival shuttle (Fland)"
+
+//---------whiteship_fland.dmm
+/datum/map_template/shuttle/whiteship/fland
+	suffix = "fland"
+	name = "Eden Whiteship"
+
+//---------exploration_fland.dmm
+/datum/map_template/shuttle/exploration/fland
+	suffix = "fland"
+	name = "Fland exploration shuttle"
+
+//---------ferry_fland.dmm
+/datum/map_template/shuttle/ferry/fland
+	suffix = "fland"
+	name = "fland transport ferry"
+	description = "Standard issue CentCom Ferry for the fland station. Includes additional equipment and a recharger."
+
+/datum/map_template/shuttle/turbolift/semmes/aircraft //NSV13
 	port_id = "aircraft"
 	suffix = "semmes"
 	name = "Aircraft elevator (NSV Semmes)"
+	can_be_bought = FALSE

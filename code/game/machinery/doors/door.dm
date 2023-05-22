@@ -8,10 +8,12 @@
 	move_resist = MOVE_FORCE_VERY_STRONG
 	layer = OPEN_DOOR_LAYER
 	power_channel = AREA_USAGE_ENVIRON
+	pass_flags_self = PASSDOORS
 	max_integrity = 350
 	armor = list("melee" = 30, "bullet" = 30, "laser" = 20, "energy" = 20, "bomb" = 10, "bio" = 100, "rad" = 100, "fire" = 80, "acid" = 70, "stamina" = 0)
 	CanAtmosPass = ATMOS_PASS_DENSITY
 	flags_1 = PREVENT_CLICK_UNDER_1
+	ricochet_chance_mod = 0.8
 	damage_deflection = 10
 
 	interaction_flags_atom = INTERACT_ATOM_UI_INTERACT
@@ -54,7 +56,7 @@
 		return TRUE
 	return ..()
 
-/obj/machinery/door/Initialize()
+/obj/machinery/door/Initialize(mapload)
 	. = ..()
 	set_init_door_layer()
 	update_freelook_sight()
@@ -66,6 +68,15 @@
 	//doors only block while dense though so we have to use the proc
 	real_explosion_block = explosion_block
 	explosion_block = EXPLOSION_BLOCK_PROC
+	if(red_alert_access)
+		RegisterSignal(SSdcs, COMSIG_GLOB_SECURITY_ALERT_CHANGE, PROC_REF(handle_alert))
+
+/obj/machinery/door/proc/handle_alert(datum/source, new_alert)
+	SIGNAL_HANDLER
+	if(new_alert >= SEC_LEVEL_RED)
+		visible_message("<span class='notice'>[src] whirs as it automatically lifts access requirements!</span>")
+		playsound(src, 'sound/machines/boltsup.ogg', 50, TRUE)
+
 
 /obj/machinery/door/proc/set_init_door_layer()
 	if(density)
@@ -131,50 +142,55 @@
 	. = ..()
 	move_update_air(T)
 
-/obj/machinery/door/CanPass(atom/movable/mover, turf/target)
+/obj/machinery/door/CanAllowThrough(atom/movable/mover, turf/target)
+	. = ..()
+	if(.)
+		return
+	// Snowflake handling for PASSGLASS.
 	if(istype(mover) && (mover.pass_flags & PASSGLASS))
 		return !opacity
-	return (mover.pass_flags & PASSDOOR) || !density //nsv13 - bloodling passdoor
+	return (mover.pass_flags & PASSDOOR) //nsv13 - bloodling passdoor
 
-/obj/machinery/door/proc/bumpopen(mob/user)
-	if(operating)
+/// Helper method for bumpopen() and try_to_activate_door(). Don't override.
+/obj/machinery/door/proc/activate_door_base(mob/user, can_close_door)
+	add_fingerprint(user)
+	if(operating || (obj_flags & EMAGGED))
 		return
-	src.add_fingerprint(user)
-	if(!src.requiresID())
-		user = null
-
-	if(density && !(obj_flags & EMAGGED))
-		if(allowed(user))
+	// Cutting WIRE_IDSCAN disables normal entry
+	if(!id_scan_hacked() && allowed(user))
+		if(density)
 			open()
 		else
-			do_animate("deny")
-	return
+			if(!can_close_door)
+				return FALSE
+			close()
+		return TRUE
+	if(density)
+		do_animate("deny")
+
+/// Handles a door getting "bumped" by a mob/living.
+/obj/machinery/door/proc/bumpopen(mob/user)
+	activate_door_base(user, FALSE)
 
 /obj/machinery/door/attack_hand(mob/user)
 	. = ..()
 	if(.)
 		return
-	return try_to_activate_door(user)
+	return try_to_activate_door(null, user)
 
 /obj/machinery/door/attack_tk(mob/user)
-	if(requiresID() && !allowed(null))
+	// allowed(null) will always return false, unless the door is all-access.
+	// So unless we've cut the id-scan wire, TK won't go through at all - not even showing an animation.
+	// But if we *have* cut the wire, this eventually falls through to attack_hand(), which calls try_to_activate_door(),
+	// which will fail because the door won't work if the wire is cut! Catch-22.
+	// Basically, TK won't work unless the door is all-access.
+	if(!id_scan_hacked() && !allowed())
 		return
 	..()
 
-/obj/machinery/door/proc/try_to_activate_door(mob/user)
-	add_fingerprint(user)
-	if(operating || (obj_flags & EMAGGED))
-		return
-	if(!requiresID())
-		user = null //so allowed(user) always succeeds
-	if(allowed(user))
-		if(density)
-			open()
-		else
-			close()
-		return TRUE
-	if(density)
-		do_animate("deny")
+/// Handles door activation via clicks, through attackby().
+/obj/machinery/door/proc/try_to_activate_door(obj/item/I, mob/user)
+	return activate_door_base(user, TRUE)
 
 /obj/machinery/door/allowed(mob/M)
 	if(emergency)
@@ -218,14 +234,14 @@
 	return max_moles - min_moles > 20
 
 /obj/machinery/door/attackby(obj/item/I, mob/user, params)
-	if(user.a_intent != INTENT_HARM && (I.tool_behaviour == TOOL_CROWBAR || istype(I, /obj/item/twohanded/fireaxe)))
+	if(user.a_intent != INTENT_HARM && (I.tool_behaviour == TOOL_CROWBAR || istype(I, /obj/item/fireaxe)))
 		try_to_crowbar(I, user)
 		return 1
 	else if(I.tool_behaviour == TOOL_WELDER)
 		try_to_weld(I, user)
 		return 1
 	else if(!(I.item_flags & NOBLUDGEON) && user.a_intent != INTENT_HARM)
-		try_to_activate_door(user)
+		try_to_activate_door(I, user)
 		return 1
 	return ..()
 
@@ -252,12 +268,12 @@
 	if (. & EMP_PROTECT_SELF)
 		return
 	if(prob(20/severity) && (istype(src, /obj/machinery/door/airlock) || istype(src, /obj/machinery/door/window)) )
-		INVOKE_ASYNC(src, .proc/open)
+		INVOKE_ASYNC(src, PROC_REF(open))
 	if(prob(severity*10 - 20))
 		if(secondsElectrified == MACHINE_NOT_ELECTRIFIED)
 			secondsElectrified = MACHINE_ELECTRIFIED_PERMANENT
 			LAZYADD(shockedby, "\[[time_stamp()]\]EM Pulse")
-			addtimer(CALLBACK(src, .proc/unelectrify), 300)
+			addtimer(CALLBACK(src, PROC_REF(unelectrify)), 300)
 
 /obj/machinery/door/proc/unelectrify()
 	secondsElectrified = MACHINE_NOT_ELECTRIFIED
@@ -281,7 +297,7 @@
 			else
 				flick("doorc1", src)
 		if("deny")
-			if(!stat)
+			if(!machine_stat)
 				flick("door_deny", src)
 
 
@@ -352,12 +368,16 @@
 			L.adjustBruteLoss(DOOR_CRUSH_DAMAGE * 1.5) //Xenos go into crit after aproximately the same amount of crushes as humans.
 			L.emote("roar")
 		else if(ishuman(L)) //For humans
-			L.adjustBruteLoss(DOOR_CRUSH_DAMAGE)
+			var/armour = L.run_armor_check(BODY_ZONE_CHEST, "melee")
+			var/multiplier = CLAMP(1 - (armour * 0.01), 0, 1)
+			L.adjustBruteLoss(multiplier * DOOR_CRUSH_DAMAGE)
 			L.emote("scream")
-			L.Paralyze(100)
+			if(!L.IsParalyzed())
+				L.Paralyze(60)
 		else if(ismonkey(L)) //For monkeys
 			L.adjustBruteLoss(DOOR_CRUSH_DAMAGE)
-			L.Paralyze(100)
+			if(!L.IsParalyzed())
+				L.Paralyze(60)
 		else //for simple_animals & borgs
 			L.adjustBruteLoss(DOOR_CRUSH_DAMAGE)
 		var/turf/location = get_turf(src)
@@ -372,19 +392,21 @@
 		close()
 
 /obj/machinery/door/proc/autoclose_in(wait)
-	addtimer(CALLBACK(src, .proc/autoclose), wait, TIMER_UNIQUE | TIMER_NO_HASH_WAIT | TIMER_OVERRIDE)
+	addtimer(CALLBACK(src, PROC_REF(autoclose)), wait, TIMER_UNIQUE | TIMER_NO_HASH_WAIT | TIMER_OVERRIDE)
 
-/obj/machinery/door/proc/requiresID()
-	return 1
+/// Is the ID Scan wire cut, or has the AI disabled it?
+/// This has a variety of non-uniform effects - it doesn't simply grant access.
+/obj/machinery/door/proc/id_scan_hacked()
+	return FALSE
 
 /obj/machinery/door/proc/hasPower()
-	return !(stat & NOPOWER)
+	return !(machine_stat & NOPOWER)
 
 /obj/machinery/door/proc/update_freelook_sight()
 	if(!glass && GLOB.cameranet)
 		GLOB.cameranet.updateVisibility(src, 0)
 
-/obj/machinery/door/BlockSuperconductivity() // All non-glass airlocks block heat, this is intended.
+/obj/machinery/door/BlockThermalConductivity() // All non-glass airlocks block heat, this is intended.
 	if(opacity || heat_proof)
 		return 1
 	return 0
@@ -402,11 +424,11 @@
 	return
 
 /obj/machinery/door/proc/hostile_lockdown(mob/origin)
-	if(!stat) //So that only powered doors are closed.
+	if(!machine_stat) //So that only powered doors are closed.
 		close() //Close ALL the doors!
 
 /obj/machinery/door/proc/disable_lockdown()
-	if(!stat) //Opens only powered doors.
+	if(!machine_stat) //Opens only powered doors.
 		open() //Open everything!
 
 /obj/machinery/door/ex_act(severity, target)

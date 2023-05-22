@@ -11,7 +11,7 @@
 
 /obj/machinery/computer/ship/navigation
 	name = "\improper FTL Navigation console"
-	desc = "A computer which can interface with the FTL drive to allow the ship to travel vast distances in space."
+	desc = "A computer which can interface with the Thirring Drive to allow the ship to travel vast distances in space."
 	icon_screen = "ftl"
 	var/datum/star_system/selected_system = null
 	var/screen = STARMAP
@@ -19,25 +19,42 @@
 	var/current_sector = 2
 	circuit = /obj/item/circuitboard/computer/ship/navigation
 
+/obj/machinery/computer/ship/navigation/LateInitialize()
+	addtimer(CALLBACK(src, PROC_REF(has_overmap)), 15 SECONDS)
+
+
+/obj/machinery/computer/ship/navigation/can_interact(mob/user) //Override this code to allow people to use consoles when flying the ship.
+	if(user in linked?.operators)
+		return TRUE
+	return ..()
+
+/obj/machinery/computer/ship/navigation/ui_state(mob/user)
+	return GLOB.always_state
+
 /obj/machinery/computer/ship/navigation/public
+	name = "Starmap Console"
+	desc = "A computer which shows the current position of the ship in the universe."
 	can_control_ship = FALSE
 
 /obj/machinery/computer/ship/navigation/attack_hand(mob/user)
 	ui_interact(user)
 
 /obj/machinery/computer/ship/navigation/ui_interact(mob/user, datum/tgui/ui)
+	if(!linked)
+		return
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		var/datum/asset/assets = get_asset_datum(/datum/asset/simple/starmap)
 		assets.send(user)
 		ui = new(user, src, "Starmap")
 		ui.open()
+		ui.set_autoupdate(TRUE)
 
 /obj/machinery/computer/ship/navigation/ui_act(action, params, datum/tgui/ui)
 	.=..()
-	if(..())
+	if(isobserver(usr) && !IsAdminGhost(usr))
 		return
-	if(!has_overmap())
+	if(!linked)
 		return
 	switch(action)
 		if("map")
@@ -57,9 +74,15 @@
 			screen = 2
 			. = TRUE
 		if("jump")
+			if(linked.ftl_drive.lockout)
+				visible_message("<span class='warning'>[icon2html(src, viewers(src))] Unable to comply. Invalid authkey to unlock remove override code.</span>")
+				return
 			linked.ftl_drive.jump(selected_system)
 			. = TRUE
 		if("cancel_jump")
+			if(linked.ftl_drive.lockout)
+				visible_message("<span class='warning'>[icon2html(src, viewers(src))] Unable to comply. Invalid authkey to unlock remove override code.</span>")
+				return
 			if(linked.ftl_drive.cancel_ftl())
 				linked.stop_relay(CHANNEL_IMPORTANT_SHIP_ALERT)
 				linked.relay('nsv13/sound/effects/ship/ftl_stop.ogg', channel=CHANNEL_IMPORTANT_SHIP_ALERT)
@@ -71,13 +94,19 @@
 	var/list/data = list()
 	var/list/info = SSstar_system.ships[linked]
 	var/list/lines = list()
+	if(!info?.len)
+		return data
+
 	var/datum/star_system/current_system = info["current_system"]
 	SSstar_system.update_pos(linked)
 	if(linked.ftl_drive)
-		data["ftl_progress"] = linked.ftl_drive.progress
-		if(linked.ftl_drive.ftl_state == FTL_STATE_READY)
-			data["ftl_progress"] = linked.ftl_drive.spoolup_time
-		data["ftl_goal"] = linked.ftl_drive.spoolup_time //TODO
+		if(istype(linked.ftl_drive))
+			data["ftl_progress"] = linked.ftl_drive.progress
+			data["ftl_goal"] = linked.ftl_drive.req_charge
+		else // yes this is so bad I know but I don't want to rework a legacy system that is probably EoL, so this'll do for now
+			var/obj/machinery/computer/ship/ftl_computer/bodge = linked.ftl_drive
+			data["ftl_progress"] = bodge.progress
+			data["ftl_goal"] = bodge.spoolup_time
 	data["travelling"] = FALSE
 	switch(screen)
 		if(0) // ship information
@@ -110,7 +139,7 @@
 				var/list/system_list = list()
 				system_list["name"] = system.name
 				if(current_system)
-					system_list["in_range"] = is_in_range(current_system, system)
+					system_list["in_range"] = is_in_range(current_system, system) || return_jump_check(system)
 					system_list["distance"] = "[current_system.dist(system) > 0 ? "[current_system.dist(system)] LY" : "You are here."]"
 				else
 					system_list["in_range"] = 0
@@ -120,6 +149,7 @@
 				system_list["is_current"] = (system == current_system)
 				system_list["alignment"] = system.alignment
 				system_list["visited"] = is_visited(system)
+				system_list["hidden"] = FALSE
 				var/label = ""
 				if(system.is_hypergate)
 					label += " HYPERGATE"
@@ -187,6 +217,8 @@
 				var/datum/star_system/curr = info["current_system"]
 				data["star_dist"] = curr.dist(selected_system)
 				data["can_jump"] = current_system.dist(selected_system) < linked.ftl_drive?.max_range && linked.ftl_drive.ftl_state == FTL_STATE_READY && LAZYFIND(current_system.adjacency_list, selected_system.name)
+				if(return_jump_check(selected_system) && linked.ftl_drive.ftl_state == FTL_STATE_READY)
+					data["can_jump"] = TRUE
 				if(!can_control_ship) //For public consoles
 					data["can_jump"] = FALSE
 					data["can_cancel"] = FALSE
@@ -199,6 +231,9 @@
 
 /obj/machinery/computer/ship/navigation/proc/is_visited(datum/star_system/system)
 	return system.visited
+
+/obj/machinery/computer/ship/navigation/proc/return_jump_check(datum/star_system/system)
+	return ((SSovermap_mode.already_ended || SSovermap_mode.round_extended) && istype(system, /datum/star_system/outpost))
 
 #undef SHIPINFO
 #undef STARMAP

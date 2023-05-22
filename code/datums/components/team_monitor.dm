@@ -105,8 +105,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 
 	attached_beacon = _attached_beacon
 
-	RegisterSignal(parent, COMSIG_ITEM_EQUIPPED, .proc/parent_equipped)
-	RegisterSignal(parent, COMSIG_ITEM_DROPPED, .proc/parent_dequpped)
+	RegisterSignal(parent, COMSIG_ITEM_EQUIPPED, PROC_REF(parent_equipped))
+	RegisterSignal(parent, COMSIG_ITEM_DROPPED, PROC_REF(parent_dequpped))
 
 	get_matching_beacons()
 	add_tracker_hud(team_frequency, src)
@@ -152,6 +152,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //When the parent is removed, we need to update our arrows
 //Also if we are visible update the arrows of anything tracking us
 /datum/component/team_monitor/proc/parent_moved()
+	SIGNAL_HANDLER
+
 	//Update our alt appearences
 	update_all_directions()
 
@@ -169,7 +171,7 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 	var/atom/movable/screen/arrow/screen = tracking[beacon]
 	var/turf/target_turf = get_turf(beacon.parent)
 	var/turf/parent_turf = get_turf(parent)
-	if(target_turf.z != parent_turf.z || target_turf == parent_turf)
+	if(target_turf.get_virtual_z_level() != parent_turf.get_virtual_z_level() || target_turf == parent_turf)
 		if(screen)
 			//Remove the screen
 			updating.hud_used.team_finder_arrows -= screen
@@ -191,7 +193,7 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 	var/matrix/rotationMatrix = matrix()
 	rotationMatrix.Scale(1.5)
 	rotationMatrix.Translate(0, -distance)
-	rotationMatrix.Turn(Get_Angle(target_turf, parent_turf))
+	rotationMatrix.Turn(get_angle(target_turf, parent_turf))
 	animate(screen, transform = rotationMatrix, time = 2)
 
 //===========
@@ -201,6 +203,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //The parent equipped an item with a team_monitor, check if its in the right slot and apply the hud
 //Also needs to enable other trackers pointers towards us
 /datum/component/team_monitor/proc/parent_equipped(datum/source, mob/equipper, slot)
+	SIGNAL_HANDLER
+
 	var/obj/item/clothing/item = parent
 	if(!istype(item))
 		return
@@ -212,6 +216,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //Disable our hud
 //Disable the pointers to us
 /datum/component/team_monitor/proc/parent_dequpped(datum/source, mob/user)
+	SIGNAL_HANDLER
+
 	hide_hud(user)
 
 //===========
@@ -219,14 +225,14 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //===========
 
 /datum/component/team_monitor/proc/show_hud(mob/target)
-	updating = target
 	//Our hud is disabled
-	if(!hud_visible)
+	if(!hud_visible || !target)
 		return
+	updating = target
 	//Start processing to update in weird situations
 	START_PROCESSING(SSprocessing, src)
 	//Register parent signal
-	RegisterSignal(target, COMSIG_MOVABLE_MOVED, .proc/parent_moved)
+	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(parent_moved))
 	//Mob doesnt have a hud, dont add hud arrows
 	if(!target.hud_used)
 		return
@@ -245,6 +251,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 	updating = null
 	//Stop processing
 	STOP_PROCESSING(SSprocessing, src)
+	if(!target)
+		return
 	//UnRegister parent signal
 	UnregisterSignal(target, COMSIG_MOVABLE_MOVED)
 	//Remove our arrows
@@ -377,11 +385,11 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 
 	//Register tracking signal
 	if(always_update)
-		RegisterSignal(parent, COMSIG_MOVABLE_MOVED, .proc/update_position)
+		RegisterSignal(parent, COMSIG_MOVABLE_MOVED, PROC_REF(update_position))
 	else
 		//Reigster equipping signals
-		RegisterSignal(parent, COMSIG_ITEM_EQUIPPED, .proc/parent_equipped)
-		RegisterSignal(parent, COMSIG_ITEM_DROPPED, .proc/parent_dequpped)
+		RegisterSignal(parent, COMSIG_ITEM_EQUIPPED, PROC_REF(parent_equipped))
+		RegisterSignal(parent, COMSIG_ITEM_DROPPED, PROC_REF(parent_dequpped))
 
 	//Set our visibility on the tracking network
 	toggle_visibility(_visible)
@@ -420,13 +428,15 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //The parent equipped an item with a team_monitor, check if its in the right slot and apply the hud
 //Also needs to enable other trackers pointers towards us
 /datum/component/tracking_beacon/proc/parent_equipped(datum/source, mob/equipper, slot)
+	SIGNAL_HANDLER
+
 	var/obj/item/clothing/item = parent
 	if(!istype(item))
 		return
 	if(item.slot_flags & slot) //Was equipped to a valid slot for this item?
 		updating = equipper
 		toggle_visibility(TRUE)
-		RegisterSignal(updating, COMSIG_MOVABLE_MOVED, .proc/update_position)
+		RegisterSignal(updating, COMSIG_MOVABLE_MOVED, PROC_REF(update_position))
 	else
 		toggle_visibility(FALSE)
 		if(updating)
@@ -436,6 +446,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //Disable our hud
 //Disable the pointers to us
 /datum/component/tracking_beacon/proc/parent_dequpped(datum/source, mob/user)
+	SIGNAL_HANDLER
+
 	toggle_visibility(FALSE)
 	if(updating)
 		UnregisterSignal(updating, COMSIG_MOVABLE_MOVED)
@@ -460,6 +472,8 @@ GLOBAL_LIST_EMPTY(tracker_beacons)
 //===========
 
 /datum/component/tracking_beacon/proc/update_position()
+	SIGNAL_HANDLER
+
 	//Update everyone tracking us
 	if(!visible)
 		return

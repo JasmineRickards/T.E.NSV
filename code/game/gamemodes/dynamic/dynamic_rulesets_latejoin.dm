@@ -28,18 +28,26 @@
 			continue
 
 /datum/dynamic_ruleset/latejoin/ready(forced = 0)
-	if (!forced)
-		var/job_check = 0
-		if (enemy_roles.len > 0)
-			for (var/mob/M in mode.current_players[CURRENT_LIVING_PLAYERS])
-				if (M.stat == DEAD)
-					continue // Dead players cannot count as opponents
-				if (M.mind && M.mind.assigned_role && (M.mind.assigned_role in enemy_roles) && (!(M in candidates) || (M.mind.assigned_role in restricted_roles)))
-					job_check++ // Checking for "enemies" (such as sec officers). To be counters, they must either not be candidates to that rule, or have a job that restricts them from it
+	if (forced)
+		return ..()
 
-		var/threat = round(mode.threat_level/10)
-		if (job_check < required_enemies[threat])
-			return FALSE
+	var/job_check = 0
+	if (enemy_roles.len > 0)
+		for (var/mob/M in mode.current_players[CURRENT_LIVING_PLAYERS])
+			if (M.stat == DEAD)
+				continue // Dead players cannot count as opponents
+			if (M.mind && (M.mind.assigned_role in enemy_roles) && (!(M in candidates) || (M.mind.assigned_role in restricted_roles)))
+				job_check++ // Checking for "enemies" (such as sec officers). To be counters, they must either not be candidates to that rule, or have a job that restricts them from it
+
+	var/threat = round(mode.threat_level/10)
+
+	if (job_check < required_enemies[threat])
+		log_game("DYNAMIC: FAIL: [src] is not ready, because there are not enough enemies: [required_enemies[threat]] needed, [job_check] found")
+		return FALSE
+
+	if (mode.check_lowpop_lowimpact_injection())
+		return FALSE
+
 	return ..()
 
 /datum/dynamic_ruleset/latejoin/execute()
@@ -59,13 +67,20 @@
 	name = "Syndicate Infiltrator"
 	antag_datum = /datum/antagonist/traitor
 	antag_flag = ROLE_TRAITOR
-	protected_roles = list("Security Officer", "Warden", "Detective", "Head of Security", "Captain", "Head of Personnel")
-	restricted_roles = list("AI","Cyborg")
+	protected_roles = list(JOB_NAME_SECURITYOFFICER, JOB_NAME_WARDEN, JOB_NAME_HEADOFSECURITY, JOB_NAME_CAPTAIN, JOB_NAME_HEADOFPERSONNEL)
+	restricted_roles = list(JOB_NAME_AI,JOB_NAME_CYBORG)
 	required_candidates = 1
 	weight = 7
 	cost = 5
-	requirements = list(40,30,20,10,10,10,10,10,10,10)
+	requirements = list(5,5,5,5,5,5,5,5,5,5)
 	repeatable = TRUE
+	blocking_rules = list(
+		/datum/dynamic_ruleset/roundstart/bloodcult,
+		/datum/dynamic_ruleset/roundstart/clockcult,
+		/datum/dynamic_ruleset/roundstart/nuclear,
+		/datum/dynamic_ruleset/roundstart/wizard,
+		/datum/dynamic_ruleset/roundstart/revs
+	)
 
 //////////////////////////////////////////////
 //                                          //
@@ -79,18 +94,20 @@
 	antag_datum = /datum/antagonist/rev/head
 	antag_flag = ROLE_REV_HEAD
 	antag_flag_override = ROLE_REV
-	restricted_roles = list("AI", "Cyborg", "Security Officer", "Warden", "Detective", "Head of Security", "Captain", "Head of Personnel", "Chief Engineer", "Chief Medical Officer", "Research Director")
-	enemy_roles = list("AI", "Cyborg", "Security Officer","Detective","Head of Security", "Captain", "Warden")
+	restricted_roles = list(JOB_NAME_AI, JOB_NAME_CYBORG, JOB_NAME_SECURITYOFFICER, JOB_NAME_WARDEN, JOB_NAME_DETECTIVE, JOB_NAME_HEADOFSECURITY, JOB_NAME_CAPTAIN, JOB_NAME_HEADOFPERSONNEL, JOB_NAME_CHIEFENGINEER, JOB_NAME_CHIEFMEDICALOFFICER, JOB_NAME_RESEARCHDIRECTOR, JOB_NAME_MASTERATARMS) //NSV13 - added MAA
+	enemy_roles = list(JOB_NAME_AI, JOB_NAME_CYBORG, JOB_NAME_SECURITYOFFICER,JOB_NAME_DETECTIVE,JOB_NAME_HEADOFSECURITY, JOB_NAME_CAPTAIN, JOB_NAME_WARDEN)
 	required_enemies = list(2,2,1,1,1,1,1,0,0,0)
 	required_candidates = 1
 	weight = 2
-	delay = 1 MINUTES	// Prevents rule start while head is offstation.
-	cost = 20
+	delay = 1 MINUTES // Prevents rule start while head is offstation.
+	cost = 10
 	requirements = list(101,101,70,40,30,20,20,20,20,20)
 	flags = HIGH_IMPACT_RULESET
 	blocking_rules = list(/datum/dynamic_ruleset/roundstart/revs)
 	var/required_heads_of_staff = 3
 	var/finished = FALSE
+	/// How much threat should be injected when the revolution wins?
+	var/revs_win_threat_injection = 20
 	var/datum/team/revolution/revolution
 
 /datum/dynamic_ruleset/latejoin/provocateur/ready(forced=FALSE)
@@ -117,7 +134,7 @@
 		new_head = M.mind.add_antag_datum(new_head, revolution)
 		revolution.update_objectives()
 		revolution.update_heads()
-		SSshuttle.registerHostileEnvironment(src)
+		SSshuttle.registerHostileEnvironment(revolution)
 		return TRUE
 	else
 		log_game("DYNAMIC: [ruletype] [name] discarded [M.name] from head revolutionary due to ineligibility.")
@@ -125,29 +142,12 @@
 		return FALSE
 
 /datum/dynamic_ruleset/latejoin/provocateur/rule_process()
-	if(check_rev_victory())
-		finished = REVOLUTION_VICTORY
-		return RULESET_STOP_PROCESSING
-	else if (check_heads_victory())
-		finished = STATION_VICTORY
-		SSshuttle.clearHostileEnvironment(src)
-		revolution.save_members()
-		for(var/datum/mind/M in revolution.members)	// Remove antag datums and prevents podcloned or exiled headrevs restarting rebellions.
-			if(M.has_antag_datum(/datum/antagonist/rev/head))
-				var/datum/antagonist/rev/head/R = M.has_antag_datum(/datum/antagonist/rev/head)
-				R.remove_revolutionary(FALSE, "gamemode")
-				if(M.current)
-					var/mob/living/carbon/C = M.current
-					if(istype(C) && C.stat == DEAD)
-						C.makeUncloneable()
-			if(M.has_antag_datum(/datum/antagonist/rev))
-				var/datum/antagonist/rev/R = M.has_antag_datum(/datum/antagonist/rev)
-				R.remove_revolutionary(FALSE, "gamemode")
-		priority_announce("It appears the mutiny has been quelled. Please return yourself and your incapacitated colleagues to work. \
-			We have remotely blacklisted the head revolutionaries in your medical records to prevent accidental revival.", null, 'sound/ai/attention.ogg', null, "Central Command Loyalty Monitoring Division")
-		return RULESET_STOP_PROCESSING
+	var/winner = revolution.process_victory(revs_win_threat_injection)
+	if (isnull(winner))
+		return
 
-
+	finished = winner
+	return RULESET_STOP_PROCESSING
 
 /// Checks for revhead loss conditions and other antag datums.
 /datum/dynamic_ruleset/latejoin/provocateur/proc/check_eligible(var/datum/mind/M)
@@ -156,33 +156,8 @@
 		return TRUE
 	return FALSE
 
-/datum/dynamic_ruleset/latejoin/provocateur/check_finished()
-	if(finished == REVOLUTION_VICTORY)
-		return TRUE
-	else
-		return ..()
-
-/datum/dynamic_ruleset/latejoin/provocateur/proc/check_rev_victory()
-	for(var/datum/objective/mutiny/objective in revolution.objectives)
-		if(!(objective.check_completion()))
-			return FALSE
-	return TRUE
-
-/datum/dynamic_ruleset/latejoin/provocateur/proc/check_heads_victory()
-	for(var/datum/mind/rev_mind in revolution.head_revolutionaries())
-		var/turf/T = get_turf(rev_mind.current)
-		if(!considered_afk(rev_mind) && considered_alive(rev_mind) && is_station_level(T.z))
-			if(ishuman(rev_mind.current) || ismonkey(rev_mind.current))
-				return FALSE
-	return TRUE
-
 /datum/dynamic_ruleset/latejoin/provocateur/round_result()
-	if(finished == REVOLUTION_VICTORY)
-		SSticker.mode_result = "win - heads killed"
-		SSticker.news_report = REVS_WIN
-	else if(finished == STATION_VICTORY)
-		SSticker.mode_result = "loss - rev heads killed"
-		SSticker.news_report = REVS_LOSE
+	revolution.round_result(finished)
 
 //////////////////////////////////////////////
 //                                          //
@@ -194,10 +169,17 @@
 	name = "Heretic Smuggler"
 	antag_datum = /datum/antagonist/heretic
 	antag_flag = ROLE_HERETIC
-	protected_roles = list("Security Officer", "Warden", "Detective", "Head of Security", "Captain", "Executive Officer", "Master At Arms") //NSV13 - renamed HoP to XO, added MAA
-	restricted_roles = list("AI","Cyborg")
+	protected_roles = list(JOB_NAME_SECURITYOFFICER, JOB_NAME_WARDEN, JOB_NAME_HEADOFPERSONNEL, JOB_NAME_DETECTIVE, JOB_NAME_HEADOFSECURITY, JOB_NAME_CAPTAIN)
+	restricted_roles = list(JOB_NAME_AI,JOB_NAME_CYBORG)
 	required_candidates = 1
 	weight = 4
-	cost = 10
-	requirements = list(40,30,20,10,10,10,10,10,10,10)
+	cost = 7
+	requirements = list(101,101,101,10,10,10,10,10,10,10)
 	repeatable = TRUE
+	blocking_rules = list(
+		/datum/dynamic_ruleset/roundstart/bloodcult,
+		/datum/dynamic_ruleset/roundstart/clockcult,
+		/datum/dynamic_ruleset/roundstart/nuclear,
+		/datum/dynamic_ruleset/roundstart/wizard,
+		/datum/dynamic_ruleset/roundstart/revs
+	)

@@ -15,11 +15,13 @@
 	if(!isatom(parent))
 		return COMPONENT_INCOMPATIBLE
 
-	RegisterSignal(parent, COMSIG_PARENT_EXAMINE, .proc/examine)
-	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY,.proc/action)
+	RegisterSignal(parent, COMSIG_PARENT_EXAMINE, PROC_REF(examine))
+	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY,PROC_REF(action))
 	update_parent(index)
 
 /datum/component/construction/proc/examine(datum/source, mob/user, list/examine_list)
+	SIGNAL_HANDLER
+
 	if(desc)
 		examine_list += desc
 
@@ -30,7 +32,9 @@
 		update_parent(index)
 
 /datum/component/construction/proc/action(datum/source, obj/item/I, mob/living/user)
-	return check_step(I, user)
+	SIGNAL_HANDLER
+
+	return INVOKE_ASYNC(src, PROC_REF(check_step), I, user)
 
 /datum/component/construction/proc/update_index(diff)
 	index += diff

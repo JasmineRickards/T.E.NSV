@@ -146,13 +146,13 @@
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
-/datum/design/nuclear_warhead
-	name = "Nuclear Torpedo Warhead"
-	desc = "A nuclear warhead design for torpedos"
-	id = "nuke_warhead"
+/datum/design/hellfire_warhead
+	name = "Hellfire Torpedo Warhead"
+	desc = "An incendiary warhead design for torpedos"
+	id = "hellfire_warhead"
 	build_type = PROTOLATHE
-	materials = list(/datum/material/iron = 4000, /datum/material/glass = 1000, /datum/material/copper = 1000, /datum/material/plasma = 7500, /datum/material/gold = 1500, /datum/material/uranium = 10000)
-	build_path = /obj/item/ship_weapon/parts/missile/warhead/nuclear
+	materials = list(/datum/material/iron = 4000, /datum/material/glass = 1000, /datum/material/copper = 1000, /datum/material/plasma = 7500, /datum/material/gold = 1500, /datum/material/uranium = 5000)
+	build_path = /obj/item/ship_weapon/parts/missile/warhead/hellfire
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
@@ -165,6 +165,16 @@
 	build_path = /obj/item/ship_weapon/parts/missile/warhead/probe
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_SCIENCE
+
+/datum/design/proto_disruption_warhead
+	name = "Disruption Torpedo Warhead - Prototype"
+	desc = "A prototype EMP warhead for torpedoes"
+	id = "proto_disruption_warhead"
+	build_type = PROTOLATHE
+	materials = list(/datum/material/iron = 10000, /datum/material/glass = 1000, /datum/material/copper = 1500, /datum/material/plasma = 3000, /datum/material/gold = 1500, /datum/material/uranium = 10000, /datum/material/titanium = 2000, /datum/material/diamond = 200)
+	build_path = /obj/item/ship_weapon/parts/missile/warhead/proto_disruption
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
 //Naval Cannons
 /datum/design/naval_shell
@@ -218,22 +228,34 @@
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
-/datum/design/machine/energy/beam
-	name = "Phaser NAC"
-	desc = "Allows you to construct laser naval weaponry"
-	id = "energy_naval"
-	build_type = PROTOLATHE|IMPRINTER
-	materials = list(/datum/material/iron=500, /datum/material/titanium=500, /datum/material/silver=500,)
-	build_path = /obj/item/circuitboard/machine/energy/beam
+//Broadside ammo parts!
+/datum/design/broadside_casing
+	name = "Space Naval titanium reinforced Broadside Shell Casing"
+	desc = "Allows you to construct Broadside Shell Casings"
+	id = "broadside_casing"
+	build_type = PROTOLATHE
+	materials = list(/datum/material/iron=500, /datum/material/titanium=1500)
+	build_path = /obj/item/ship_weapon/parts/broadside_casing
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
-datum/design/machine/energy/burst
-	name = "Burst laser NAC"
-	desc = "Allows you to construct laser naval weaponry"
-	id = "energy_naval_burst"
-	build_type = PROTOLATHE|IMPRINTER
-	materials = list(/datum/material/iron=500, /datum/material/titanium=500, /datum/material/silver=500,)
-	build_path = /obj/item/circuitboard/machine/energy/burst
+/datum/design/broadside_load
+	name = "Space Naval 250mm uranium coated Broadside Shell Load"
+	desc = "Allows you to construct Broadside Shell Loads"
+	id = "broadside_load"
+	build_type = PROTOLATHE
+	materials = list(/datum/material/iron=1500, /datum/material/uranium=500)
+	build_path = /obj/item/ship_weapon/parts/broadside_load
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
+
+//Plasma ball for plasma caster
+/datum/design/plasma_core
+	name = "Condensed Phoron Core"
+	desc = "Allows you to synthesize condensed phoron cores for the MPAC"
+	id = "plasma_core"
+	build_type = PROTOLATHE
+	materials = list(/datum/material/plasma=40000, /datum/material/iron=10000)
+	build_path = /obj/item/ship_weapon/ammunition/plasma_core
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS

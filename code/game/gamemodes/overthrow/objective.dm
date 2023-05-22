@@ -21,6 +21,7 @@
 #define CEPTS		3
 #define CMOPTS		3
 #define RDPTS		3
+#define MAAPTS		3
 
 #define CONVERTED_OURS	1.5
 #define CONVERTED		1
@@ -31,7 +32,7 @@
 /datum/objective/overthrow
 
 /datum/objective/overthrow/check_completion()
-	return get_points() ? TRUE : FALSE
+	return (get_points() ? TRUE : FALSE) || ..()
 
 /datum/objective/overthrow/proc/get_points()
 	return 0 // int, not bool
@@ -89,18 +90,20 @@
 			var/target_points
 			var/role = targets[M]
 			switch(role)
-				if("Captain")
+				if(JOB_NAME_CAPTAIN)
 					target_points = CAPPTS
-				if("Head of Personnel")
+				if(JOB_NAME_HEADOFPERSONNEL)
 					target_points = HOPPTS
-				if("Head of Security")
+				if(JOB_NAME_HEADOFSECURITY)
 					target_points = HOSPTS
-				if("Chief Engineer")
+				if(JOB_NAME_CHIEFENGINEER)
 					target_points = CEPTS
-				if("Research Director")
+				if(JOB_NAME_RESEARCHDIRECTOR)
 					target_points = RDPTS
-				if("Chief Medical Officer")
+				if(JOB_NAME_CHIEFMEDICALOFFICER)
 					target_points = CMOPTS
+				if("Master At Arms") //NSV13 - MAA
+					target_points = MAAPTS
 			base_points += result_points(M, target_points)
 	return base_points
 
@@ -138,7 +141,7 @@
 	else
 		explanation_text = "Nothing."
 
-/datum/objective/overthrow/target/is_unique_objective(datum/mind/possible_target,dupe_search_range) 
+/datum/objective/overthrow/target/is_unique_objective(datum/mind/possible_target, list/dupe_search_range)
 	if(possible_target.assigned_role in GLOB.command_positions)
 		return FALSE
 	return TRUE

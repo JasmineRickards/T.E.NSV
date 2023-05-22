@@ -14,7 +14,6 @@
 	maxHealth = 200
 	health = 200
 	speed = 3
-	harm_intent_damage = 8
 	melee_damage = 10
 	attack_sound = 'sound/hallucinations/growl1.ogg'
 	obj_damage = 10
@@ -38,9 +37,9 @@
 		new /mob/living/simple_animal/hostile/dio_clown(get_turf(src))
 		clown_spawned = TRUE
 
-/mob/living/simple_animal/hostile/dio_clown/Initialize()
+/mob/living/simple_animal/hostile/dio_clown/Initialize(mapload)
 	. = ..()
-	RegisterSignal(src, COMSIG_MOVABLE_MOVED, .proc/move_react)
+	RegisterSignal(src, COMSIG_MOVABLE_MOVED, PROC_REF(move_react))
 
 /mob/living/simple_animal/hostile/dio_clown/proc/move_react()
 	if(isspaceturf(get_turf(src)))
@@ -57,7 +56,7 @@
 	name = "vampiric mask"
 	desc = "An strange looking stone mask with what looks like spines coming out of it. The spines seem to have been sawed off."
 	icon = 'nsv13/icons/obj/clothing/masks.dmi' //Placeholder subtype for our own iconsets
-	alternate_worn_icon = 'nsv13/icons/mob/mask.dmi'
+	worn_icon = 'nsv13/icons/mob/mask.dmi'
 	icon_state = "pillarmen"
 	item_state = "pillarmen"
 	actions_types = list(/datum/action/item_action/menacing_pose)

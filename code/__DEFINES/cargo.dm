@@ -13,6 +13,15 @@
 #define STYLE_GONDOLA 13
 #define STYLE_SEETHROUGH 14
 
+#define MAX_EMAG_ROCKETS 8
+#define BEACON_COST 500
+#define SP_LINKED 1
+#define SP_READY 2
+#define SP_LAUNCH 3
+#define SP_UNLINK 4
+#define SP_UNREADY 5
+#define ORDER_COOLDOWN (10 SECONDS)
+
 #define POD_SHAPE 1
 #define POD_BASE 2
 #define POD_DOOR 3
@@ -55,3 +64,4 @@ GLOBAL_LIST_INIT(podstyles, list(\
 	list(POD_SHAPE_OTHER, "gondola",     FALSE, FALSE, FALSE,   RUBBLE_NONE,     "gondola",     "The silent walker. This one seems to be part of a delivery agency."),\
 	list(POD_SHAPE_OTHER, FALSE,         FALSE,    FALSE,            FALSE,   RUBBLE_NONE,         FALSE,      FALSE,      "rl_click", "give_po")\
 ))
+

@@ -25,11 +25,13 @@
 	reagents = AM.reagents
 	turn_connects = _turn_connects
 
-	RegisterSignal(parent, list(COMSIG_MOVABLE_MOVED,COMSIG_PARENT_PREQDELETED), .proc/disable)
-	RegisterSignal(parent, list(COMSIG_OBJ_DEFAULT_UNFASTEN_WRENCH), .proc/toggle_active)
+	RegisterSignal(parent, list(COMSIG_MOVABLE_MOVED,COMSIG_PARENT_PREQDELETED), PROC_REF(disable))
+	RegisterSignal(parent, list(COMSIG_OBJ_DEFAULT_UNFASTEN_WRENCH), PROC_REF(toggle_active))
 
 	if(start)
-		enable()
+		//timer 0 so it can finish returning initialize, after which we're added to the parent.
+		//Only then can we tell the duct next to us they can connect, because only then is the component really added. this was a fun one
+		addtimer(CALLBACK(src, PROC_REF(enable)), 0)
 
 	if(use_overlays)
 		create_overlays()
@@ -98,9 +100,9 @@
 	for(var/D in GLOB.cardinals)
 		var/color
 		var/direction
-		if(D & demand_connects)
+		if(D & initial(demand_connects))
 			color = "red" //red because red is mean and it takes
-		else if(D & supply_connects)
+		else if(D & initial(supply_connects))
 			color = "blue" //blue is nice and gives
 		else
 			continue
@@ -123,6 +125,8 @@
 		ducterlays += I
 ///we stop acting like a plumbing thing and disconnect if we are, so we can safely be moved and stuff
 /datum/component/plumbing/proc/disable()
+	SIGNAL_HANDLER
+
 	if(!active)
 		return
 	STOP_PROCESSING(SSfluids, src)
@@ -163,6 +167,8 @@
 
 /// Toggle our machinery on or off. This is called by a hook from default_unfasten_wrench with anchored as only param, so we dont have to copypaste this on every object that can move
 /datum/component/plumbing/proc/toggle_active(obj/O, new_state)
+	SIGNAL_HANDLER
+
 	if(new_state)
 		enable()
 	else
@@ -178,6 +184,7 @@
 	var/new_supply_connects
 	var/new_dir = AM.dir
 	var/angle = 180 - dir2angle(new_dir)
+
 	if(new_dir == SOUTH)
 		demand_connects = initial(demand_connects)
 		supply_connects = initial(supply_connects)

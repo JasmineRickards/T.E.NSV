@@ -8,6 +8,7 @@
 	var/obj/structure/ladder/down   //the ladder below this one
 	var/obj/structure/ladder/up     //the ladder above this one
 	max_integrity = 100
+	obj_flags = CAN_BE_HIT | BLOCK_Z_OUT_DOWN
 
 /obj/structure/ladder/Initialize(mapload, obj/structure/ladder/up, obj/structure/ladder/down)
 	..()
@@ -74,23 +75,25 @@
 		visible_message("<span class='danger'>[src] is torn to pieces by the gravitational pull!</span>")
 		qdel(src)
 
-/obj/structure/ladder/proc/travel(going_up, mob/user, is_ghost, obj/structure/ladder/ladder)
+/obj/structure/ladder/proc/travel(going_up, mob/user, is_ghost, obj/structure/ladder/ladder, needs_do_after=TRUE)
 	var/turf/T = get_turf(ladder)
 	var/atom/movable/AM
 	if(user.pulling)
 		AM = user.pulling
 		if(!is_ghost)
 			playsound(src, 'nsv13/sound/effects/footstep/ladder2.ogg')
-			if(!do_after(user, 5 SECONDS, target=src))
-				return FALSE
+			if(needs_do_after)
+				if(!do_after(user, 5 SECONDS, target=src))
+					return FALSE
 		AM.forceMove(T)
 		user.forceMove(T)
 		user.start_pulling(AM)
 	else
 		if(!is_ghost)
 			playsound(src, 'nsv13/sound/effects/footstep/ladder1.ogg')
-			if(!do_after(user, 1 SECONDS, target=src))
-				return FALSE
+			if(needs_do_after)
+				if(!do_after(user, 1 SECONDS, target=src))
+					return FALSE
 		user.forceMove(T)
 	if(!is_ghost)
 		show_fluff_message(going_up, user)
@@ -107,7 +110,7 @@
 		)
 
 	if (up && down)
-		var/result = show_radial_menu(user, src, tool_list, custom_check = CALLBACK(src, .proc/check_menu, user), require_near = TRUE, tooltips = TRUE)
+		var/result = show_radial_menu(user, src, tool_list, custom_check = CALLBACK(src, PROC_REF(check_menu), user), require_near = TRUE, tooltips = TRUE)
 		if (!is_ghost && !in_range(src, user))
 			return  // nice try
 		switch(result)
@@ -205,7 +208,7 @@
 	var/id
 	var/height = 0  // higher numbers are considered physically higher
 
-/obj/structure/ladder/unbreakable/Initialize()
+/obj/structure/ladder/unbreakable/Initialize(mapload)
 	GLOB.ladders += src
 	return ..()
 

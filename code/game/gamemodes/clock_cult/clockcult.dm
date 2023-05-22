@@ -41,26 +41,27 @@ GLOBAL_VAR(clockcult_eminence)
 	<span class='danger'>Servants</span>: Convert more servants and defend the Ark of the Clockwork Justicar!\n\
 	<span class='notice'>Crew</span>: Prepare yourselfs and destroy the Ark of the Clockwork Justicar."
 
+
 	var/clock_cultists = CLOCKCULT_SERVANTS
 	var/list/selected_servants = list()
 
 	var/datum/team/clock_cult/main_cult
 
+/datum/game_mode/clockcult/setup_maps()
+	//Since we are loading in pre_setup, disable map loading.
+	SSticker.gamemode_hotswap_disabled = TRUE
+	LoadReebe()
+	return TRUE
+
 /datum/game_mode/clockcult/pre_setup()
-	//Load Reebe
-	var/list/errorList = list()
-	var/list/reebe = SSmapping.LoadGroup(errorList, "Reebe", "map_files/generic", "CityOfCogs.dmm", default_traits=ZTRAITS_REEBE, silent=TRUE)
-	if(errorList.len)
-		message_admins("Reebe failed to load")
-		log_game("Reebe failed to load")
-		return FALSE
-	for(var/datum/parsed_map/map in reebe)
-		map.initTemplateBounds()
 	//Generate cultists
 	for(var/i in 1 to clock_cultists)
 		if(!antag_candidates.len)
 			break
 		var/datum/mind/clockie = antag_pick(antag_candidates, ROLE_SERVANT_OF_RATVAR)
+		//In case antag_pick breaks
+		if(!clockie)
+			continue
 		antag_candidates -= clockie
 		selected_servants += clockie
 		clockie.assigned_role = ROLE_SERVANT_OF_RATVAR
@@ -74,6 +75,12 @@ GLOBAL_VAR(clockcult_eminence)
 	main_cult.setup_objectives()
 	//Create team
 	for(var/datum/mind/servant_mind in selected_servants)
+		//Somehow the mind has no mob, ignore them so it doesn't break everything
+		if(!(servant_mind?.current))
+			continue
+		//Somehow all spawns where used, reuse old spawns
+		if(!length(spawns))
+			spawns = GLOB.servant_spawns.Copy()
 		servant_mind.current.forceMove(pick_n_take(spawns))
 		servant_mind.current.set_species(/datum/species/human)
 		var/datum/antagonist/servant_of_ratvar/S = add_servant_of_ratvar(servant_mind.current, team=main_cult)
@@ -152,7 +159,7 @@ GLOBAL_VAR(clockcult_eminence)
 		return FALSE
 	if(!M.mind)
 		return FALSE
-	if(ishuman(M) && (M.mind.assigned_role in list("Captain", "Chaplain")))
+	if(ishuman(M) && (M.mind.assigned_role in list(JOB_NAME_CAPTAIN, JOB_NAME_CHAPLAIN)))
 		return FALSE
 	if(istype(M.get_item_by_slot(ITEM_SLOT_HEAD), /obj/item/clothing/head/foilhat))
 		return FALSE
@@ -185,7 +192,6 @@ GLOBAL_VAR(clockcult_eminence)
 
 //Transmits a message to everyone in the cult
 //Doesn't work if the cultists contain holy water, or are not on the station or Reebe
-//TODO: SANITIZE MESSAGES WITH THE NORMAL SAY STUFF (punctuation)
 /proc/hierophant_message(msg, mob/living/sender, span = "<span class='brass'>", use_sanitisation=TRUE, say=TRUE)
 	if(CHAT_FILTER_CHECK(msg))
 		if(sender)
@@ -205,7 +211,7 @@ GLOBAL_VAR(clockcult_eminence)
 	if(sender)
 		if(say)
 			sender.say("#[text2ratvar(msg)]")
-		msg = sender.treat_message(msg)
+		msg = sender.treat_message_min(msg)
 		var/datum/antagonist/servant_of_ratvar/SoR = is_servant_of_ratvar(sender)
 		var/prefix = "Clockbrother"
 		switch(SoR.prefix)
@@ -223,7 +229,7 @@ GLOBAL_VAR(clockcult_eminence)
 				//Ew, this could be done better with a dictionary list, but this isn't much slower
 				if(role in GLOB.command_positions)
 					prefix = "High Priest"
-				else if(role in GLOB.engineering_positions)
+				else if((role in GLOB.engineering_positions) || (role in GLOB.munitions_positions)) // NSV13 - added munitions jobs
 					prefix = "Cogturner"
 				else if(role in GLOB.medical_positions)
 					prefix = "Rejuvinator"
@@ -231,11 +237,11 @@ GLOBAL_VAR(clockcult_eminence)
 					prefix = "Calculator"
 				else if(role in GLOB.supply_positions)
 					prefix = "Pathfinder"
-				else if(role in "Assistant")
+				else if(role in JOB_NAME_ASSISTANT)
 					prefix = "Helper"
-				else if(role in "Mime")
+				else if(role in JOB_NAME_MIME)
 					prefix = "Cogwatcher"
-				else if(role in "Clown")
+				else if(role in JOB_NAME_CLOWN)
 					prefix = "Clonker"
 				else if((role in GLOB.civilian_positions) || (role in GLOB.gimmick_positions))
 					prefix = "Cogworker"

@@ -18,7 +18,8 @@ GLOBAL_PROTECT(admin_verbs_default)
 	/client/proc/cmd_admin_pm_context,	/*right-click adminPM interface*/
 	/client/proc/cmd_admin_pm_panel,		/*admin-pm list*/
 	/client/proc/stop_sounds,
-	/client/proc/mark_datum_mapview
+	/client/proc/mark_datum_mapview,
+	/client/proc/requests
 	)
 GLOBAL_LIST_INIT(admin_verbs_admin, world.AVerbsAdmin())
 GLOBAL_PROTECT(admin_verbs_admin)
@@ -40,14 +41,11 @@ GLOBAL_PROTECT(admin_verbs_admin)
 	/datum/admins/proc/set_admin_notice, /*announcement all clients see when joining the server.*/
 	/client/proc/admin_ghost,			/*allows us to ghost/reenter body at will*/
 	/client/proc/toggle_view_range,		/*changes how far we can see*/
-	/client/proc/getserverlogs,		/*for accessing server logs*/
 	/client/proc/getcurrentlogs,		/*for accessing server logs for the current round*/
 	/client/proc/cmd_admin_subtle_message,	/*send an message to somebody as a 'voice in their head'*/
 	/client/proc/cmd_admin_headset_message,	/*send an message to somebody through their headset as CentCom*/
 	/client/proc/cmd_admin_delete,		/*delete an instance/object/mob/etc*/
 	/client/proc/cmd_admin_check_contents,	/*displays the contents of an instance*/
-	/client/proc/cmd_admin_boarding_override, /*NSV13 - disables/enables boarding procs*/
-	/client/proc/centcom_podlauncher,/*Open a window to launch a Supplypod and configure it or it's contents*/
 	/client/proc/check_antagonists,		/*shows all antags*/
 	/client/proc/check_teams,			/*shows all antag teams*/
 	/datum/admins/proc/access_news_network,	/*allows access of newscasters*/
@@ -81,9 +79,13 @@ GLOBAL_PROTECT(admin_verbs_admin)
 	/client/proc/fix_say,
 	/client/proc/stabilize_atmos,
 	/client/proc/openTicketManager,
+	/client/proc/battle_royale,
+	/client/proc/delete_book,
+	/client/proc/cmd_admin_send_pda_msg,
 	/client/proc/changeranks, //NSV13 - verb to change rank structure
 	/client/proc/system_manager, //Nsv13 - Fleet + starsystem management
-	/client/proc/instance_overmap_menu //Nsv13 - Midround ship creation.
+	/client/proc/instance_overmap_menu, //Nsv13 - Midround ship creation.
+	/client/proc/overmap_mode_controller //NSV13 - Admin overmap mode controller
 	)
 GLOBAL_LIST_INIT(admin_verbs_ban, list(/client/proc/unban_panel, /client/proc/ban_panel, /client/proc/stickybanpanel))
 GLOBAL_PROTECT(admin_verbs_ban)
@@ -118,7 +120,15 @@ GLOBAL_LIST_INIT(admin_verbs_fun, list(
 	/client/proc/battle_royale
 	))
 GLOBAL_PROTECT(admin_verbs_fun)
-GLOBAL_LIST_INIT(admin_verbs_spawn, list(/datum/admins/proc/spawn_atom, /datum/admins/proc/podspawn_atom, /datum/admins/proc/spawn_cargo, /datum/admins/proc/spawn_objasmob, /client/proc/respawn_character, /datum/admins/proc/beaker_panel))
+GLOBAL_LIST_INIT(admin_verbs_spawn, list(
+	/datum/admins/proc/spawn_atom,
+	/datum/admins/proc/podspawn_atom,
+	/datum/admins/proc/spawn_cargo,
+	/datum/admins/proc/spawn_objasmob,
+	/datum/admins/proc/beaker_panel,
+	/client/proc/respawn_character,
+	/client/proc/centcom_podlauncher,/*Open a window to launch a Supplypod and configure it or it's contents*/
+	))
 GLOBAL_PROTECT(admin_verbs_spawn)
 GLOBAL_LIST_INIT(admin_verbs_server, world.AVerbsServer())
 GLOBAL_PROTECT(admin_verbs_server)
@@ -133,11 +143,13 @@ GLOBAL_PROTECT(admin_verbs_server)
 	/client/proc/everyone_random,
 	/datum/admins/proc/toggleAI,
 	/client/proc/cmd_admin_delete,		/*delete an instance/object/mob/etc*/
+	/client/proc/getserverlogs,		/*for accessing server logs*/
 	/client/proc/cmd_debug_del_all,
 	/client/proc/toggle_random_events,
 	/client/proc/forcerandomrotate,
 	/client/proc/adminchangemap,
 	/client/proc/panicbunker,
+	/client/proc/toggle_interviews,
 	/client/proc/toggle_hub,
 	/client/proc/toggle_cdn
 	)
@@ -148,7 +160,7 @@ GLOBAL_PROTECT(admin_verbs_debug)
 	/client/proc/restart_controller,
 	/client/proc/cmd_admin_list_open_jobs,
 	/client/proc/Debug2,
-	/client/proc/cmd_debug_make_powernets, 
+	/client/proc/cmd_debug_make_powernets,
 	/client/proc/cmd_debug_mob_lists,
 	/client/proc/cmd_admin_delete,
 	/client/proc/cmd_debug_del_all,
@@ -174,6 +186,7 @@ GLOBAL_PROTECT(admin_verbs_debug)
 	/client/proc/map_template_load,
 	/client/proc/map_template_upload,
 	/client/proc/jump_to_ruin,
+	/client/proc/generate_ruin,
 	/client/proc/clear_dynamic_transit,
 	/client/proc/fucky_wucky,
 	/client/proc/toggle_medal_disable,
@@ -184,18 +197,19 @@ GLOBAL_PROTECT(admin_verbs_debug)
 	/client/proc/reload_configuration,
 	/client/proc/give_all_spells,
 	/datum/admins/proc/create_or_modify_area,
+	/datum/admins/proc/fixcorruption,
 	#ifdef TESTING
-	/client/proc/export_dynamic_json,
 	/client/proc/run_dynamic_simulations,
 	#endif
-	#ifdef REFERENCE_TRACKING
-	/datum/admins/proc/view_refs,
-	/datum/admins/proc/view_del_failures,
+	#ifdef SENDMAPS_PROFILE
+	/client/proc/display_sendmaps,
 	#endif
-	/client/proc/toggle_cdn
+	/client/proc/toggle_cdn,
+	/client/proc/check_timer_sources,
+	/client/proc/test_dview_to_lum_changes
 	)
 
-GLOBAL_LIST_INIT(admin_verbs_possess, list(/proc/possess, /proc/release))
+GLOBAL_LIST_INIT(admin_verbs_possess, list(/proc/possess, GLOBAL_PROC_REF(release)))
 GLOBAL_PROTECT(admin_verbs_possess)
 GLOBAL_LIST_INIT(admin_verbs_permissions, list(/client/proc/edit_admin_permissions, /client/proc/edit_mentors))
 GLOBAL_PROTECT(admin_verbs_permissions)
@@ -261,6 +275,7 @@ GLOBAL_LIST_INIT(admin_verbs_hideable, list(
 	/proc/release,
 	/client/proc/reload_admins,
 	/client/proc/panicbunker,
+	/client/proc/toggle_interviews,
 	/client/proc/admin_change_sec_level,
 	/client/proc/toggle_nuke,
 	/client/proc/cmd_display_del_log,
@@ -302,6 +317,7 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 				add_verb(/client/proc/play_web_sound)
 		if(rights & R_SPAWN)
 			add_verb(GLOB.admin_verbs_spawn)
+		reset_badges()
 
 /client/proc/remove_admin_verbs()
 	var/list/verb_list = list()
@@ -327,6 +343,7 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 		/client/proc/fix_say
 		)
 	remove_verb(verb_list)
+	reset_badges()
 
 /client/proc/hide_most_verbs()//Allows you to keep some functionality while hiding some verbs
 	set name = "Adminverbs - Hide Most"
@@ -388,7 +405,7 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 		log_admin("[key_name(usr)] admin ghosted.")
 		message_admins("[key_name_admin(usr)] admin ghosted.")
 		var/mob/body = mob
-		body.ghostize(1)
+		body.ghostize(TRUE)
 		if(body && !body.key)
 			body.key = "@[key]"	//Haaaaaaaack. But the people have spoken. If it breaks; blame adminbus
 		SSblackbox.record_feedback("tally", "admin_verb", 1, "Admin Ghost") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
@@ -496,6 +513,7 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 	if(holder)
 		if(holder.fakekey)
 			holder.fakekey = null
+			reset_badges()
 			if(isobserver(mob))
 				mob.invisibility = initial(mob.invisibility)
 				mob.alpha = initial(mob.alpha)
@@ -506,14 +524,15 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 			if(!new_key)
 				return
 			holder.fakekey = new_key
+			reset_badges()
 			createStealthKey()
 			if(isobserver(mob))
 				mob.invisibility = INVISIBILITY_MAXIMUM //JUST IN CASE
 				mob.alpha = 0 //JUUUUST IN CASE
 				mob.name = " "
 				mob.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-		log_admin("[key_name(usr)] has turned stealth mode [holder.fakekey ? "ON" : "OFF"]")
-		message_admins("[key_name_admin(usr)] has turned stealth mode [holder.fakekey ? "ON" : "OFF"]")
+		log_admin("[key_name(usr)] has turned stealth mode [holder.fakekey ? "ON as [holder.fakekey]" : "OFF"]")
+		message_admins("[key_name_admin(usr)] has turned stealth mode [holder.fakekey ? "ON as [holder.fakekey]" : "OFF"]")
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Stealth Mode") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
 /client/proc/drop_bomb()
@@ -646,10 +665,11 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 	set category = "Fun"
 	set name = "Give Disease"
 	set desc = "Gives a Disease to a mob."
+
 	if(!istype(T))
 		to_chat(src, "<span class='notice'>You can only give a disease to a mob of type /mob/living.</span>")
 		return
-	var/datum/disease/D = input("Choose the disease to give to that guy", "ACHOO") as null|anything in sortList(SSdisease.diseases, /proc/cmp_typepaths_asc)
+	var/datum/disease/D = input("Choose the disease to give to that guy", "ACHOO") as null|anything in sortList(SSdisease.diseases, GLOBAL_PROC_REF(cmp_typepaths_asc))
 	if(!D)
 		return
 	T.ForceContractDisease(new D, FALSE, TRUE)
@@ -668,6 +688,7 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 	log_admin("[key_name(usr)] made [O] at [AREACOORD(O)] say \"[message]\"")
 	message_admins("<span class='adminnotice'>[key_name_admin(usr)] made [O] at [AREACOORD(O)]. say \"[message]\"</span>")
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Object Say") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
+
 /client/proc/togglebuildmodeself()
 	set name = "Toggle Build Mode Self"
 	set category = "Adminbus"
@@ -731,34 +752,34 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 	set category = "Debug"
 	set desc = "(\"Amount of mobs to create\") Populate the world with test mobs."
 
-	if (amount > 0)
+	if(amount > 0)
 		var/area/area
 		var/list/candidates
 		var/turf/open/floor/tile
 		var/j,k
 
-		for (var/i = 1 to amount)
+		for(var/i = 1 to amount)
 			j = 100
 
 			do
 				area = pick(GLOB.the_station_areas)
 
-				if (area)
+				if(area)
 
 					candidates = get_area_turfs(area)
 
-					if (candidates.len)
+					if(candidates.len)
 						k = 100
 
 						do
 							tile = pick(candidates)
 						while ((!tile || !istype(tile)) && --k > 0)
 
-						if (tile)
+						if(tile)
 							var/mob/living/carbon/human/hooman = new(tile)
 							hooman.equipOutfit(pick(subtypesof(/datum/outfit)))
 							testing("Spawned test mob at [COORD(tile)]")
-			while (!area && --j > 0)
+			while(!area && --j > 0)
 
 /client/proc/toggle_AI_interact()
 	set name = "Toggle Admin AI Interact"
@@ -799,8 +820,45 @@ GLOBAL_PROTECT(admin_verbs_hideable)
 		can.valve_open = FALSE
 		can.update_icon()
 
+/client/proc/delete_book()
+	set category = "Admin"
+	set name = "Delete Book"
 
+	if(!check_rights(R_ADMIN))
+		return
 
+	var/bookid = input(usr, "What Book ID would you like to remove:", "Literally Fahrenheit 451") as null|num
+	if(!bookid)
+		return
 
+	var/datum/DBQuery/query_library_print = SSdbcore.NewQuery(
+		"SELECT * FROM [format_table_name("library")] WHERE id=:id AND isnull(deleted)",
+		list("id" = bookid)
+	)
+	if(!query_library_print.Execute() || !query_library_print.NextRow())
+		to_chat(usr, "<span class='warning'>Failed to locate book [bookid].</span>")
+		qdel(query_library_print)
+		return
+	var/author = query_library_print.item[2]
+	var/title = query_library_print.item[3]
+	var/confirmation = alert(src,"Are you sure you want to delete the book with author [author] and title [title]?","Guy Montag Incarnate","Yes","No")
+	if(confirmation == "Yes")
+		var/datum/DBQuery/query_burn_book = SSdbcore.NewQuery(
+			"UPDATE [format_table_name("library")] SET deleted = 1 WHERE id=:id",
+			list("id" = bookid)
+		)
+		if(!query_library_print.Execute())
+			to_chat(usr, "<span class='warning'>Failed to delete book.</span>")
+		else
+			message_admins("[usr] deleted book number [bookid] with title [title]")
+			log_admin("[usr] deleted book number [bookid] with title [title]")
+		qdel(query_burn_book)
+		qdel(query_library_print)
 
+#ifdef SENDMAPS_PROFILE
+/client/proc/display_sendmaps()
+	set name = "Send Maps Profile"
+	set category = "Debug"
 
+	src << link("?debug=profile&type=sendmaps&window=test")
+#endif

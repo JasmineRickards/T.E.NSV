@@ -11,16 +11,20 @@
 	idle_power_usage = 0
 	power_channel = AREA_USAGE_EQUIP
 	req_one_access = list(ACCESS_MEDICAL, ACCESS_HEADS, ACCESS_SECURITY) //used to control clamps
+	processing_flags = NONE
+	layer = ABOVE_WINDOW_LAYER
 	var/obj/item/defibrillator/defib //this mount's defibrillator
 	var/clamps_locked = FALSE //if true, and a defib is loaded, it can't be removed without unlocking the clamps
 
-/obj/machinery/defibrillator_mount/loaded/Initialize() //loaded subtype for mapping use
+/obj/machinery/defibrillator_mount/loaded/Initialize(mapload) //loaded subtype for mapping use
 	. = ..()
 	defib = new/obj/item/defibrillator/loaded(src)
+	update_icon()
 
 /obj/machinery/defibrillator_mount/Destroy()
 	if(defib)
 		QDEL_NULL(defib)
+		end_processing()
 	. = ..()
 
 /obj/machinery/defibrillator_mount/examine(mob/user)
@@ -33,7 +37,7 @@
 			. += "<span class='notice'>Its locking clamps can be [clamps_locked ? "dis" : ""]engaged by swiping an ID with access.</span>"
 
 /obj/machinery/defibrillator_mount/process()
-	if(defib?.cell && defib.cell.charge < defib.cell.maxcharge && is_operational())
+	if(defib?.cell && defib.cell.charge < defib.cell.maxcharge && is_operational)
 		use_power(200)
 		defib.cell.give(180) //90% efficiency, a bit worse than the cell charger's 100%
 		update_icon()
@@ -76,6 +80,7 @@
 		"<span class='notice'>You press [I] into the mount, and it clicks into place.</span>")
 		playsound(src, 'sound/machines/click.ogg', 50, TRUE)
 		defib = I
+		begin_processing()
 		update_icon()
 		return
 	else if(defib && I == defib.paddles)
@@ -129,6 +134,8 @@
 	user.visible_message("<span class='notice'>[user] unhooks [defib] from [src].</span>", \
 	"<span class='notice'>You slide out [defib] from [src] and unhook the charging cables.</span>")
 	playsound(src, 'sound/items/deconstruct.ogg', 50, TRUE)
+	// Make sure processing ends before the defib is nulled
+	end_processing()
 	defib = null
 	update_icon()
 

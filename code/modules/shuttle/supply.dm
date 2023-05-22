@@ -6,8 +6,8 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 		/obj/item/disk/nuclear,
 		/obj/machinery/nuclearbomb,
 		/obj/item/beacon,
-		/obj/singularity/narsie,
-		/obj/singularity/wizard,
+		/obj/eldritch/narsie,
+		/obj/tear_in_reality,
 		/obj/machinery/teleport/station,
 		/obj/machinery/teleport/hub,
 		/obj/machinery/quantumpad,
@@ -17,7 +17,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 		/obj/structure/receiving_pad,
 		/obj/item/warp_cube,
 		/obj/machinery/rnd/production, //print tracking beacons, send shuttle
-		/obj/machinery/autolathe, //same
+		/obj/machinery/modular_fabricator/autolathe, //same
 		/obj/item/projectile/beam/wormhole,
 		/obj/effect/portal,
 		/obj/item/shared_storage,
@@ -25,6 +25,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 		/obj/machinery/syndicatebomb,
 		/obj/item/hilbertshotel,
 		/obj/item/swapper,
+		/obj/item/mail,
 		/obj/docking_port
 	)))
 
@@ -70,6 +71,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 
 /obj/docking_port/mobile/supply/initiate_docking()
 	if(getDockedId() == "supply_away") // Buy when we leave home.
+		create_mail()
 		buy()
 	. = ..() // Fly/enter transit.
 	if(. != DOCKING_SUCCESS)
@@ -97,7 +99,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 	for(var/datum/supply_order/SO in SSshuttle.shoppinglist)
 		if(!empty_turfs.len)
 			break
-		var/price = SO.pack.cost
+		var/price = SO.pack.get_cost()
 		var/datum/bank_account/D
 		if(SO.paying_account) //Someone paid out of pocket
 			D = SO.paying_account
@@ -113,8 +115,8 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 		if(SO.paying_account)
 			D.bank_card_talk("Cargo order #[SO.id] has shipped. [price] credits have been charged to your bank account.")
 			var/datum/bank_account/department/cargo = SSeconomy.get_dep_account(ACCOUNT_CAR)
-			cargo.adjust_money(price - SO.pack.cost) //Cargo gets the handling fee
-		value += SO.pack.cost
+			cargo.adjust_money(price - SO.pack.get_cost()) //Cargo gets the handling fee
+		value += SO.pack.get_cost()
 		SSshuttle.shoppinglist -= SO
 		SSshuttle.orderhistory += SO
 
@@ -145,7 +147,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 		else
 			SO.generate(pick_n_take(empty_turfs))
 
-		SSblackbox.record_feedback("nested tally", "cargo_imports", 1, list("[SO.pack.cost]", "[SO.pack.name]"))
+		SSblackbox.record_feedback("nested tally", "cargo_imports", 1, list("[SO.pack.get_cost()]", "[SO.pack.name]"))
 		investigate_log("Order #[SO.id] ([SO.pack.name], placed by [key_name(SO.orderer_ckey)]), paid by [D.account_holder] has shipped.", INVESTIGATE_CARGO)
 		if(SO.pack.dangerous)
 			message_admins("\A [SO.pack.name] ordered by [ADMIN_LOOKUPFLW(SO.orderer_ckey)], paid by [D.account_holder] has shipped.")
@@ -181,7 +183,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 				matched_bounty = TRUE
 			if(!AM.anchored || istype(AM, /obj/mecha))
 				export_item_and_contents(AM, export_categories , dry_run = FALSE, external_report = ex)
-			else
+			else if(!ismachinery(AM))
 				//Exports the contents of things but not the item itself, so you can have conveyor belt that won't get sold
 				export_contents(AM, export_categories , dry_run = FALSE, external_report = ex)
 
@@ -201,3 +203,22 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 
 	SSshuttle.centcom_message = msg
 	investigate_log("Shuttle contents sold for [D.account_balance - presale_points] credits. Contents: [ex.exported_atoms ? ex.exported_atoms.Join(",") + "." : "none."] Message: [SSshuttle.centcom_message || "none."]", INVESTIGATE_CARGO)
+
+
+//	Generates a box of mail depending on our exports and imports.
+//	Applied in the cargo shuttle sending/arriving, by building the crate if the round is ready to introduce mail based on the economy subsystem.
+// Then, fills the mail crate with mail, by picking applicable crew who can recieve mail at the time to sending.
+
+/obj/docking_port/mobile/supply/proc/create_mail()
+	//Early return if there's no mail waiting to prevent taking up a slot.
+	if(!SSeconomy.mail_waiting)
+		return
+	//spawn crate
+	var/list/empty_turfs = list()
+	for(var/area/shuttle/shuttle_area in shuttle_areas)
+		for(var/turf/open/floor/T in shuttle_area)
+			if(is_blocked_turf(T))
+				continue
+			empty_turfs += T
+		if (empty_turfs)
+			new /obj/structure/closet/crate/mail/economy(pick(empty_turfs))

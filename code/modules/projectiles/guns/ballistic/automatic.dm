@@ -6,7 +6,6 @@
 	semi_auto = TRUE
 	fire_sound = "sound/weapons/smgshot.ogg"
 	fire_sound_volume = 80
-	vary_fire_sound = FALSE
 	automatic = 1
 	rack_sound = "sound/weapons/smgrack.ogg"
 	weapon_weight = WEAPON_MEDIUM
@@ -29,7 +28,7 @@
 	..()
 	if(!select)
 		add_overlay("[initial(icon_state)]_semi")
-	else
+	if(select == 1)
 		add_overlay("[initial(icon_state)]_burst")
 
 /obj/item/gun/ballistic/automatic/ui_action_click(mob/user, actiontype)
@@ -66,18 +65,19 @@
 	fire_delay = 2
 	burst_size = 2
 	pin = /obj/item/firing_pin/implant/pindicate
+	spread_unwielded = 15
 	can_bayonet = TRUE
 	knife_x_offset = 26
 	knife_y_offset = 12
 	mag_display = TRUE
 	mag_display_ammo = TRUE
 	empty_indicator = TRUE
-	block_upgrade_walk = 1
+	full_auto = TRUE
 
 /obj/item/gun/ballistic/automatic/c20r/unrestricted
 	pin = /obj/item/firing_pin
 
-/obj/item/gun/ballistic/automatic/c20r/Initialize()
+/obj/item/gun/ballistic/automatic/c20r/Initialize(mapload)
 	. = ..()
 	update_icon()
 
@@ -96,7 +96,12 @@
 	mag_display_ammo = TRUE
 	empty_indicator = TRUE
 	fire_rate = 3
-	block_upgrade_walk = 1
+	w_class = WEIGHT_CLASS_BULKY
+	full_auto = TRUE
+
+/obj/item/gun/ballistic/automatic/wt550/rubber_loaded/Initialize(mapload)
+	magazine = new /obj/item/ammo_box/magazine/wt550m9/rubber(src)
+	. = ..()
 
 /obj/item/gun/ballistic/automatic/mini_uzi
 	name = "\improper Type U3 Uzi"
@@ -120,11 +125,11 @@
 	burst_size = 3
 	fire_delay = 2
 	pin = /obj/item/firing_pin/implant/pindicate
+	spread_unwielded = 15
 	mag_display = TRUE
 	empty_indicator = TRUE
-	block_upgrade_walk = 1
 
-/obj/item/gun/ballistic/automatic/m90/Initialize()
+/obj/item/gun/ballistic/automatic/m90/Initialize(mapload)
 	. = ..()
 	underbarrel = new /obj/item/gun/ballistic/revolver/grenadelauncher(src)
 	update_icon()
@@ -132,7 +137,7 @@
 /obj/item/gun/ballistic/automatic/m90/unrestricted
 	pin = /obj/item/firing_pin
 
-/obj/item/gun/ballistic/automatic/m90/unrestricted/Initialize()
+/obj/item/gun/ballistic/automatic/m90/unrestricted/Initialize(mapload)
 	. = ..()
 	underbarrel = new /obj/item/gun/ballistic/revolver/grenadelauncher/unrestricted(src)
 	update_icon()
@@ -194,7 +199,6 @@
 	fire_rate = 5
 	can_suppress = FALSE
 	bolt_type = BOLT_TYPE_OPEN
-	block_upgrade_walk = 1
 
 /obj/item/gun/ballistic/automatic/ar
 	name = "\improper NT-ARG 'Boarder'"
@@ -230,7 +234,7 @@
 	tac_reloads = FALSE
 	fire_sound = 'sound/weapons/rifleshot.ogg'
 	rack_sound = 'sound/weapons/chunkyrack.ogg'
-	block_upgrade_walk = 1
+	full_auto = TRUE
 
 /obj/item/gun/ballistic/automatic/l6_saw/unrestricted
 	pin = /obj/item/firing_pin
@@ -293,7 +297,6 @@
 	item_state = "sniper"
 	fire_sound = "sound/weapons/sniper_shot.ogg"
 	fire_sound_volume = 90
-	vary_fire_sound = FALSE
 	load_sound = "sound/weapons/sniper_mag_insert.ogg"
 	rack_sound = "sound/weapons/sniper_rack.ogg"
 	recoil = 2
@@ -308,7 +311,6 @@
 	slot_flags = ITEM_SLOT_BACK
 	actions_types = list()
 	mag_display = TRUE
-	block_upgrade_walk = 1
 
 /obj/item/gun/ballistic/automatic/sniper_rifle/syndicate
 	name = "syndicate sniper rifle"
@@ -334,7 +336,6 @@
 	mag_display = TRUE
 	automatic = 0
 	fire_rate = 1.5
-	block_upgrade_walk = 1
 
 // Laser rifle (rechargeable magazine) //
 
@@ -349,5 +350,4 @@
 	fire_sound = 'sound/weapons/laser.ogg'
 	casing_ejector = FALSE
 	fire_rate = 2
-	block_upgrade_walk = 1
 

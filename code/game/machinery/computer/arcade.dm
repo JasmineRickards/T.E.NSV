@@ -30,6 +30,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 		/obj/item/coin/antagtoken = 2,
 		/obj/item/stack/tile/fakespace/loaded = 2,
 		/obj/item/stack/tile/fakepit/loaded = 2,
+		/obj/item/stack/tile/eighties/loaded = 2,
 		/obj/item/toy/toy_xeno = 2,
 		/obj/item/storage/box/actionfigure = 1,
 		/obj/item/restraints/handcuffs/fake = 2,
@@ -40,12 +41,19 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 		/obj/item/toy/windupToolbox = 2,
 		/obj/item/toy/clockwork_watch = 2,
 		/obj/item/toy/toy_dagger = 2,
+		/obj/item/toy/cog = 2,
+		/obj/item/toy/batong = 1,
+		/obj/item/toy/replica_fabricator = 1,
 		/obj/item/extendohand/acme = 1,
 		/obj/item/hot_potato/harmless/toy = 1,
 		/obj/item/card/emagfake = 1,
+		/obj/item/disk/nuclear/fake/obvious = 1,
 		/obj/item/clothing/shoes/wheelys = 2,
 		/obj/item/clothing/shoes/kindleKicks = 2,
-		/obj/item/toy/plush/moth = 2,
+		/obj/item/toy/plush/moth/random = 2,
+		/obj/item/toy/plush/flushed = 2,
+		/obj/item/toy/plush/gondola = 2,
+		/obj/item/toy/plush/rouny = 2,
 		/obj/item/storage/box/heretic_asshole = 1,
 		/obj/item/toy/eldrich_book = 1,
 		/obj/item/storage/belt/military/snack = 2,
@@ -55,7 +63,8 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 		/obj/item/choice_beacon/pet/hamster = 1,
 		/obj/item/choice_beacon/pet/pug = 1,
 		/obj/item/choice_beacon/pet/pingu = 1,
-		/obj/item/choice_beacon/pet/clown = 1))
+		/obj/item/choice_beacon/pet/clown = 1,
+		/obj/item/toy/allaccess = 1))
 
 /obj/machinery/computer/arcade
 	name = "random arcade"
@@ -64,6 +73,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	icon_keyboard = "no_keyboard"
 	icon_screen = "invaders"
 	clockwork = TRUE //it'd look weird
+	broken_overlay_emissive = TRUE
 	var/list/prize_override
 	var/prizeselect = /obj/item/coin/arcade_token
 	light_color = LIGHT_COLOR_GREEN
@@ -71,7 +81,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 /obj/machinery/computer/arcade/proc/Reset()
 	return
 
-/obj/machinery/computer/arcade/Initialize()
+/obj/machinery/computer/arcade/Initialize(mapload)
 	. = ..()
 	// If it's a generic arcade machine, pick a random arcade
 	// circuit board for it and make the new machine
@@ -90,7 +100,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	var/atom/movable/the_prize
 	if(prob(0.0001)) //1 in a million
 		the_prize = new /obj/item/gun/energy/pulse/prize(drop_location())
-		SSmedals.UnlockMedal(MEDAL_PULSE, user.client)
+		user.client.give_award(/datum/award/achievement/misc/pulse, user)
 	else
 		the_prize = new prizeselect(drop_location())
 
@@ -115,7 +125,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	if(prize_override)
 		override = TRUE
 
-	if(stat & (NOPOWER|BROKEN) || . & EMP_PROTECT_SELF)
+	if(machine_stat & (NOPOWER|BROKEN) || . & EMP_PROTECT_SELF)
 		return
 
 	var/empprize = null
@@ -194,7 +204,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 			blocked = TRUE
 			var/attackamt = rand(2,6)
 			temp = "You attack for [attackamt] damage!"
-			playsound(loc, 'sound/arcade/hit.ogg', 50, 1, extrarange = -3, falloff = 10)
+			playsound(loc, 'sound/arcade/hit.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 			updateUsrDialog()
 			if(turtle > 0)
 				turtle--
@@ -208,7 +218,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 			var/pointamt = rand(1,3)
 			var/healamt = rand(6,8)
 			temp = "You use [pointamt] magic to heal for [healamt] damage!"
-			playsound(loc, 'sound/arcade/heal.ogg', 50, 1, extrarange = -3, falloff = 10)
+			playsound(loc, 'sound/arcade/heal.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 			updateUsrDialog()
 			turtle++
 
@@ -223,7 +233,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 			blocked = TRUE
 			var/chargeamt = rand(4,7)
 			temp = "You regain [chargeamt] points"
-			playsound(loc, 'sound/arcade/mana.ogg', 50, 1, extrarange = -3, falloff = 10)
+			playsound(loc, 'sound/arcade/mana.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 			player_mp += chargeamt
 			if(turtle > 0)
 				turtle--
@@ -258,7 +268,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 		if(!gameover)
 			gameover = TRUE
 			temp = "[enemy_name] has fallen! Rejoice!"
-			playsound(loc, 'sound/arcade/win.ogg', 50, 1, extrarange = -3, falloff = 10)
+			playsound(loc, 'sound/arcade/win.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 
 			if(obj_flags & EMAGGED)
 				new /obj/effect/spawner/newbomb/timer/syndicate(loc)
@@ -275,13 +285,13 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	else if ((obj_flags & EMAGGED) && (turtle >= 4))
 		var/boomamt = rand(5,10)
 		temp = "[enemy_name] throws a bomb, exploding you for [boomamt] damage!"
-		playsound(loc, 'sound/arcade/boom.ogg', 50, 1, extrarange = -3, falloff = 10)
+		playsound(loc, 'sound/arcade/boom.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 		player_hp -= boomamt
 
 	else if ((enemy_mp <= 5) && (prob(70)))
 		var/stealamt = rand(2,3)
 		temp = "[enemy_name] steals [stealamt] of your power!"
-		playsound(loc, 'sound/arcade/steal.ogg', 50, 1, extrarange = -3, falloff = 10)
+		playsound(loc, 'sound/arcade/steal.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 		player_mp -= stealamt
 		updateUsrDialog()
 
@@ -289,27 +299,27 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 			gameover = TRUE
 			sleep(10)
 			temp = "You have been drained! GAME OVER"
-			playsound(loc, 'sound/arcade/lose.ogg', 50, 1, extrarange = -3, falloff = 10)
+			playsound(loc, 'sound/arcade/lose.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 			if(obj_flags & EMAGGED)
 				usr.gib()
 			SSblackbox.record_feedback("nested tally", "arcade_results", 1, list("loss", "mana", (obj_flags & EMAGGED ? "emagged":"normal")))
 
 	else if ((enemy_hp <= 10) && (enemy_mp > 4))
 		temp = "[enemy_name] heals for 4 health!"
-		playsound(loc, 'sound/arcade/heal.ogg', 50, 1, extrarange = -3, falloff = 10)
+		playsound(loc, 'sound/arcade/heal.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 		enemy_hp += 4
 		enemy_mp -= 4
 
 	else
 		var/attackamt = rand(3,6)
 		temp = "[enemy_name] attacks for [attackamt] damage!"
-		playsound(loc, 'sound/arcade/hit.ogg', 50, 1, extrarange = -3, falloff = 10)
+		playsound(loc, 'sound/arcade/hit.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 		player_hp -= attackamt
 
 	if ((player_mp <= 0) || (player_hp <= 0))
 		gameover = TRUE
 		temp = "You have been crushed! GAME OVER"
-		playsound(loc, 'sound/arcade/lose.ogg', 50, 1, extrarange = -3, falloff = 10)
+		playsound(loc, 'sound/arcade/lose.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
 		if(obj_flags & EMAGGED)
 			usr.gib()
 		SSblackbox.record_feedback("nested tally", "arcade_results", 1, list("loss", "hp", (obj_flags & EMAGGED ? "emagged":"normal")))
@@ -412,7 +422,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	var/killed_crew = 0
 
 
-/obj/machinery/computer/arcade/orion_trail/Initialize()
+/obj/machinery/computer/arcade/orion_trail/Initialize(mapload)
 	. = ..()
 	Radio = new /obj/item/radio(src)
 	Radio.listening = 0
@@ -708,8 +718,8 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 					if(isliving(usr))
 						var/mob/living/L = usr
 						L.Stun(200, ignore_canstun = TRUE) //you can't run :^)
-					var/S = new /obj/singularity/academy(usr.loc)
-					addtimer(CALLBACK(src, /atom/movable/proc/say, "[S] winks out, just as suddenly as it appeared."), 50)
+					var/S = new /obj/anomaly/singularity/academy(usr.loc)
+					addtimer(CALLBACK(src, TYPE_PROC_REF(/atom/movable, say), "[S] winks out, just as suddenly as it appeared."), 50)
 					QDEL_IN(S, 50)
 			else
 				event = null
@@ -882,6 +892,7 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 		if(ORION_TRAIL_OLDSHIP)
 			eventdat += "<br>Your crew spots an old ship floating through space. It might have some supplies, but then again it looks rather unsafe."
 			eventdat += "<P ALIGN=Right><a href='byond://?src=[REF(src)];search=1'>Search it</a><a href='byond://?src=[REF(src)];eventclose=1'>Leave it</a></P><P ALIGN=Right><a href='byond://?src=[REF(src)];close=1'>Close</a></P>"
+			canContinueEvent = 1
 
 		if(ORION_TRAIL_SEARCH)
 			switch(rand(100))
@@ -1181,6 +1192,10 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	newgame()
 	obj_flags |= EMAGGED
 
+/obj/machinery/computer/arcade/orion_trail/Destroy()
+	QDEL_NULL(Radio)
+	. = ..()
+
 /mob/living/simple_animal/hostile/syndicate/ranged/smg/orion
 	name = "spaceport security"
 	desc = "Premier corporate security forces for all spaceports found along the Orion Trail."
@@ -1239,23 +1254,51 @@ GLOBAL_LIST_INIT(arcade_prize_pool, list(
 	if(!iscarbon(user))
 		return
 	var/mob/living/carbon/c_user = user
-	if(!c_user.get_bodypart(BODY_ZONE_L_ARM) && !c_user.get_bodypart(BODY_ZONE_R_ARM))
-		return
-	to_chat(c_user, "<span class='warning'>You move your hand towards the machine, and begin to hesitate as a bloodied guillotine emerges from inside of it...</span>")
-	if(do_after(c_user, 50, target = src))
-		to_chat(c_user, "<span class='userdanger'>The guillotine drops on your arm, and the machine sucks it in!</span>")
-		playsound(loc, 'sound/weapons/slice.ogg', 25, 1, -1)
-		var/which_hand = BODY_ZONE_L_ARM
-		if(!(c_user.active_hand_index % 2))
-			which_hand = BODY_ZONE_R_ARM
-		var/obj/item/bodypart/chopchop = c_user.get_bodypart(which_hand)
-		chopchop.dismember()
-		qdel(chopchop)
-		playsound(loc, 'sound/arcade/win.ogg', 50, 1, extrarange = -3, falloff = 10)
-		for(var/i=1; i<=rand(3,5); i++)
-			prizevend(user)
+	if(obj_flags & EMAGGED)
+		if(!c_user.get_bodypart(BODY_ZONE_L_ARM) && !c_user.get_bodypart(BODY_ZONE_R_ARM))
+			return
+		to_chat(c_user, "<span class='warning'>You move your hand towards the machine, and begin to hesitate as an extra-bloodied guillotine emerges from inside of it...</span>")
+		if(do_after(c_user, 50, target = src))
+			to_chat(c_user, "<span class='userdanger'>Robotic arms shoot out of the machine, remove all your limbs, and suck them in!</span>")
+			playsound(loc, 'sound/weapons/slice.ogg', 25, 1, -1)
+			for(var/X in c_user.bodyparts)
+				var/obj/item/bodypart/BP = X
+				if(BP.body_part != HEAD && BP.body_part != CHEST)
+					if(BP.dismemberable)
+						BP.dismember()
+						qdel(BP)
+			playsound(loc, 'sound/arcade/win.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
+			for(var/i=1 to rand(20, 30))
+				prizevend(user)
+		else
+			to_chat(c_user, "<span class='notice'>You (wisely) decide against putting your hand in the machine.</span>")
 	else
-		to_chat(c_user, "<span class='notice'>You (wisely) decide against putting your hand in the machine.</span>")
+		if(!c_user.get_bodypart(BODY_ZONE_L_ARM) && !c_user.get_bodypart(BODY_ZONE_R_ARM))
+			return
+		to_chat(c_user, "<span class='warning'>You move your hand towards the machine, and begin to hesitate as a bloodied guillotine emerges from inside of it...</span>")
+		if(do_after(c_user, 50, target = src))
+			to_chat(c_user, "<span class='userdanger'>The guillotine drops on your arm, and the machine sucks it in!</span>")
+			playsound(loc, 'sound/weapons/slice.ogg', 25, 1, -1)
+			var/which_hand = BODY_ZONE_L_ARM
+			if(!(c_user.active_hand_index % 2))
+				which_hand = BODY_ZONE_R_ARM
+			var/obj/item/bodypart/chopchop = c_user.get_bodypart(which_hand)
+			chopchop.dismember()
+			qdel(chopchop)
+			playsound(loc, 'sound/arcade/win.ogg', 50, 1, extrarange = -3, falloff_exponent = 10)
+			for(var/i=1 to rand(3, 5))
+				prizevend(user)
+		else
+			to_chat(c_user, "<span class='notice'>You (wisely) decide against putting your hand in the machine.</span>")
+
+
+/obj/machinery/computer/arcade/amputation/emag_act(mob/user)
+	if(obj_flags & EMAGGED)
+		return
+	to_chat(user, "<span class='notice'>You override the safety systems on the arcade machine.</span>")
+	name = "Mediborg's Amputation Adventure: Deluxe Edition"
+	desc = "A picture of a blood-soaked medical cyborg flashes on the screen. The mediborg has glowing red eyes, and a speech bubble that says, \"Put your hand in the machine if you aren't a <b>coward!</b>\""
+	obj_flags |= EMAGGED
 
 #undef ORION_TRAIL_WINTURN
 #undef ORION_TRAIL_RAIDERS

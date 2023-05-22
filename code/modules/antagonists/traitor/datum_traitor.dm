@@ -7,13 +7,13 @@
 	antagpanel_category = "Traitor"
 	job_rank = ROLE_TRAITOR
 	antag_moodlet = /datum/mood_event/focused
+	hijack_speed = 0.5				//10 seconds per hijack stage by default
 	var/special_role = ROLE_TRAITOR
 	var/employer = "The Syndicate"
 	var/should_give_codewords = TRUE
 	var/should_equip = TRUE
 	var/traitor_kind = TRAITOR_HUMAN //Set on initial assignment
 	var/datum/contractor_hub/contractor_hub
-	can_hijack = HIJACK_HIJACKER
 
 /datum/antagonist/traitor/on_gain()
 	if(owner.current && isAI(owner.current))
@@ -27,18 +27,10 @@
 	..()
 
 /datum/antagonist/traitor/apply_innate_effects()
-	if(owner.assigned_role == "Clown")
-		var/mob/living/carbon/human/traitor_mob = owner.current
-		if(traitor_mob && istype(traitor_mob))
-			if(!silent)
-				to_chat(traitor_mob, "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself.")
-			traitor_mob.dna.remove_mutation(CLOWNMUT)
+	handle_clown_mutation(owner.current, silent ? null : "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself.")
 
 /datum/antagonist/traitor/remove_innate_effects()
-	if(owner.assigned_role == "Clown")
-		var/mob/living/carbon/human/traitor_mob = owner.current
-		if(traitor_mob && istype(traitor_mob))
-			traitor_mob.dna.add_mutation(CLOWNMUT)
+	handle_clown_mutation(owner.current, removing=FALSE)
 
 /datum/antagonist/traitor/on_removal()
 	//Remove malf powers.
@@ -48,12 +40,21 @@
 		A.remove_verb(/mob/living/silicon/ai/proc/choose_modules)
 		A.malf_picker.remove_malf_verbs(A)
 		qdel(A.malf_picker)
+		QDEL_NULL(A.radio.keyslot)
+		A.radio.recalculateChannels()
 
 	SSticker.mode.traitors -= owner
 	if(!silent && owner.current)
 		to_chat(owner.current,"<span class='userdanger'> You are no longer the [special_role]! </span>")
 	owner.special_role = null
 	..()
+
+/datum/antagonist/traitor/proc/handle_hearing(datum/source, list/hearing_args)
+	SIGNAL_HANDLER
+	var/message = hearing_args[HEARING_RAW_MESSAGE]
+	message = GLOB.syndicate_code_phrase_regex.Replace(message, "<span class='blue'>$1</span>")
+	message = GLOB.syndicate_code_response_regex.Replace(message, "<span class='red'>$1</span>")
+	hearing_args[HEARING_RAW_MESSAGE] = message
 
 /datum/antagonist/traitor/proc/add_objective(datum/objective/O)
 	objectives += O
@@ -73,7 +74,9 @@
 	var/is_hijacker = FALSE
 	if (GLOB.joined_player_list.len >= 30) // Less murderboning on lowpop thanks
 		is_hijacker = prob(10)
-	var/martyr_chance = prob(20)
+	var/martyr_chance = FALSE //NSV13 - dying is lazy, do your job
+	if (GLOB.joined_player_list.len >= CONFIG_GET(number/min_pop_kill_objectives))
+		martyr_chance = prob(20)
 	var/objective_count = is_hijacker 			//Hijacking counts towards number of objectives
 	if(!SSticker.mode.exchange_blue && SSticker.mode.traitors.len >= 8) 	//Set up an exchange if there are enough traitors
 		if(!SSticker.mode.exchange_red)
@@ -84,8 +87,15 @@
 			assign_exchange_role(SSticker.mode.exchange_blue)
 		objective_count += 1					//Exchange counts towards number of objectives
 	var/toa = CONFIG_GET(number/traitor_objectives_amount)
-	for(var/i = objective_count, i < toa, i++)
+	for(var/i = objective_count, i < toa - 1, i++)
 		forge_single_objective()
+
+	//Add a gimmick objective
+	var/datum/objective/gimmick/gimmick_objective = new
+	gimmick_objective.owner = owner
+	gimmick_objective.find_target()
+	gimmick_objective.update_explanation_text()
+	add_objective(gimmick_objective) //Does not count towards the number of objectives, to allow hijacking as well
 
 	if(is_hijacker && objective_count <= toa) //Don't assign hijack if it would exceed the number of objectives set in config.traitor_objectives_amount
 		if (!(locate(/datum/objective/hijack) in objectives))
@@ -121,10 +131,13 @@
 		objective_count += forge_single_objective()
 
 	for(var/i = objective_count, i < CONFIG_GET(number/traitor_objectives_amount), i++)
-		var/datum/objective/assassinate/kill_objective = new
-		kill_objective.owner = owner
-		kill_objective.find_target()
-		add_objective(kill_objective)
+		if(length(GLOB.joined_player_list) >= CONFIG_GET(number/min_pop_kill_objectives)) //NSV13 - no lowpop murder
+			var/datum/objective/assassinate/kill_objective = new
+			kill_objective.owner = owner
+			kill_objective.find_target()
+			add_objective(kill_objective)
+		else //NSV13 - fallback for less killing
+			objective_count += forge_single_objective()
 
 	var/datum/objective/survive/exist/exist_objective = new
 	exist_objective.owner = owner
@@ -140,7 +153,7 @@
 
 /datum/antagonist/traitor/proc/forge_single_human_objective() //Returns how many objectives are added
 	.=1
-	if(prob(50))
+	if(prob(50) && (GLOB.joined_player_list.len >= CONFIG_GET(number/min_pop_kill_objectives))) //NSV13 - no lowpop murder
 		var/list/active_ais = active_ais()
 		if(active_ais.len && prob(100/GLOB.joined_player_list.len))
 			var/datum/objective/destroy/destroy_objective = new
@@ -158,7 +171,7 @@
 			kill_objective.find_target()
 			add_objective(kill_objective)
 	else
-		if(prob(15) && !(locate(/datum/objective/download) in objectives) && !(owner.assigned_role in list("Research Director", "Scientist", "Roboticist")))
+		if(prob(15) && !(locate(/datum/objective/download) in objectives) && !(owner.assigned_role in list(JOB_NAME_RESEARCHDIRECTOR, JOB_NAME_SCIENTIST, JOB_NAME_ROBOTICIST)))
 			var/datum/objective/download/download_objective = new
 			download_objective.owner = owner
 			download_objective.gen_amount_goal()
@@ -172,6 +185,8 @@
 /datum/antagonist/traitor/proc/forge_single_AI_objective()
 	.=1
 	var/special_pick = rand(1,4)
+	if (GLOB.joined_player_list.len >= CONFIG_GET(number/min_pop_kill_objectives)) //NSV13 - no lowpop murder
+		special_pick = rand(3,4)
 	switch(special_pick)
 		if(1)
 			var/datum/objective/block/block_objective = new
@@ -192,7 +207,7 @@
 			yandere_one.find_target()
 			var/datum/objective/maroon/yandere_two = new
 			yandere_two.owner = owner
-			yandere_two.target = yandere_one.target
+			yandere_two.set_target(yandere_one.target)
 			yandere_two.update_explanation_text() // normally called in find_target()
 			add_objective(yandere_two)
 			.=2
@@ -219,20 +234,22 @@
 	switch(traitor_kind)
 		if(TRAITOR_AI)
 			add_law_zero()
-			owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/malf.ogg', 100, FALSE, pressure_affected = FALSE)
+			owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/malf.ogg', 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
 			owner.current.grant_language(/datum/language/codespeak, TRUE, TRUE, LANGUAGE_MALF)
 		if(TRAITOR_HUMAN)
 			show_tips("traitor")
 			if(should_equip)
 				equip(silent)
-			owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/tatoralert.ogg', 100, FALSE, pressure_affected = FALSE)
+			owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/tatoralert.ogg', 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
 
 /datum/antagonist/traitor/apply_innate_effects(mob/living/mob_override)
 	. = ..()
 	update_traitor_icons_added()
-	var/mob/living/silicon/ai/A = mob_override || owner.current
-	if(istype(A) && traitor_kind == TRAITOR_AI)
+	var/mob/living/M = mob_override || owner.current
+	if(isAI(M) && traitor_kind == TRAITOR_AI)
+		var/mob/living/silicon/ai/A = M
 		A.hack_software = TRUE
+	RegisterSignal(M, COMSIG_MOVABLE_HEAR, PROC_REF(handle_hearing))
 
 /datum/antagonist/traitor/remove_innate_effects(mob/living/mob_override)
 	. = ..()
@@ -240,6 +257,7 @@
 	var/mob/living/silicon/ai/A = mob_override || owner.current
 	if(istype(A)  && traitor_kind == TRAITOR_AI)
 		A.hack_software = FALSE
+	UnregisterSignal(owner.current, COMSIG_MOVABLE_HEAR, PROC_REF(handle_hearing))
 
 /datum/antagonist/traitor/proc/give_codewords()
 	if(!owner.current)
@@ -335,8 +353,10 @@
 	if(objectives.len)//If the traitor had no objectives, don't need to process this.
 		var/count = 1
 		for(var/datum/objective/objective in objectives)
-			if(objective.check_completion())
+			if(objective.check_completion() && !objective.optional)
 				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] <span class='greentext'>Success!</span>"
+			else if (objective.optional)
+				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] <span class='greentext'>Optional.</span>"
 			else
 				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] <span class='redtext'>Fail.</span>"
 				traitorwin = FALSE

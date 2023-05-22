@@ -1,3 +1,5 @@
+// NSV13
+
 import { Fragment } from 'inferno';
 import { useBackend, useLocalState } from '../backend';
 import { Button, Section } from '../components';
@@ -12,6 +14,12 @@ export const AMS = (props, context) => {
       width={500}
       height={500}>
       <Window.Content scrollable>
+        <Section title="Target Source:">
+          <Button
+            content={data.data_source}
+            icon="bullseye"
+            onClick={() => act('data_source')} />
+        </Section>
         <Section title="AMS Modes:">
           {Object.keys(data.categories).map(key => {
             let value = data.categories[key];

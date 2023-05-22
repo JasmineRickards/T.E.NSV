@@ -7,13 +7,16 @@
 	w_class = WEIGHT_CLASS_TINY
 	materials = list(/datum/material/iron = 50, /datum/material/glass = 300)
 	var/recharging = FALSE
+	var/obj/item/electronics/airlock/electronics = null
 	var/circuits = 5 //How many circuits the pseudocircuit has left
 	var/static/recycleable_circuits = typecacheof(list(/obj/item/electronics/firelock, /obj/item/electronics/airalarm, /obj/item/electronics/firealarm, \
-	/obj/item/electronics/apc, /obj/item/electronics/advanced_airlock_controller))//A typecache of circuits consumable for material
+	/obj/item/electronics/apc, /obj/item/electronics/advanced_airlock_controller, /obj/item/electronics/airlock))//A typecache of circuits consumable for material
 
-/obj/item/electroadaptive_pseudocircuit/Initialize()
+/obj/item/electroadaptive_pseudocircuit/Initialize(mapload)
 	. = ..()
 	maptext = MAPTEXT("[circuits]")
+	electronics = new/obj/item/electronics/airlock(src)
+	electronics.holder = src
 
 /obj/item/electroadaptive_pseudocircuit/examine(mob/user)
 	. = ..()
@@ -29,7 +32,7 @@
 		to_chat(R, "<span class='warning'>You need a power cell installed for that.</span>")
 		return
 	if(!R.cell.use(circuit_cost))
-		to_chat(R, "<span class='warning'>You don't have the energy for that (you need [DisplayEnergy(circuit_cost)].)</span>")
+		to_chat(R, "<span class='warning'>You don't have the energy for that (you need [display_energy(circuit_cost)].)</span>")
 		return
 	if(recharging)
 		to_chat(R, "<span class='warning'>[src] needs some time to recharge first.</span>")
@@ -43,7 +46,7 @@
 	maptext = MAPTEXT("[circuits]")
 	icon_state = "[initial(icon_state)]_recharging"
 	var/recharge_time = min(600, circuit_cost * 5)  //40W of cost for one fabrication = 20 seconds of recharge time; this is to prevent spamming
-	addtimer(CALLBACK(src, .proc/recharge), recharge_time)
+	addtimer(CALLBACK(src, PROC_REF(recharge)), recharge_time)
 	return TRUE //The actual circuit magic itself is done on a per-object basis
 
 /obj/item/electroadaptive_pseudocircuit/afterattack(atom/target, mob/living/user, proximity)
@@ -63,3 +66,11 @@
 	playsound(src, 'sound/machines/chime.ogg', 25, TRUE)
 	recharging = FALSE
 	icon_state = initial(icon_state)
+
+/obj/item/electroadaptive_pseudocircuit/attack_self(mob/user)
+	. = ..()
+	electronics.ui_interact(user)
+
+/obj/item/electroadaptive_pseudocircuit/Destroy()
+	QDEL_NULL(electronics)
+	. = ..()

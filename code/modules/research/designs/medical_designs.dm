@@ -10,7 +10,7 @@
 	materials = list(/datum/material/iron = 1000, /datum/material/glass = 500)
 	construction_time = 75
 	build_path = /obj/item/mmi
-	category = list("Misc","Medical Designs")
+	category = list("Control Interfaces", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL | DEPARTMENTAL_FLAG_SCIENCE
 
 /datum/design/posibrain
@@ -21,7 +21,7 @@
 	materials = list(/datum/material/iron = 1700, /datum/material/glass = 1350, /datum/material/gold = 500, /datum/material/copper = 500) //Gold, because SWAG.
 	construction_time = 75
 	build_path = /obj/item/mmi/posibrain
-	category = list("Misc", "Medical Designs")
+	category = list("Control Interfaces", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL | DEPARTMENTAL_FLAG_SCIENCE
 
 /datum/design/bluespacebeaker
@@ -88,7 +88,7 @@
 	id = "noreactsyringe"
 	build_type = PROTOLATHE
 	materials = list(/datum/material/glass = 2000, /datum/material/gold = 1000)
-	build_path = /obj/item/reagent_containers/syringe/noreact
+	build_path = /obj/item/reagent_containers/syringe/cryo
 	category = list("Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
@@ -192,6 +192,39 @@
 	category = list("Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
+/datum/design/medipen_epi
+	name = "Epinephrine Medipen"
+	desc = "A rapid and safe way to stabilize patients in critical condition for personnel without advanced medical knowledge. Contains a powerful preservative that can delay decomposition when applied to a dead body."
+	id = "medipen_epi"
+	build_path = /obj/item/reagent_containers/hypospray/medipen
+	build_type = PROTOLATHE
+	materials = list(/datum/material/plastic = 200)
+	reagents_list = list(/datum/reagent/medicine/epinephrine = 10, /datum/reagent/toxin/formaldehyde = 3)
+	category = list("Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
+/datum/design/medipen_dex
+	name = "Dexalin Medipen"
+	desc = "An autoinjector containing dexalin, used to heal oxygen damage quickly."
+	id = "medipen_dex"
+	build_path = /obj/item/reagent_containers/hypospray/medipen/dexalin
+	build_type = PROTOLATHE
+	materials = list(/datum/material/plastic = 200)
+	reagents_list = list(/datum/reagent/medicine/dexalin = 10)
+	category = list("Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
+/datum/design/medipen_atropine
+	name = "Atropine Medipen"
+	desc = "A rapid way to save a person from a critical injury state!"
+	id = "medipen_atropine"
+	build_path = /obj/item/reagent_containers/hypospray/medipen/atropine
+	build_type = PROTOLATHE
+	materials = list(/datum/material/plastic = 200)
+	reagents_list = list(/datum/reagent/medicine/atropine = 10)
+	category = list("Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
 /datum/design/surgical_drapes
 	name = "Surgical Drapes"
 	id = "surgical_drapes"
@@ -243,7 +276,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 400, /datum/material/copper = 200)
 	build_path = /obj/item/organ/eyes/robotic/shield
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_gloweyes
@@ -254,7 +287,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 1000, /datum/material/copper = 200)
 	build_path = /obj/item/organ/eyes/robotic/glow
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_breather
@@ -265,7 +298,7 @@
 	construction_time = 35
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 250, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/mouth/breathing_tube
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_surgical
@@ -276,7 +309,7 @@
 	materials = list (/datum/material/iron = 2500, /datum/material/glass = 1500, /datum/material/silver = 1500, /datum/material/copper = 200)
 	construction_time = 200
 	build_path = /obj/item/organ/cyberimp/arm/surgery
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_toolset
@@ -287,7 +320,29 @@
 	materials = list (/datum/material/iron = 2500, /datum/material/glass = 1500, /datum/material/silver = 1500, /datum/material/copper = 200)
 	construction_time = 200
 	build_path = /obj/item/organ/cyberimp/arm/toolset
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
+/datum/design/cyberimp_botany
+	name = "Botanical toolset implant"
+	desc = "Everything a botanist needs in an arm implant, designed to be installed on a subject's arm."
+	id = "ci-botany"
+	build_type = MECHFAB | PROTOLATHE
+	materials = list (/datum/material/iron = 3500, /datum/material/glass = 1500, /datum/material/silver = 1500, /datum/material/plastic = 2000)
+	construction_time = 200
+	build_path = /obj/item/organ/cyberimp/arm/botany
+	category = list("Implants", "Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
+/datum/design/cyberimp_janitor
+	name = "Janitorial Arm Implant"
+	desc = "A set of janitor tools fitted into an arm implant, designed to be installed on subject's arm."
+	id = "ci-janitor"
+	build_type = PROTOLATHE | MECHFAB
+	materials = list (/datum/material/iron = 3500, /datum/material/glass = 1500, /datum/material/silver = 1500)
+	construction_time = 200
+	build_path = /obj/item/organ/cyberimp/arm/janitor
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_medical_hud
@@ -298,7 +353,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 500, /datum/material/gold = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/eyes/hud/medical
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_security_hud
@@ -309,7 +364,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 750, /datum/material/gold = 750, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/eyes/hud/security
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_diagnostic_hud
@@ -320,7 +375,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 600, /datum/material/gold = 600, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/eyes/hud/diagnostic
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_xray
@@ -331,7 +386,7 @@
 	construction_time = 60
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 600, /datum/material/gold = 600, /datum/material/plasma = 1000, /datum/material/uranium = 1000, /datum/material/diamond = 1000, /datum/material/bluespace = 1000, /datum/material/copper = 200)
 	build_path = /obj/item/organ/eyes/robotic/xray
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_thermals
@@ -342,7 +397,7 @@
 	construction_time = 60
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 600, /datum/material/gold = 600, /datum/material/plasma = 1000, /datum/material/diamond = 2000, /datum/material/copper = 200)
 	build_path = /obj/item/organ/eyes/robotic/thermals
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_antidrop
@@ -353,7 +408,7 @@
 	construction_time = 60
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 400, /datum/material/gold = 400, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/brain/anti_drop
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_antistun
@@ -364,7 +419,19 @@
 	construction_time = 60
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/silver = 500, /datum/material/gold = 1000, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/brain/anti_stun
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
+	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
+
+/datum/design/cyberimp_linkedsurgery
+	name = "Surgical Serverlink Brain Implant"
+	desc = "A brain implant with a bluespace technology that lets you perform an advanced surgery through your station research server."
+	id = "ci-linkedsurgery"
+	build_type = PROTOLATHE | MECHFAB
+	construction_time = 60
+	materials = list(/datum/material/iron = 2500, /datum/material/glass = 1500, /datum/material/silver = 1500, /datum/material/copper = 200, /datum/material/gold = 3000, /datum/material/diamond = 1500, /datum/material/uranium = 250, /datum/material/bluespace = 2000)
+	build_path = /obj/item/organ/cyberimp/brain/linkedsurgery
+	category = list("Implants", "Medical Designs", "Bluespace Designs")
+	dangerous_construction = TRUE
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_nutriment
@@ -375,7 +442,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/gold = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/chest/nutriment
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_nutriment_plus
@@ -386,7 +453,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 600, /datum/material/glass = 600, /datum/material/gold = 500, /datum/material/uranium = 750, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/chest/nutriment/plus
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_reviver
@@ -397,7 +464,7 @@
 	construction_time = 60
 	materials = list(/datum/material/iron = 800, /datum/material/glass = 800, /datum/material/gold = 300, /datum/material/uranium = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/chest/reviver
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_thrusters
@@ -408,7 +475,7 @@
 	construction_time = 80
 	materials = list(/datum/material/iron = 4000, /datum/material/glass = 2000, /datum/material/silver = 1000, /datum/material/diamond = 1000, /datum/material/copper = 200)
 	build_path = /obj/item/organ/cyberimp/chest/thrusters
-	category = list("Misc", "Medical Designs")
+	category = list("Implants", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cyberimp_hydraulic_blade
@@ -419,7 +486,7 @@
 	construction_time = 250
 	materials = list(/datum/material/iron = 5000, /datum/material/glass = 5000, /datum/material/silver = 10000, /datum/material/diamond = 3000, /datum/material/titanium = 8000, /datum/material/bluespace = 2000, /datum/material/plasma = 5000)
 	build_path = /obj/item/organ/cyberimp/arm/hydraulic_blade
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /////////////////////////////////////////
@@ -486,7 +553,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/liver/cybernetic
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cybernetic_liver_u
@@ -497,7 +564,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/liver/cybernetic/upgraded
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cybernetic_heart
@@ -508,7 +575,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/heart/cybernetic
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cybernetic_heart_u
@@ -519,7 +586,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/silver=500, /datum/material/copper = 300)
 	build_path = /obj/item/organ/heart/cybernetic/upgraded
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cybernetic_lungs
@@ -530,7 +597,7 @@
 	construction_time = 40
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/copper = 200)
 	build_path = /obj/item/organ/lungs/cybernetic
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/cybernetic_lungs_u
@@ -541,7 +608,7 @@
 	construction_time = 50
 	materials = list(/datum/material/iron = 500, /datum/material/glass = 500, /datum/material/silver = 500, /datum/material/copper = 300)
 	build_path = /obj/item/organ/lungs/cybernetic/upgraded
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/wingpack
@@ -552,7 +619,7 @@
 	construction_time = 500
 	materials = list(/datum/material/iron = 10000, /datum/material/glass = 1000, /datum/material/uranium = 4000, /datum/material/silver = 100, /datum/material/titanium = 8000, /datum/material/plasma = 10000)
 	build_path = /obj/item/organ/wings/cybernetic
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /datum/design/wingpack_alien
@@ -563,7 +630,7 @@
 	construction_time = 1000
 	materials = list(/datum/material/iron = 10000, /datum/material/glass = 1000, /datum/material/uranium = 500, /datum/material/silver = 100, /datum/material/titanium = 8000, /datum/material/bluespace = 2000, /datum/material/plasma = 5000)
 	build_path = /obj/item/organ/wings/cybernetic/ayy
-	category = list("Misc", "Medical Designs")
+	category = list("Cybernetics", "Medical Designs")
 	departmental_flags = DEPARTMENTAL_FLAG_MEDICAL
 
 /////////////////////

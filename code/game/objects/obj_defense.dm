@@ -6,21 +6,22 @@
 		return
 	if(sound_effect)
 		play_attack_sound(damage_amount, damage_type, damage_flag)
-	if(!(resistance_flags & INDESTRUCTIBLE) && obj_integrity > 0)
-		damage_amount = run_obj_armor(damage_amount, damage_type, damage_flag, attack_dir, armour_penetration)
-		SEND_SIGNAL(src, COMSIG_ATOM_DAMAGE_ACT, damage_amount) //We've taken damage, send a signal to show this.
-		if(damage_amount >= DAMAGE_PRECISION)
-			. = damage_amount
-			var/old_integ = obj_integrity
-			obj_integrity = max(old_integ - damage_amount, 0)
-			if(obj_integrity <= 0)
-				var/int_fail = integrity_failure
-				if(int_fail && old_integ > int_fail)
-					obj_break(damage_flag)
-				obj_destruction(damage_flag)
-			else if(integrity_failure)
-				if(obj_integrity <= integrity_failure)
-					obj_break(damage_flag)
+	if((resistance_flags & INDESTRUCTIBLE) || obj_integrity <= 0)
+		return
+	damage_amount = run_obj_armor(damage_amount, damage_type, damage_flag, attack_dir, armour_penetration)
+	if(damage_amount < DAMAGE_PRECISION)
+		return
+	. = damage_amount
+	SEND_SIGNAL(src, COMSIG_ATOM_DAMAGE_ACT, damage_amount)
+	var/old_integ = obj_integrity
+	obj_integrity = max(old_integ - damage_amount, 0)
+	//BREAKING FIRST
+	if(integrity_failure && obj_integrity <= integrity_failure)
+		obj_break(damage_flag)
+
+	//DESTROYING SECOND
+	if(obj_integrity <= 0)
+		obj_destruction(damage_flag)
 
 //returns the damage value of the attack after processing the obj's various armor protections
 /obj/proc/run_obj_armor(damage_amount, damage_type, damage_flag = 0, attack_dir, armour_penetration = 0)
@@ -71,7 +72,8 @@
 /obj/bullet_act(obj/item/projectile/P)
 	. = ..()
 	playsound(src, P.hitsound, 50, 1)
-	visible_message("<span class='danger'>[src] is hit by \a [P]!</span>", null, null, COMBAT_MESSAGE_RANGE)
+	if(P.suppressed != SUPPRESSED_VERY)
+		visible_message("<span class='danger'>[src] is hit by \a [P]!</span>", null, null, COMBAT_MESSAGE_RANGE)
 	if(!QDELETED(src)) //Bullet on_hit effect might have already destroyed this object
 		take_damage(P.damage, P.damage_type, P.flag, 0, turn(P.dir, 180), P.armour_penetration)
 
@@ -92,6 +94,8 @@
 	return 0
 
 /obj/blob_act(obj/structure/blob/B)
+	if (!..())
+		return
 	if(isturf(loc))
 		var/turf/T = loc
 		if(T.intact && level == 1) //the blob doesn't destroy thing below the floor
@@ -109,7 +113,7 @@
 
 /obj/attack_animal(mob/living/simple_animal/M)
 	if(!M.melee_damage && !M.obj_damage)
-		INVOKE_ASYNC(M, /mob.proc/emote, "custom", null, "[M.friendly] [src].")
+		INVOKE_ASYNC(M, TYPE_PROC_REF(/mob, emote), "custom", null, "[M.friendly] [src].")
 		return 0
 	else
 		var/play_soundeffect = 1
@@ -175,7 +179,7 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 
 //the obj's reaction when touched by acid
 /obj/acid_act(acidpwr, acid_volume)
-	if(!(resistance_flags & UNACIDABLE) && acid_volume)
+	if(!(resistance_flags & (UNACIDABLE | INDESTRUCTIBLE)) && acid_volume)
 
 		if(!acid_level)
 			SSacid.processing[src] = src
@@ -208,7 +212,6 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 //// FIRE
 
 /obj/fire_act(exposed_temperature, exposed_volume)
-	. = ..() //Send the fire act signal first....
 	if(isturf(loc))
 		var/turf/T = loc
 		if(T.intact && level == 1) //fire can't damage things hidden below the floor.
@@ -237,7 +240,7 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 	obj_flags |= BEING_SHOCKED
 	var/power_bounced = power / 2
 	tesla_zap(src, 3, power_bounced, tesla_flags, shocked_targets)
-	addtimer(CALLBACK(src, .proc/reset_shocked), 10)
+	addtimer(CALLBACK(src, PROC_REF(reset_shocked)), 10)
 
 //The surgeon general warns that being buckled to certain objects receiving powerful shocks is greatly hazardous to your health
 //Only tesla coils and grounding rods currently call this because mobs are already targeted over all other objects, but this might be useful for more things later.

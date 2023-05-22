@@ -43,7 +43,7 @@
 		pill_styles += list(SL)
 
 /obj/machinery/plumbing/pill_press/process()
-	if(stat & NOPOWER)
+	if(machine_stat & NOPOWER)
 		return
 	if((reagents.total_volume >= pill_size) && (stored_pills.len < max_stored_pills))
 		var/obj/item/reagent_containers/pill/P = new(src)
@@ -93,15 +93,17 @@
 /obj/machinery/plumbing/pill_press/ui_act(action, params)
 	if(..())
 		return
-	. = TRUE
 	switch(action)
 		if("change_pill_style")
 			pill_number = CLAMP(text2num(params["id"]), 1 , PILL_STYLE_COUNT)
+			. = TRUE
 		if("change_pill_size")
 			pill_size = CLAMP(text2num(params["volume"]), minimum_pill, maximum_pill)
+			. = TRUE
 		if("change_pill_name")
 			var/new_name = stripped_input(usr, "Enter a pill name.", name, pill_name)
 			if(findtext(new_name, "pill")) //names like pillatron and Pilliam are thus valid
 				pill_name = new_name
 			else
 				pill_name = new_name + " pill"
+			. = TRUE

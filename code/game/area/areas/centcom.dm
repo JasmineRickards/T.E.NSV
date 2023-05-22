@@ -1,6 +1,10 @@
 
 // CENTCOM
 
+// Side note, be sure to change the network_root_id of any areas that are not a part of centcom
+// and just using the z space as safe harbor.  It shouldn't matter much as centcom z is isolated
+// from everything anyway
+
 /area/centcom
 	name = "CentCom"
 	icon_state = "centcom"
@@ -8,7 +12,7 @@
 	requires_power = FALSE
 	has_gravity = STANDARD_GRAVITY
 	teleport_restriction = TELEPORT_ALLOW_NONE
-	blob_allowed = FALSE //Should go without saying, no blobs should take over centcom as a win condition.
+	area_flags = VALID_TERRITORY | UNIQUE_AREA
 	flags_1 = NONE
 
 /area/centcom/control
@@ -47,8 +51,8 @@
 	icon_state = "supplypod_loading"
 	var/loading_id = ""
 
-/area/centcom/supplypod/loading/Initialize()
-	. = ..() 
+/area/centcom/supplypod/loading/Initialize(mapload)
+	. = ..()
 	if(!loading_id)
 		CRASH("[type] created without a loading_id")
 	if(GLOB.supplypod_loading_bays[loading_id])
@@ -104,11 +108,11 @@
 
 /area/tdome/tdomeadmin
 	name = "Thunderdome (Admin.)"
-	icon_state = "purple"
+	icon_state = "thunder_admin"
 
 /area/tdome/tdomeobserve
 	name = "Thunderdome (Observer.)"
-	icon_state = "purple"
+	icon_state = "thunder_observe"
 
 
 //ENEMY
@@ -121,7 +125,9 @@
 	requires_power = FALSE
 	has_gravity = STANDARD_GRAVITY
 	teleport_restriction = TELEPORT_ALLOW_NONE
+	area_flags = VALID_TERRITORY | UNIQUE_AREA
 	flags_1 = NONE
+	network_root_id = "MAGIC_NET"
 
 //Abductors
 /area/abductor_ship
@@ -129,8 +135,10 @@
 	icon_state = "yellow"
 	requires_power = FALSE
 	teleport_restriction = TELEPORT_ALLOW_ABDUCTORS
+	area_flags = VALID_TERRITORY | UNIQUE_AREA
 	has_gravity = STANDARD_GRAVITY
 	flags_1 = NONE
+	network_root_id = "ALIENS"
 
 //Syndicates
 /area/syndicate_mothership
@@ -139,18 +147,21 @@
 	requires_power = FALSE
 	has_gravity = STANDARD_GRAVITY
 	teleport_restriction = TELEPORT_ALLOW_NONE
-	blob_allowed = FALSE //Not... entirely sure this will ever come up... but if the bus makes blobs AND ops, it shouldn't aim for the ops to win.
+	area_flags = VALID_TERRITORY | UNIQUE_AREA
 	flags_1 = NONE
-	ambient_effects = HIGHSEC
+	ambience_index = AMBIENCE_DANGER
+	network_root_id = SYNDICATE_NETWORK_ROOT
 
 /area/syndicate_mothership/control
 	name = "Syndicate Control Room"
 	icon_state = "syndie-control"
 	dynamic_lighting = DYNAMIC_LIGHTING_FORCED
+	network_root_id = SYNDICATE_NETWORK_ROOT
 
 /area/syndicate_mothership/elite_squad
 	name = "Syndicate Elite Squad"
 	icon_state = "syndie-elite"
+	network_root_id = SYNDICATE_NETWORK_ROOT
 
 //CAPTURE THE FLAG
 
@@ -195,11 +206,11 @@
 	requires_power = FALSE
 	has_gravity = STANDARD_GRAVITY
 	teleport_restriction = TELEPORT_ALLOW_CLOCKWORK
-	hidden = TRUE
-	ambient_effects = REEBE
+	area_flags = VALID_TERRITORY | UNIQUE_AREA | HIDDEN_AREA
+	ambience_index = AMBIENCE_REEBE
 
 /area/reebe/city_of_cogs
 	name = "Reebe - City of Cogs"
 	icon_state = "purple"
-	hidden = FALSE
+	area_flags = VALID_TERRITORY | UNIQUE_AREA | HIDDEN_AREA
 	var/playing_ambience = FALSE

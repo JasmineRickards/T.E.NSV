@@ -14,7 +14,7 @@
 	var/uses = 3
 	var/users = list()
 
-/obj/item/stand_arrow/Initialize()
+/obj/item/stand_arrow/Initialize(mapload)
 	. = ..()
 	GLOB.poi_list += src
 
@@ -45,23 +45,26 @@
 		user.dropItemToGround(src, TRUE)
 		forceMove(H)
 		if(iscarbon(M))
-			sleep(15 SECONDS)
-			if(prob(kill_chance))
-				H.visible_message("<span class='danger bold'>[H] stares ahead, eyes full of fear, before collapsing lifelessly into ash, \the [src] falling out...</span>")
-				log_game("[key_name(H)] was killed by a stand arrow.")
-				forceMove(H.drop_location())
-				H.mind.no_cloning_at_all = TRUE
-				H.adjustCloneLoss(500)
-				H.dust(TRUE)
-				in_use = FALSE
-			else
-				INVOKE_ASYNC(src, .proc/generate_stand, H)
+			in_use = TRUE
+			addtimer(CALLBACK(src, PROC_REF(after_arrow_attack), H, kill_chance), 15 SECONDS)
+			in_use = FALSE
 		else if(isguardian(M))
-			INVOKE_ASYNC(src, .proc/requiem, M)
+			INVOKE_ASYNC(src, PROC_REF(requiem), M)
 
 	if(!uses)
 		visible_message("<span class='warning'>[src] falls apart!</span>")
 		qdel(src)
+
+/obj/item/stand_arrow/proc/after_arrow_attack(mob/living/carbon/H, var/kill_chance)
+	if(prob(kill_chance))
+		H.visible_message("<span class='danger bold'>[H] stares ahead, eyes full of fear, before collapsing lifelessly into ash, \the [src] falling out...</span>")
+		log_game("[key_name(H)] was killed by a stand arrow.")
+		forceMove(H.drop_location())
+		H.mind.no_cloning_at_all = TRUE
+		H.adjustCloneLoss(500)
+		H.dust(TRUE)
+	else
+		INVOKE_ASYNC(src, PROC_REF(generate_stand), H)
 
 /obj/item/stand_arrow/proc/requiem(mob/living/simple_animal/hostile/guardian/G)
 	G.range = 255
@@ -146,7 +149,7 @@
 				stats.range++
 				if(stats.range >= 5)
 					categories -= "Range"
-	INVOKE_ASYNC(src, .proc/get_stand, H, stats)
+	INVOKE_ASYNC(src, PROC_REF(get_stand), H, stats)
 
 /obj/item/stand_arrow/proc/pick_name(mob/living/simple_animal/hostile/guardian/G)
 	set waitfor = FALSE
@@ -165,9 +168,9 @@
 		G.summoner = H.mind
 		G.key = C.key
 		G.mind.enslave_mind_to_creator(H)
-		G.RegisterSignal(H, COMSIG_MOVABLE_MOVED, /mob/living/simple_animal/hostile/guardian.proc/OnMoved)
-		G.RegisterSignal(H, COMSIG_LIVING_REVIVE, /mob/living/simple_animal/hostile/guardian.proc/Reviveify)
-		G.RegisterSignal(H.mind, COMSIG_MIND_TRANSFER_TO, /mob/living/simple_animal/hostile/guardian.proc/OnMindTransfer)
+		G.RegisterSignal(H, COMSIG_MOVABLE_MOVED, TYPE_PROC_REF(/mob/living/simple_animal/hostile/guardian, OnMoved))
+		G.RegisterSignal(H, COMSIG_LIVING_REVIVE, TYPE_PROC_REF(/mob/living/simple_animal/hostile/guardian, Reviveify))
+		G.RegisterSignal(H.mind, COMSIG_MIND_TRANSFER_TO, TYPE_PROC_REF(/mob/living/simple_animal/hostile/guardian, OnMindTransfer))
 		var/datum/antagonist/guardian/S = new
 		S.stats = stats
 		S.summoner = H.mind
@@ -190,7 +193,7 @@
 			visible_message("<span class='warning'>\The [src] falls apart!</span>")
 			qdel(src)
 	else
-		addtimer(CALLBACK(src, .proc/get_stand, H, stats), 90 SECONDS) // lmao
+		addtimer(CALLBACK(src, PROC_REF(get_stand), H, stats), 90 SECONDS) // lmao
 
 /obj/item/stand_arrow/examine(mob/user)
 	. = ..()

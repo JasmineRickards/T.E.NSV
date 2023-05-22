@@ -66,6 +66,8 @@
 		switch(href_list["makeAntag"])
 			if("traitors")
 				var/maxCount = input("Set number of Traitors","Set Traitor Count (max)",1) as num|null
+				if (!maxCount)
+					return
 				if(src.makeTraitors(maxCount))
 					message_admins("[key_name_admin(usr)] created [maxCount] traitor(s).")
 					log_admin("[key_name(usr)] created [maxCount] traitor(s).")
@@ -74,6 +76,8 @@
 					log_admin("[key_name(usr)] failed to create [maxCount] traitor(s).")
 			if("changelings")
 				var/maxCount = input("Set number of Changelings","Set Changeling Count (max)",1) as num|null
+				if (!maxCount)
+					return
 				if(src.makeChangelings(maxCount))
 					message_admins("[key_name(usr)] created [maxCount] changelings.")
 					log_admin("[key_name(usr)] created [maxCount] changelings.")
@@ -82,6 +86,8 @@
 					log_admin("[key_name(usr)] failed to create [maxCount] changelings.")
 			if("revs")
 				var/maxCount = input("Set number of Revolutionaries","Set Revolutionaries Count (max)",1) as num|null
+				if (!maxCount)
+					return
 				if(src.makeRevs(maxCount))
 					message_admins("[key_name(usr)] started a revolution with [maxCount] freedom fighters.")
 					log_admin("[key_name(usr)] started a [maxCount] freedom fighters.")
@@ -90,6 +96,8 @@
 					log_admin("[key_name(usr)] failed to start a revolution with [maxCount] freedom fighters.")
 			if("cult")
 				var/maxCount = input("Set number of Cultists","Set Cultist Count (max)",1) as num|null
+				if (!maxCount)
+					return
 				if(src.makeCult(maxCount))
 					message_admins("[key_name(usr)] started a cult with [maxCount] cultists.")
 					log_admin("[key_name(usr)] started a cult with [maxCount] cultists.")
@@ -107,6 +115,9 @@
 			if("nukeops")
 				message_admins("[key_name(usr)] is creating a nuke team...")
 				var/maxCount = input("Set number of Nuke OPs","Set Nuke OP Count (max)",5) as num|null
+				if (!maxCount)
+					message_admins("[key_name_admin(usr)] has cancelled the creation of a Nuke team.")
+					return
 				if(src.makeNukeTeam(maxCount))
 					message_admins("[key_name(usr)] created a nuke team with [maxCount] operatives")
 					log_admin("[key_name(usr)] created a nuke team with [maxCount] operatives")
@@ -178,6 +189,7 @@
 						return
 					if("No")
 						event.announceChance = 0
+				event.on_admin_trigger()
 				event.processing = TRUE
 			message_admins("[key_name_admin(usr)] has triggered an event. ([E.name])")
 			log_admin("[key_name(usr)] has triggered an event. ([E.name])")
@@ -749,7 +761,13 @@
 			alert("The round has already started.")
 			HandleCMode()
 			return
+		if(SSticker.gamemode_hotswap_disabled)
+			alert("A gamemode has already loaded maps and cannot be changed!")
+			HandleCMode()
+			return
 		GLOB.master_mode = href_list["c_mode2"]
+		//Disable presetup so their gamemode gets loaded.
+		SSticker.pre_setup_completed = FALSE
 		log_admin("[key_name(usr)] set the mode as [GLOB.master_mode].")
 		message_admins("<span class='adminnotice'>[key_name_admin(usr)] set the mode as [GLOB.master_mode].</span>")
 		to_chat(world, "<span class='adminnotice'><b>The mode is now: [GLOB.master_mode]</b></span>")
@@ -800,14 +818,14 @@
 		if(!check_rights(R_SPAWN))
 			return
 
-		var/mob/living/carbon/human/H = locate(href_list["corgione"])
-		if(!istype(H))
-			to_chat(usr, "This can only be used on instances of type /mob/living/carbon/human.")
+		var/mob/living/carbon/C = locate(href_list["corgione"])
+		if(!istype(C))
+			to_chat(usr, "This can only be used on instances of type /mob/living/carbon.")
 			return
 
-		log_admin("[key_name(usr)] attempting to corgize [key_name(H)].")
-		message_admins("<span class='adminnotice'>[key_name_admin(usr)] attempting to corgize [key_name_admin(H)].</span>")
-		H.corgize()
+		log_admin("[key_name(usr)] attempting to corgize [key_name(C)].")
+		message_admins("<span class='adminnotice'>[key_name_admin(usr)] attempting to corgize [key_name_admin(C)].</span>")
+		C.corgize()
 
 
 	else if(href_list["forcespeech"])
@@ -1005,6 +1023,17 @@
 		message_admins("<span class='danger'>Admin [key_name_admin(usr)] AIized [key_name_admin(H)]!</span>")
 		log_admin("[key_name(usr)] AIized [key_name(H)].")
 		H.AIize(TRUE, H.client)
+
+	else if(href_list["makepai"])
+		if(!check_rights(R_SPAWN))
+			return
+		var/mob/H = locate(href_list["makepai"])
+		if(!istype(H))
+			to_chat(usr, "This can only be used on instances of type /mob.")
+			return
+		message_admins("<span class='danger'>Admin [key_name_admin(usr)] PAI'd [key_name_admin(H)]!</span>")
+		log_admin("[key_name(usr)] PAI'd [key_name(H)].")
+		H.makePAI(TRUE)
 
 	else if(href_list["makealien"])
 		if(!check_rights(R_SPAWN))
@@ -1790,7 +1819,7 @@
 	else if(href_list["set_selfdestruct_code"])
 		if(!check_rights(R_ADMIN))
 			return
-		var/code = random_nukecode()
+		var/code = random_code(5)
 		for(var/obj/machinery/nuclearbomb/selfdestruct/SD in GLOB.nuke_list)
 			SD.r_code = code
 		message_admins("[key_name_admin(usr)] has set the self-destruct \
@@ -1929,10 +1958,9 @@
 		if(!check_rights(R_ADMIN))
 			return
 		var/confirm = alert("Are you sure you want to reboot the server?", "Confirm Reboot", "Yes", "No")
-		if(confirm == "No")
+		if(confirm != "Yes")
 			return
-		if(confirm == "Yes")
-			restart()
+		restart()
 
 	else if(href_list["check_teams"])
 		if(!check_rights(R_ADMIN))
@@ -2053,7 +2081,7 @@
 
 
 	else if(href_list["retrieveboh"])
-		var/obj/singularity/boh_tear/tear = locate(href_list["retrieveboh"])
+		var/obj/boh_tear/tear = locate(href_list["retrieveboh"])
 		if(!tear)
 			to_chat(usr, "Either items were already retrieved or 10 minutes have passed and they were deleted.")
 			return
@@ -2062,7 +2090,7 @@
 			return
 		var/turf/T = get_turf(tear.old_loc)
 		message_admins("The items consumed by the BoH tear at [ADMIN_VERBOSEJMP(T)] were retrieved by [key_name_admin(usr)].")
-		tear.investigate_log("Items consumed at [AREACOORD(T)] retrieved by [key_name(usr)].", INVESTIGATE_SINGULO)
+		tear.investigate_log("Items consumed at [AREACOORD(T)] retrieved by [key_name(usr)].", INVESTIGATE_ENGINES)
 		tear.retrieve_consumed_items()
 
 	else if(href_list["beakerpanel"])
@@ -2116,6 +2144,18 @@
 		var/datum/poll_option/option = locate(href_list["submitoption"]) in GLOB.poll_options
 		var/datum/poll_question/poll = locate(href_list["submitoptionpoll"]) in GLOB.polls
 		poll_option_parse_href(href_list, poll, option)
+
+	else if (href_list["interview"])
+		if(!check_rights(R_ADMIN))
+			return
+		var/datum/interview/I = locate(href_list["interview"])
+		if (I)
+			I.ui_interact(usr)
+
+	else if (href_list["interview_man"])
+		if(!check_rights(R_ADMIN))
+			return
+		GLOB.interviews.ui_interact(usr)
 
 /datum/admins/proc/HandleCMode()
 	if(!check_rights(R_ADMIN))

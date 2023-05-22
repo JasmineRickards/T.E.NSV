@@ -1,9 +1,7 @@
 #define CHALLENGE_TELECRYSTALS 280
-#define CHALLENGE_TIME_LIMIT 3000
+#define CHALLENGE_TIME_LIMIT 5 MINUTES
 #define CHALLENGE_MIN_PLAYERS 50
-#define CHALLENGE_SHUTTLE_DELAY 15000 // 25 minutes, so the ops have at least 5 minutes before the shuttle is callable.
-
-GLOBAL_LIST_EMPTY(jam_on_wardec)
+#define CHALLENGE_SHUTTLE_DELAY 35 MINUTES	//35 minutes, giving nukies at least 20 minutes to enact their assault.
 
 /obj/item/nuclear_challenge
 	name = "Declaration of War (Challenge Mode)"
@@ -29,7 +27,7 @@ GLOBAL_LIST_EMPTY(jam_on_wardec)
 	if(!check_allowed(user))
 		return
 
-	if(are_you_sure == "No")
+	if(are_you_sure != "Yes")
 		to_chat(user, "On second thought, the element of surprise isn't so bad after all.")
 		return
 
@@ -50,20 +48,21 @@ GLOBAL_LIST_EMPTY(jam_on_wardec)
 	if(!check_allowed(user) || !war_declaration)
 		return
 
-	priority_announce(war_declaration, title = "Declaration of War", sound = 'sound/machines/alarm.ogg')
+	declare_war(user, war_declaration)
 
-	for(var/mob/M in GLOB.player_list)
-		if(M?.client?.prefs?.toggles & SOUND_AMBIENCE && !isnewplayer(M))
-			SEND_SOUND(M, sound('sound/soundtrack/future_perception.ogg', wait=0, channel=CHANNEL_AMBIENT_MUSIC))
+/obj/item/nuclear_challenge/proc/declare_war(mob/user, war_declaration)
+	priority_announce(war_declaration, "Declaration of War", 'sound/machines/alarm.ogg',  has_important_message = TRUE)
 
-	to_chat(user, "You've attracted the attention of powerful forces within the syndicate. A bonus bundle of telecrystals has been granted to your team. Great things await you if you complete the mission.")
+	play_soundtrack_music(/datum/soundtrack_song/bee/future_perception)
+
+	if(user)
+		to_chat(user, "You've attracted the attention of powerful forces within the syndicate. A bonus bundle of telecrystals has been granted to your team. Great things await you if you complete the mission.")
 
 	for(var/V in GLOB.syndicate_shuttle_boards)
 		var/obj/item/circuitboard/computer/syndicate_shuttle/board = V
 		board.challenge = TRUE
 
-	for(var/obj/machinery/computer/camera_advanced/shuttle_docker/D in GLOB.jam_on_wardec)
-		D.jammed = TRUE
+	GLOB.shuttle_docking_jammed = TRUE
 
 	var/list/orphans = list()
 	var/list/uplinks = list()
@@ -71,6 +70,7 @@ GLOBAL_LIST_EMPTY(jam_on_wardec)
 	for (var/datum/mind/M in get_antag_minds(/datum/antagonist/nukeop))
 		if (iscyborg(M.current))
 			continue
+		M.current.client?.give_award(/datum/award/achievement/misc/warops, M.current)
 		var/datum/component/uplink/uplink = M.find_syndicate_uplink()
 		if (!uplink)
 			orphans += M.current
@@ -85,8 +85,9 @@ GLOBAL_LIST_EMPTY(jam_on_wardec)
 		uplink.telecrystals += tc_per_nukie
 		tc_to_distribute -= tc_per_nukie
 
+
 	for (var/mob/living/L in orphans)
-		var/TC = new /obj/item/stack/telecrystal(user.drop_location(), tc_per_nukie)
+		var/TC = new /obj/item/stack/telecrystal(L.drop_location(), tc_per_nukie)
 		to_chat(L, "<span class='warning'>Your uplink could not be found so your share of the team's bonus telecrystals has been bluespaced to your [L.put_in_hands(TC) ? "hands" : "feet"].</span>")
 		tc_to_distribute -= tc_per_nukie
 

@@ -28,7 +28,7 @@
 	icon_state = "datadisk2"
 	max_blueprints = 5
 
-/obj/item/disk/design_disk/overmap_shields/Initialize()
+/obj/item/disk/design_disk/overmap_shields/Initialize(mapload)
 	. = ..()
 	var/datum/design/shield_fan/A = new
 	var/datum/design/shield_capacitor/B = new
@@ -200,8 +200,9 @@
 	var/regenPriority = 50
 	var/maxHealthPriority = 50 //50/50 split
 	var/max_power_input = 1.5e+7 //15 MW theoretical maximum. This much power means your shield is going to be insanely good.
-	var/active = FALSE; //Are we projecting out our shields? This lets you offline the shields for a recharge period so that they become useful again.
+	var/active = FALSE; //Are we projecting out our shields? This lets you offline the shields for a recharge period so that they become useful again. This function needs a rework as there is no penalty for shields collapsing, and recharge rate is linear.
 	var/obj/structure/cable/cable = null //Connected cable
+	var/mutable_appearance/c_screen
 
 
 /obj/machinery/shield_generator/proc/absorb_hit(damage)
@@ -241,14 +242,19 @@
 
 
 //Constructor of objects of class shield_generator. No params
-/obj/machinery/shield_generator/Initialize()
+/obj/machinery/shield_generator/Initialize(mapload)
 	. = ..()
 	var/obj/structure/overmap/ours = get_overmap()
 	ours?.shields = src
+	c_screen = mutable_appearance(src.icon, "screen_on")
+	add_overlay(c_screen)
 	if(!ours)
-		addtimer(CALLBACK(src, .proc/try_find_overmap), 20 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(try_find_overmap)), 20 SECONDS)
 
-
+/obj/machinery/shield_generator/Destroy()
+	cut_overlay(c_screen)
+	QDEL_NULL(c_screen)
+	return ..()
 
 /obj/machinery/shield_generator/proc/try_find_overmap()
 	var/obj/structure/overmap/ours = get_overmap()
@@ -260,6 +266,7 @@
 
 
 /obj/machinery/shield_generator/proc/depower_shield()
+	c_screen.alpha = 0
 	shield["integrity"] = 0
 	shield["max_integrity"] = 0
 
@@ -274,13 +281,18 @@
 
 //Every tick, the shield generator updates its stats based on the amount of power it's being allowed to chug.
 /obj/machinery/shield_generator/process()
-	cut_overlays()
 	if(!powered() || power_input <= 0 || !try_use_power(power_input))
-		depower_shield()
+		if(shield["integrity"] > 0) //If we lose power, the shield integrity steadily drains
+			shield["integrity"] -= 2
+			active = FALSE
+
+		if(shield["integrity"] <= 0) //Reset if no juice remaining
+			depower_shield()
+
 		return FALSE
+	c_screen.alpha = 255
 	var/megawatts = power_input / 1e+6 //I'm lazy.
 	flux_rate = round(megawatts*2.5) //Round down them megawatts. Multiplier'd this to make shields actually useful
-	add_overlay("screen_on")
 
 	//Firstly, set the max health of the shield based off of the available input power, and the priority that the user set for generating a shield.
 	var/projectRate = max(((maxHealthPriority / 100) * flux_rate), 0)
@@ -300,6 +312,7 @@
 	if(!ui)
 		ui = new(user, src, "ShieldGenerator")
 		ui.open()
+		ui.set_autoupdate(TRUE)
 
 /obj/machinery/shield_generator/attack_hand(mob/user)
 	ui_interact(user)
@@ -330,26 +343,27 @@
 	layer = ABOVE_MOB_LAYER+0.1
 	animate_movement = NO_STEPS // Override the inbuilt movement engine to avoid bouncing
 	appearance_flags = TILE_BOUND | PIXEL_SCALE
+	var/obj/structure/overmap/overmap
 
 /obj/effect/temp_visual/overmap_shield_hit/Initialize(mapload, obj/structure/overmap/OM)
 	. = ..()
-	alpha = 0
 	//Scale up the shield hit icon to roughly fit the overmap ship that owns us.
+	if(!OM)
+		return INITIALIZE_HINT_QDEL
+	overmap = OM
 	var/matrix/desired = new()
-	var/icon/I = icon(OM.icon)
+	var/icon/I = icon(overmap.icon)
 	var/resize_x = I.Width()/96
 	var/resize_y = I.Height()/96
 	desired.Scale(resize_x,resize_y)
-	desired.Turn(OM.angle)
+	desired.Turn(overmap.angle)
 	transform = desired
-	track(OM)
+	overmap.vis_contents += src
 
-/obj/effect/temp_visual/overmap_shield_hit/proc/track(obj/structure/overmap/OM)
-	set waitfor = FALSE
-	while(!QDELETED(src))
-		stoplag()
-		forceMove(get_turf(OM))
-		alpha = 255
+/obj/effect/temp_visual/overmap_shield_hit/Destroy()
+	overmap?.vis_contents -= src
+	overmap = null
+	return ..()
 
 /obj/machinery/shield_generator/ui_act(action, params)
 	if(..())

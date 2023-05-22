@@ -12,6 +12,14 @@ GLOBAL_LIST(end_titles)
 		GLOB.end_titles += "<br>"
 		GLOB.end_titles += "<br>"
 
+		if(GLOB.soundtrack_this_round.len)
+			GLOB.end_titles += "<center><h1>Music Credits</h1>"
+			for(var/song_path in GLOB.soundtrack_this_round)
+				var/datum/soundtrack_song/song = song_path
+				GLOB.end_titles += "<center><h2>[sanitize(initial(song.artist))] - \"[sanitize(initial(song.title))]\" ([sanitize(initial(song.album))])</h2>"
+			GLOB.end_titles += "<br>"
+			GLOB.end_titles += "<br>"
+
 		if(GLOB.patrons.len)
 			GLOB.end_titles += "<center><h1>Thank you to our patrons!</h1>"
 			for(var/patron in GLOB.patrons)
@@ -29,7 +37,7 @@ GLOBAL_LIST(end_titles)
 
 		GLOB.end_titles += "<center><h1>Thanks for playing!</h1>"
 	for(var/client/C in GLOB.clients)
-		if(C.prefs.show_credits)
+		if(C.prefs.toggles2 & PREFTOGGLE_2_SHOW_CREDITS)
 			C.screen += new /atom/movable/screen/credit/title_card(null, null, SSticker.mode.title_icon)
 	sleep(CREDIT_SPAWN_SPEED * 3)
 	for(var/i in 1 to GLOB.end_titles.len)
@@ -62,12 +70,12 @@ GLOBAL_LIST(end_titles)
 	animate(src, transform = M, time = CREDIT_ROLL_SPEED)
 	target = M
 	animate(src, alpha = 255, time = CREDIT_EASE_DURATION, flags = ANIMATION_PARALLEL)
-	INVOKE_ASYNC(src, .proc/add_to_clients)
+	INVOKE_ASYNC(src, PROC_REF(add_to_clients))
 	QDEL_IN(src, CREDIT_ROLL_SPEED)
 
 /atom/movable/screen/credit/proc/add_to_clients()
 	for(var/client/C in GLOB.clients)
-		if(C.prefs.show_credits)
+		if(C.prefs.toggles2 & PREFTOGGLE_2_SHOW_CREDITS)
 			C.screen += src
 
 /atom/movable/screen/credit/Destroy()

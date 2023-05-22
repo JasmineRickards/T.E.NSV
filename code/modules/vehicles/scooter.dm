@@ -5,7 +5,7 @@
 	are_legs_exposed = TRUE
 	fall_off_if_missing_arms = TRUE
 
-/obj/vehicle/ridden/scooter/Initialize()
+/obj/vehicle/ridden/scooter/Initialize(mapload)
 	. = ..()
 	var/datum/component/riding/D = LoadComponent(/datum/component/riding)
 	D.set_riding_offsets(RIDING_OFFSET_ALL, list(TEXT_NORTH = list(0), TEXT_SOUTH = list(-2), TEXT_EAST = list(0), TEXT_WEST = list( 2)))
@@ -60,7 +60,7 @@
 	///Stamina drain multiplier
 	var/instability = 10
 
-/obj/vehicle/ridden/scooter/skateboard/Initialize()
+/obj/vehicle/ridden/scooter/skateboard/Initialize(mapload)
 	. = ..()
 	var/datum/component/riding/D = LoadComponent(/datum/component/riding)
 	D.vehicle_move_delay = 1.5
@@ -85,6 +85,7 @@
 /obj/vehicle/ridden/scooter/skateboard/generate_actions()
 	. = ..()
 	initialize_controller_action_type(/datum/action/vehicle/ridden/scooter/skateboard/ollie, VEHICLE_CONTROL_DRIVE)
+	initialize_controller_action_type(/datum/action/vehicle/ridden/scooter/skateboard/kflip, VEHICLE_CONTROL_DRIVE)
 
 /obj/vehicle/ridden/scooter/skateboard/post_buckle_mob(mob/living/M)//allows skateboards to be non-dense but still allows 2 skateboarders to collide with each other
 	density = TRUE
@@ -140,7 +141,7 @@
 				if(location)
 					location.hotspot_expose(1000,1000)
 				sparks.start() //the most radical way to start plasma fires
-			addtimer(CALLBACK(src, .proc/grind), 2)
+			addtimer(CALLBACK(src, PROC_REF(grind)), 2)
 			return
 	else
 		grinding = FALSE
@@ -148,17 +149,21 @@
 
 /obj/vehicle/ridden/scooter/skateboard/MouseDrop(atom/over_object)
 	. = ..()
-	var/mob/living/carbon/M = usr
-	if(!istype(M) || M.incapacitated() || !Adjacent(M))
+	var/mob/living/carbon/skater = usr
+	if(!istype(skater))
 		return
-	if(has_buckled_mobs() && over_object == M)
-		to_chat(M, "<span class='warning'>You can't lift this up when somebody's on it.</span>")
-		return
-	if(over_object == M)
-		var/board = new board_item_type(get_turf(M))
-		M.put_in_hands(board)
-		qdel(src)
+	if (over_object == skater)
+		pick_up_board(skater)
 
+
+/obj/vehicle/ridden/scooter/skateboard/proc/pick_up_board(mob/living/carbon/skater)
+	if (skater.incapacitated() || !Adjacent(skater))
+		return
+	if(has_buckled_mobs())
+		to_chat(skater, "<span class='warning'>You can't lift this up when somebody's on it.</span>")
+		return
+	skater.put_in_hands(new board_item_type(get_turf(skater)))
+	qdel(src)
 /obj/vehicle/ridden/scooter/skateboard/pro
 	name = "skateboard"
 	desc = "A RaDSTORMz brand professional skateboard. Looks a lot more stable than the average board."
@@ -259,7 +264,7 @@
 	icon = null
 	density = FALSE
 
-/obj/vehicle/ridden/scooter/wheelys/Initialize()
+/obj/vehicle/ridden/scooter/wheelys/Initialize(mapload)
 	. = ..()
 	var/datum/component/riding/D = LoadComponent(/datum/component/riding)
 	D.vehicle_move_delay = 0

@@ -23,6 +23,8 @@
  *		Clockwork Watches
  *		Toy Daggers
  *		Eldrich stuff
+ *		Batong
+ *		Fake captains card
  */
 
 
@@ -44,7 +46,7 @@
 	item_state = "balloon-empty"
 
 
-/obj/item/toy/balloon/Initialize()
+/obj/item/toy/balloon/Initialize(mapload)
 	. = ..()
 	create_reagents(10)
 
@@ -125,14 +127,14 @@
 	w_class = WEIGHT_CLASS_BULKY
 
 /obj/item/toy/syndicateballoon/pickup(mob/user)
-	. = ..()
+	..()
 	if(user?.mind && user.mind.has_antag_datum(/datum/antagonist, TRUE))
 		SEND_SIGNAL(user, COMSIG_ADD_MOOD_EVENT, "badass_antag", /datum/mood_event/badass_antag)
 
 /obj/item/toy/syndicateballoon/dropped(mob/user)
+	..()
 	if(user)
 		SEND_SIGNAL(user, COMSIG_CLEAR_MOOD_EVENT, "badass_antag", /datum/mood_event/badass_antag)
-	. = ..()
 
 
 /obj/item/toy/syndicateballoon/Destroy()
@@ -202,7 +204,7 @@
 	if (!user.IsAdvancedToolUser())
 		to_chat(user, "<span class='warning'>You don't have the dexterity to do this!</span>")
 		return
-	src.add_fingerprint(user)
+	add_fingerprint(user)
 	if (src.bullets < 1)
 		user.show_message("<span class='warning'>*click*</span>", MSG_AUDIBLE)
 		playsound(src, 'sound/weapons/gun_dry_fire.ogg', 30, TRUE)
@@ -244,8 +246,7 @@
 	w_class = WEIGHT_CLASS_SMALL
 	attack_verb = list("attacked", "struck", "hit")
 	var/hacked = FALSE
-	block_upgrade_walk = 1
-	block_power = -200
+	var/saber_color
 
 /obj/item/toy/sword/attack_self(mob/user)
 	active = !( active )
@@ -275,16 +276,16 @@
 			return
 		else
 			to_chat(user, "<span class='notice'>You attach the ends of the two plastic swords, making a single double-bladed toy! You're fake-cool.</span>")
-			var/obj/item/twohanded/dualsaber/toy/newSaber = new /obj/item/twohanded/dualsaber/toy(user.loc)
+			var/obj/item/dualsaber/toy/newSaber = new /obj/item/dualsaber/toy(user.loc)
 			if(hacked) // That's right, we'll only check the "original" "sword".
 				newSaber.hacked = TRUE
-				newSaber.item_color = "rainbow"
+				newSaber.saber_color = "rainbow"
 			qdel(W)
 			qdel(src)
 	else if(W.tool_behaviour == TOOL_MULTITOOL)
 		if(!hacked)
 			hacked = TRUE
-			item_color = "rainbow"
+			saber_color = "rainbow"
 			to_chat(user, "<span class='warning'>RNBW_ENGAGE</span>")
 
 			if(active)
@@ -309,9 +310,20 @@
 	attack_verb = list("pricked", "absorbed", "gored")
 	w_class = WEIGHT_CLASS_SMALL
 	resistance_flags = FLAMMABLE
-	block_upgrade_walk = 1
-	block_power = -200
 
+/*
+ * Batong
+ */
+/obj/item/toy/batong
+	name = "batong"
+	desc = "Despite being a cheap plastic imitation of a stunbaton, it can still be charged."
+	icon = 'icons/obj/items_and_weapons.dmi'
+	icon_state = "stunbaton"
+	item_state = "baton"
+	lefthand_file = 'icons/mob/inhands/equipment/security_lefthand.dmi'
+	righthand_file = 'icons/mob/inhands/equipment/security_righthand.dmi'
+	attack_verb = list("batonged", "stunned", "hit")
+	w_class = WEIGHT_CLASS_SMALL
 
 /obj/item/toy/windupToolbox
 	name = "windup toolbox"
@@ -323,6 +335,8 @@
 	var/active = FALSE
 	icon = 'icons/obj/items_and_weapons.dmi'
 	hitsound = 'sound/weapons/smash.ogg'
+	drop_sound = 'sound/items/handling/toolbox_drop.ogg'
+	pickup_sound = 'sound/items/handling/toolbox_pickup.ogg'
 	attack_verb = list("robusted")
 
 /obj/item/toy/windupToolbox/attack_self(mob/user)
@@ -332,7 +346,7 @@
 		active = TRUE
 		playsound(src, 'sound/effects/pope_entry.ogg', 100)
 		Rumble()
-		addtimer(CALLBACK(src, .proc/stopRumble), 600)
+		addtimer(CALLBACK(src, PROC_REF(stopRumble)), 600)
 	else
 		to_chat(user, "[src] is already active.")
 
@@ -361,28 +375,25 @@
 /*
  * Subtype of Double-Bladed Energy Swords
  */
-/obj/item/twohanded/dualsaber/toy
+/obj/item/dualsaber/toy
 	name = "double-bladed toy sword"
 	desc = "A cheap, plastic replica of TWO energy swords.  Double the fun!"
 	force = 0
 	throwforce = 0
 	throw_speed = 3
 	throw_range = 5
+	twohand_force = 0
 	attack_verb = list("attacked", "struck", "hit")
-	block_upgrade_walk = 1
-	block_power = -100
+	block_upgrade_walk = 0
+	block_level = 0
 
-/obj/item/twohanded/dualsaber/toy/Initialize()
-	. = ..()
-	AddComponent(/datum/component/twohanded, 0, 0)
-
-/obj/item/twohanded/dualsaber/toy/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
+/obj/item/dualsaber/toy/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
 	return 0
 
-/obj/item/twohanded/dualsaber/toy/IsReflect()//Stops Toy Dualsabers from reflecting energy projectiles
+/obj/item/dualsaber/toy/IsReflect() //Stops Toy Dualsabers from reflecting energy projectiles
 	return 0
 
-/obj/item/twohanded/dualsaber/toy/impale(mob/living/user)//Stops Toy Dualsabers from injuring clowns
+/obj/item/dualsaber/toy/impale(mob/living/user)//Stops Toy Dualsabers from injuring clowns
 	to_chat(user, "<span class='warning'>You twirl around a bit before losing your balance and impaling yourself on [src].</span>")
 	user.adjustStaminaLoss(25)
 
@@ -392,6 +403,7 @@
 	icon = 'icons/obj/items_and_weapons.dmi'
 	icon_state = "katana"
 	item_state = "katana"
+	worn_icon_state = "katana"
 	lefthand_file = 'icons/mob/inhands/weapons/swords_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/weapons/swords_righthand.dmi'
 	flags_1 = CONDUCT_1
@@ -401,10 +413,7 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	attack_verb = list("attacked", "slashed", "stabbed", "sliced")
 	hitsound = 'sound/weapons/bladeslice.ogg'
-	block_upgrade_walk = 1
-	block_level = 1
-	block_flags = BLOCKING_ACTIVE | BLOCKING_PROJECTILE
-	block_power = -500 //not to be used on anything more effective than nerf darts
+	block_flags = BLOCKING_ACTIVE | BLOCKING_PROJECTILE //if it some how gets block level, katanas block projectiles for the meme
 
 /*
  * Snap pops
@@ -435,7 +444,15 @@
 	if(!..())
 		pop_burst()
 
-/obj/item/toy/snappop/Crossed(H as mob|obj)
+/obj/item/toy/snappop/Initialize(mapload)
+	. = ..()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
+/obj/item/toy/snappop/proc/on_entered(datum/source, H as mob|obj)
+	SIGNAL_HANDLER
 	if(ishuman(H) || issilicon(H)) //i guess carp and shit shouldn't set them off
 		var/mob/living/carbon/M = H
 		if(issilicon(H) || M.m_intent == MOVE_INTENT_RUN)
@@ -450,9 +467,9 @@
 /obj/effect/decal/cleanable/ash/snappop_phoenix
 	var/respawn_time = 300
 
-/obj/effect/decal/cleanable/ash/snappop_phoenix/Initialize()
+/obj/effect/decal/cleanable/ash/snappop_phoenix/Initialize(mapload)
 	. = ..()
-	addtimer(CALLBACK(src, .proc/respawn), respawn_time)
+	addtimer(CALLBACK(src, PROC_REF(respawn)), respawn_time)
 
 /obj/effect/decal/cleanable/ash/snappop_phoenix/proc/respawn()
 	new /obj/item/toy/snappop/phoenix(get_turf(src))
@@ -664,7 +681,6 @@
 	var/card_throw_range = 7
 	var/list/card_attack_verb = list("attacked")
 	var/card_sharpness
-	var/card_embed_chance = 0
 
 /obj/item/toy/cards/suicide_act(mob/living/carbon/user)
 	user.visible_message("<span class='suicide'>[user] is slitting [user.p_their()] wrists with \the [src]! It looks like [user.p_they()] [user.p_have()] a crummy hand!</span>")
@@ -687,7 +703,7 @@
 	var/list/cards = list()
 	var/original_size = 52
 
-/obj/item/toy/cards/deck/Initialize()
+/obj/item/toy/cards/deck/Initialize(mapload)
 	. = ..()
 	populate_deck()
 
@@ -738,7 +754,6 @@
 	var/O = src
 	H.apply_card_vars(H,O)
 	cards.Cut(1,2) //Removes the top card from the list
-	H.pickup(user)
 	user.put_in_hands(H)
 	user.visible_message("<span class='notice'>[user] draws a card from the deck.</span>", "<span class='notice'>You draw a card from the deck.</span>")
 	update_icon()
@@ -844,12 +859,14 @@
 	if(href_list["pick"])
 		if (cardUser.is_holding(src))
 			var/choice = href_list["pick"]
+			if(!(choice in src.currenthand))
+				log_href_exploit(usr)
+				return
 			var/obj/item/toy/cards/singlecard/C = new/obj/item/toy/cards/singlecard(cardUser.loc)
 			src.currenthand -= choice
 			C.parentdeck = src.parentdeck
 			C.cardname = choice
 			C.apply_card_vars(C,O)
-			C.pickup(cardUser)
 			cardUser.put_in_hands(C)
 			cardUser.visible_message("<span class='notice'>[cardUser] draws a card from [cardUser.p_their()] hand.</span>", "<span class='notice'>You take the [C.cardname] from your hand.</span>")
 
@@ -861,7 +878,6 @@
 				N.cardname = src.currenthand[1]
 				N.apply_card_vars(N,O)
 				qdel(src)
-				N.pickup(cardUser)
 				cardUser.put_in_hands(N)
 				to_chat(cardUser, "<span class='notice'>You also take [currenthand[1]] and hold it.</span>")
 				cardUser << browse(null, "window=cardhand")
@@ -913,10 +929,10 @@
 
 /obj/item/toy/cards/singlecard/apply_card_vars(obj/item/toy/cards/singlecard/newobj,obj/item/toy/cards/sourceobj)
 	..()
-	newobj.card_embed_chance = sourceobj.card_embed_chance
-	newobj.embedding = newobj.embedding.setRating(embed_chance = card_embed_chance)
+	newobj.embedding = sourceobj.embedding
 	newobj.card_sharpness = sourceobj.card_sharpness
-	newobj.sharpness = newobj.card_sharpness
+	newobj.sharpness = sourceobj.card_sharpness
+	newobj.updateEmbedding()
 
 /obj/item/toy/cards/singlecard/examine(mob/user)
 	. = ..()
@@ -961,7 +977,6 @@
 			to_chat(user, "<span class='notice'>You combine the [C.cardname] and the [src.cardname] into a hand.</span>")
 			qdel(C)
 			qdel(src)
-			H.pickup(user)
 			user.put_in_active_hand(H)
 		else
 			to_chat(user, "<span class='warning'>You can't mix cards from other decks!</span>")
@@ -1015,7 +1030,7 @@
 	card_force = 5
 	card_throwforce = 12
 	card_throw_speed = 6
-	card_embed_chance = 80
+	embedding = list("pain_mult" = 1, "embed_chance" = 80, "max_damage_mult" = 8, "fall_chance" = 0, "embed_chance_turf_mod" = 15, "armour_block" = 60) //less painful than throwing stars
 	card_sharpness = IS_SHARP
 	card_throw_range = 7
 	card_attack_verb = list("attacked", "sliced", "diced", "slashed", "cut")
@@ -1131,6 +1146,7 @@
 	desc = "A stylish steampunk watch made out of thousands of tiny cogwheels."
 	icon = 'icons/obj/clockwork_objects.dmi'
 	icon_state = "dread_ipad"
+	worn_icon_state = "dread_ipad"
 	slot_flags = ITEM_SLOT_BELT
 	w_class = WEIGHT_CLASS_SMALL
 	var/cooldown = 0
@@ -1162,6 +1178,40 @@
 	w_class = WEIGHT_CLASS_SMALL
 
 /*
+ * Toy Cog
+ */
+
+/obj/item/toy/cog
+	name = "integration cog"
+	desc = "A small cog that seems to spin by its own acord when left alone."
+	resistance_flags = FIRE_PROOF | ACID_PROOF
+	icon = 'icons/obj/clockwork_objects.dmi'
+	icon_state = "integration_cog"
+	w_class = WEIGHT_CLASS_SMALL
+
+/obj/item/toy/cog/examine(mob/user)
+	. = ..()
+	if(is_servant_of_ratvar(user))
+		. += "<span class='warning'>It's clearly a fake, how could anybody fall for this!</span>"
+
+/*
+ * Replica fabricator
+ */
+
+/obj/item/toy/replica_fabricator
+	name = "replica fabricator"
+	desc = "A strange, brass device with many twisting cogs and vents."
+	resistance_flags = FIRE_PROOF | ACID_PROOF
+	icon = 'icons/obj/clockwork_objects.dmi'
+	icon_state = "replica_fabricator"
+	w_class = WEIGHT_CLASS_SMALL
+
+/obj/item/toy/replica_fabricator/examine(mob/user)
+	. = ..()
+	if(is_servant_of_ratvar(user))
+		. += "<span class='warning'>It's clearly a fake, how could anybody fall for this!</span>"
+
+/*
  * Xenomorph action figure
  */
 
@@ -1183,9 +1233,7 @@
 		var/list/possible_sounds = list('sound/voice/hiss1.ogg', 'sound/voice/hiss2.ogg', 'sound/voice/hiss3.ogg', 'sound/voice/hiss4.ogg')
 		var/chosen_sound = pick(possible_sounds)
 		playsound(get_turf(src), chosen_sound, 50, 1)
-		spawn(45)
-			if(src)
-				icon_state = "[initial(icon_state)]"
+		addtimer(VARSET_CALLBACK(src, icon_state, initial(icon_state)), 45)
 	else
 		to_chat(user, "<span class='warning'>The string on [src] hasn't rewound all the way!</span>")
 		return
@@ -1215,7 +1263,7 @@
 	var/toysay = "What the fuck did you do?"
 	var/toysound = 'sound/machines/click.ogg'
 
-/obj/item/toy/figure/Initialize()
+/obj/item/toy/figure/Initialize(mapload)
 	. = ..()
 	desc = "A \"Space Life\" brand [src]."
 
@@ -1480,6 +1528,26 @@
 	for(var/i in 1 to rand(1,4))
 		new /obj/item/toy/reality_pierce(src)
 
+/*
+ * Fake captains card
+ */
+
+/obj/item/toy/allaccess
+	name = "captain's spare ID"
+	desc = "A replica of the glorious captain's card. Issued to annoying greytiders as a joke."
+	icon = 'nsv13/icons/obj/card.dmi' //NSV13 - old ID style
+	icon_state = "gold"
+
+/obj/item/toy/allaccess/afterattack()
+	. = ..()
+	playsound(src, 'sound/items/bikehorn.ogg', 50, TRUE)
+
+/obj/item/toy/allaccess/attack_self(mob/user) // flex
+	. = ..()
+	if(Adjacent(user))
+		user.visible_message("<span class='notice'>[user] shows you: [icon2html(src, viewers(user))] [src.name].</span>", "<span class='notice'>You show \the [src.name].</span>")
+	add_fingerprint(user)
+
 // Serviceborg items
 
 /*
@@ -1651,7 +1719,7 @@
 
 /obj/item/storage/pill_bottle/dice_cup/cyborg
 	desc = "The house always wins..."
-/obj/item/storage/pill_bottle/dice_cup/cyborg/Initialize()
+/obj/item/storage/pill_bottle/dice_cup/cyborg/Initialize(mapload)
 	. = ..()
 	new /obj/item/dice/d6(src)
 	new /obj/item/dice/d6(src)
@@ -1668,7 +1736,7 @@
 	new /obj/item/paper/yatzy(src)
 	new /obj/item/paper/yatzy(src)
 
-/obj/item/storage/pill_bottle/dice_cup/yatzy/Initialize()
+/obj/item/storage/pill_bottle/dice_cup/yatzy/Initialize(mapload)
 	. = ..()
 	for(var/dice in 1 to 5)
 		new /obj/item/dice/d6(src)

@@ -14,8 +14,12 @@
 	build_path = /obj/machinery/computer/ship/dradis
 
 /obj/item/circuitboard/computer/ship/dradis/mining
-	name = "circuit board (minig dradis computer)"
+	name = "circuit board (mining dradis computer)"
 	build_path = /obj/machinery/computer/ship/dradis/mining
+
+/obj/item/circuitboard/computer/ship/dradis/cargo
+	name = "circuit board (cargo dradis computer)"
+	build_path = /obj/machinery/computer/ship/dradis/minor/cargo
 
 //FTL nav
 /obj/item/circuitboard/computer/ship/navigation
@@ -43,6 +47,15 @@
 	name = "Astrometrics Computer (Computer Board)"
 	build_path = /obj/machinery/computer/ship/navigation/astrometrics
 
+////Medical////
+/obj/item/circuitboard/machine/autoinject_printer
+	name = "Autoinjector Printer (Machine Board)"
+	icon_state = "medical"
+	build_path = /obj/machinery/autoinject_printer
+	req_components = list(
+		/obj/item/reagent_containers/glass/beaker = 2,
+		/obj/item/stock_parts/manipulator = 1)
+
 ////Munitions consoles////
 
 /obj/item/circuitboard/computer/ship/munitions_computer
@@ -56,10 +69,22 @@
 /obj/item/circuitboard/computer/ams
 	name = "AMS control console (computer)"
 	build_path = /obj/machinery/computer/ams
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
 
-/obj/item/circuitboard/computer/fiftycal
-	name = ".50 cal turret console (circuit)"
-	build_path = /obj/machinery/computer/fiftycal
+/obj/item/circuitboard/computer/ams/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
+
+/obj/item/circuitboard/computer/anti_air
+	name = "Anti-air turret console (circuit)"
+	build_path = /obj/machinery/computer/anti_air
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/computer/anti_air/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
 
 /obj/item/circuitboard/computer/ship/fighter_controller
 	name = "circuit board (fighter control computer)"
@@ -73,24 +98,30 @@
 ////SHIP GUNS////
 
 //50 Cal. guns
-/obj/item/circuitboard/machine/fiftycal
-	name = ".50 cal turret (circuitboard)"
+/obj/item/circuitboard/machine/anti_air
+	name = "PDC turret (circuitboard)"
 	req_components = list(
 		/obj/item/stack/sheet/mineral/titanium = 20,
 		/obj/item/stack/sheet/mineral/copper = 10,
 		/obj/item/stack/sheet/iron = 30,
 		/obj/item/stack/cable_coil = 5)
-	build_path = /obj/machinery/ship_weapon/fiftycal
+	build_path = /obj/machinery/ship_weapon/anti_air
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
 
-/obj/item/circuitboard/machine/fiftycal/super
-	name = "super .50 cal turret (circuitboard)"
+/obj/item/circuitboard/machine/anti_air/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
+
+/obj/item/circuitboard/machine/anti_air/heavy
+	name = "RPDC (circuitboard)"
 	req_components = list(
 		/obj/item/stack/sheet/mineral/titanium = 40,
 		/obj/item/stack/sheet/mineral/copper = 40,
 		/obj/item/stack/sheet/mineral/diamond = 5,
 		/obj/item/stack/sheet/iron = 20,
 		/obj/item/stack/cable_coil = 5)
-	build_path = /obj/machinery/ship_weapon/fiftycal/super
+	build_path = /obj/machinery/ship_weapon/anti_air/heavy
 
 //PDC and flak boards, currently not used
 #define PATH_PDC /obj/machinery/ship_weapon/pdc_mount
@@ -105,8 +136,9 @@
 		/obj/item/stock_parts/matter_bin = 3,
 		/obj/item/ship_weapon/parts/firing_electronics = 1
 	)
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
 
-/obj/item/circuitboard/machine/pdc_mount/Initialize()
+/obj/item/circuitboard/machine/pdc_mount/Initialize(mapload)
 	. = ..()
 	if(!build_path)
 		if(prob(50))
@@ -115,6 +147,11 @@
 		else
 			name = "Flak Loading Rack (Machine Board)"
 			build_path = PATH_FLAK
+
+/obj/item/circuitboard/machine/pdc_mount/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
 
 /obj/item/circuitboard/machine/pdc_mount/attackby(obj/item/I, mob/user, params)
 	if(I.tool_behaviour == TOOL_SCREWDRIVER)
@@ -145,9 +182,29 @@
 #undef PATH_FLAK
 
 //Deck Gun
+/obj/item/circuitboard/machine/deck_turret
+	name = "deck gun turret (circuitboard)"
+	req_components = list()
+	build_path = /obj/machinery/ship_weapon/deck_turret
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/machine/deck_turret/apply_default_parts()
+	//dont
+
+/obj/item/circuitboard/machine/deck_turret/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
+
 /obj/item/circuitboard/computer/deckgun
 	name = "Deck gun loading computer (circuit)"
 	build_path = /obj/machinery/computer/deckgun
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/computer/deckgun/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
 
 /obj/item/circuitboard/machine/deck_gun
 	name = "Deck gun core (circuitboard)"
@@ -155,6 +212,13 @@
 		/obj/item/stack/sheet/mineral/titanium = 10,
 		/obj/item/stack/cable_coil = 5)
 	build_path = /obj/machinery/deck_turret
+	needs_anchored = FALSE
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/machine/deck_gun/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
 
 /obj/item/circuitboard/machine/deck_gun/powder
 	name = "Deck gun powder gate (circuitboard)"
@@ -163,6 +227,7 @@
 		/obj/item/stack/sheet/mineral/copper = 20,
 		/obj/item/stack/cable_coil = 5)
 	build_path = /obj/machinery/deck_turret/powder_gate
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
 
 /obj/item/circuitboard/machine/deck_gun/payload
 	name = "Deck gun payload gate (circuitboard)"
@@ -174,6 +239,19 @@
 		/obj/item/ship_weapon/parts/loading_tray=1,
 		/obj/item/stack/cable_coil = 10)
 	build_path = /obj/machinery/deck_turret/payload_gate
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+// Inertial dampeners
+
+/obj/item/circuitboard/machine/inertial_dampener
+	name = "inertial dampener (circuitboard)"
+	req_components = list(
+		/obj/item/stock_parts/scanning_module = 2,
+		/obj/item/stack/ore/bluespace_crystal = 2,
+		/obj/item/stock_parts/manipulator = 6,
+		/obj/item/stock_parts/capacitor = 2,
+	)
+	build_path = /obj/machinery/inertial_dampener
 
 //Upgrades
 /obj/item/circuitboard/machine/deck_gun/autoelevator
@@ -199,6 +277,8 @@
 /obj/item/circuitboard/machine/missile_builder
 	name = "Seegson model 'Ford' robotic autowrench (board)"
 	build_path = /obj/machinery/missile_builder
+	req_components = list()
+	needs_anchored = FALSE
 
 /obj/item/circuitboard/machine/missile_builder/wirer
 	name = "Seegson model 'Ford' robotic autowirer (board)"
@@ -225,23 +305,136 @@
 		/obj/item/stack/sheet/mineral/copper = 20,
 		/obj/item/stack/sheet/iron = 30,
 		/obj/item/stack/cable_coil = 10)
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
 
-/obj/item/circuitboard/machine/energy/burst
-	name = "Burst laser coaxial"
-	icon_state = "command"
-	build_path = /obj/machinery/ship_weapon/energy
-	req_components = list(
-		/obj/item/stock_parts/capacitor/quadratic = 2,
-		/obj/item/stack/cable_coil = 2,
-		/obj/item/stock_parts/micro_laser/quadultra = 1,
-		/obj/item/stock_parts/cell/bluespace = 2)
+/obj/item/circuitboard/machine/vls/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
 
-/obj/item/circuitboard/machine/energy/beam
-	name = "Phaser beam circuit board"
-	icon_state = "command"
-	build_path = /obj/machinery/ship_weapon/energy/beam
+//Gauss guns
+/obj/item/circuitboard/machine/gauss_turret
+	name = "gauss gun turret (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/gauss_gun
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/machine/gauss_turret/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
+
+/obj/item/circuitboard/computer/iff
+	name = "IFF Console (circuit)"
+	build_path = /obj/machinery/computer/iff_console
+
+//Coffee Machine - Navy's Lifeblood
+/obj/item/circuitboard/machine/coffeemaker
+	name = "Coffeemaker (Machine Board)"
+	icon_state = "service"
+	build_path = /obj/machinery/coffeemaker
 	req_components = list(
-		/obj/item/stock_parts/capacitor/quadratic = 4,
-		/obj/item/stack/cable_coil = 2,
-		/obj/item/stock_parts/micro_laser/quadultra = 2,
-		/obj/item/stock_parts/cell/bluespace = 6)
+		/obj/item/stack/sheet/glass = 1,
+		/obj/item/reagent_containers/glass/beaker = 2,
+		/obj/item/stock_parts/capacitor = 1,
+		/obj/item/stock_parts/micro_laser = 1,
+	)
+
+/obj/item/circuitboard/machine/coffeemaker/pendulum
+	name = "Pendulum Coffeemaker (Machine Board)"
+	icon_state = "service"
+	build_path = /obj/machinery/coffeemaker/pendulum
+	req_components = list(
+		/obj/item/stack/sheet/glass = 1,
+		/obj/item/reagent_containers/glass/beaker = 2,
+		/obj/item/stock_parts/capacitor/adv = 1,
+		/obj/item/stock_parts/micro_laser/high = 2,
+	)
+
+
+//Plasma Caster and Loader
+
+/obj/item/circuitboard/machine/plasma_loader
+	name = "Phoron Gas Regulator (Machine Board)"
+	build_path = /obj/machinery/atmospherics/components/unary/plasma_loader
+	var/pipe_layer = PIPING_LAYER_DEFAULT
+	req_components = list(
+		/obj/item/stock_parts/capacitor = 1,
+		/obj/item/stock_parts/manipulator = 1)
+
+/obj/item/circuitboard/machine/plasma_loader/multitool_act(mob/living/user, obj/item/multitool/I)
+	. = ..()
+	if(istype(I))
+		pipe_layer = (pipe_layer >= PIPING_LAYER_MAX) ? PIPING_LAYER_MIN : (pipe_layer + 1)
+		to_chat(user, "<span class='notice'>You change the circuitboard to layer [pipe_layer].</span>")
+
+/obj/item/circuitboard/machine/plasma_loader/examine()
+	. = ..()
+	. += "<span class='notice'>It is set to layer [pipe_layer].</span>"
+
+/obj/item/circuitboard/machine/plasma_caster
+	name = "circuit board (plasma caster)"
+	desc = "My faithful...stand firm!"
+	req_components = list(
+		/obj/item/stack/sheet/mineral/titanium = 25,
+		/obj/item/stack/sheet/iron = 50,
+		/obj/item/stack/sheet/mineral/uranium = 10,
+		/obj/item/stock_parts/manipulator = 1,
+		/obj/item/stock_parts/capacitor = 5,
+		/obj/item/stock_parts/matter_bin = 2,
+		/obj/item/assembly/igniter = 1,
+		/obj/item/ship_weapon/parts/firing_electronics = 1
+	)
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+	build_path = /obj/machinery/ship_weapon/plasma_caster
+
+// Laser PD console
+/obj/item/circuitboard/computer/laser_pd
+	name = "point defense laser console (circuit)"
+	build_path = /obj/machinery/computer/laser_pd
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+
+/obj/item/circuitboard/computer/laser_pd/Destroy(force=FALSE)
+	if(!force)
+		return QDEL_HINT_LETMELIVE
+	return ..()
+
+// Laser PD
+/obj/item/circuitboard/machine/laser_pd
+	name = "point defense laser turret (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy/laser_pd
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+	req_components = list(
+		/obj/item/stock_parts/capacitor = 5,
+		/obj/item/stock_parts/cell = 5,
+		/obj/item/stack/ore/bluespace_crystal = 5)
+
+// Smelter and console
+/obj/item/circuitboard/machine/processing_unit
+	name = "circuit board (furnace)"
+	desc = "It melts and purifies ores."
+	req_components = list(
+		/obj/item/stock_parts/micro_laser = 1,
+		/obj/item/stock_parts/matter_bin = 2,
+		/obj/item/assembly/igniter = 1
+	)
+	build_path = /obj/machinery/mineral/processing_unit
+
+/obj/item/circuitboard/machine/processing_unit_console
+	name = "circuit board (furnace console)"
+	desc = "Circuit for a furnace control console."
+	req_components = list(
+		/obj/item/stack/sheet/glass = 1,
+		/obj/item/stack/cable_coil = 1
+	)
+	build_path = /obj/machinery/mineral/processing_unit_console
+
+//Non-magic chem dispenser
+/obj/item/circuitboard/machine/refillable_chem_dispenser
+	name = "refillable chem dispenser (machine board)"
+	icon_state = "medical"
+	build_path = /obj/machinery/refillable_chem_dispenser
+	req_components = list(
+		/obj/item/stock_parts/matter_bin = 2,
+		/obj/item/stock_parts/manipulator = 1,
+		/obj/item/stack/sheet/glass = 1)
+	needs_anchored = FALSE

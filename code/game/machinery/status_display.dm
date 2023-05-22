@@ -24,6 +24,7 @@
 	density = FALSE
 	use_power = IDLE_POWER_USE
 	idle_power_usage = 10
+	layer = ABOVE_WINDOW_LAYER
 
 	maptext_height = 26
 	maptext_width = 32
@@ -73,7 +74,7 @@
 
 // Timed process - performs default marquee action if so needed.
 /obj/machinery/status_display/process()
-	if(stat & NOPOWER)
+	if(machine_stat & NOPOWER)
 		// No power, no processing.
 		remove_display()
 		return PROCESS_KILL
@@ -101,7 +102,7 @@
 
 /// Update the display and, if necessary, re-enable processing.
 /obj/machinery/status_display/proc/update()
-	if (process() != PROCESS_KILL)
+	if (process(SSMACHINES_DT) != PROCESS_KILL)
 		START_PROCESSING(SSmachines, src)
 
 /obj/machinery/status_display/power_change()
@@ -110,7 +111,7 @@
 
 /obj/machinery/status_display/emp_act(severity)
 	. = ..()
-	if(stat & (NOPOWER|BROKEN) || . & EMP_PROTECT_SELF)
+	if(machine_stat & (NOPOWER|BROKEN) || . & EMP_PROTECT_SELF)
 		return
 	set_picture("ai_bsod")
 
@@ -160,7 +161,7 @@
 	var/friendc = FALSE      // track if Friend Computer mode
 	var/last_picture  // For when Friend Computer mode is undone
 
-/obj/machinery/status_display/evac/Initialize()
+/obj/machinery/status_display/evac/Initialize(mapload)
 	. = ..()
 	// register for radio system
 	SSradio.add_object(src, frequency)
@@ -170,7 +171,7 @@
 	return ..()
 
 /obj/machinery/status_display/evac/process()
-	if(stat & NOPOWER)
+	if(machine_stat & NOPOWER)
 		// No power, no processing.
 		remove_display()
 		return PROCESS_KILL
@@ -226,7 +227,7 @@
 	name = "supply display"
 
 /obj/machinery/status_display/supply/process()
-	if(stat & NOPOWER)
+	if(machine_stat & NOPOWER)
 		// No power, no processing.
 		remove_display()
 		return PROCESS_KILL
@@ -270,7 +271,7 @@
 	var/shuttle_id
 
 /obj/machinery/status_display/shuttle/process()
-	if(!shuttle_id || (stat & NOPOWER))
+	if(!shuttle_id || (machine_stat & NOPOWER))
 		// No power, no processing.
 		remove_display()
 		return PROCESS_KILL
@@ -289,7 +290,7 @@
 	if(!.)
 		return
 	switch(var_name)
-		if("shuttle_id")
+		if(NAMEOF(src, shuttle_id))
 			update()
 
 /obj/machinery/status_display/shuttle/connect_to_shuttle(obj/docking_port/mobile/port, obj/docking_port/stationary/dock, idnum, override)
@@ -306,7 +307,7 @@
 	var/mode = SD_BLANK
 	var/emotion = "Neutral"
 
-/obj/machinery/status_display/ai/Initialize()
+/obj/machinery/status_display/ai/Initialize(mapload)
 	. = ..()
 	GLOB.ai_status_displays.Add(src)
 
@@ -319,7 +320,7 @@
 		user.ai_statuschange()
 
 /obj/machinery/status_display/ai/process()
-	if(mode == SD_BLANK || (stat & NOPOWER))
+	if(mode == SD_BLANK || (machine_stat & NOPOWER))
 		remove_display()
 		return PROCESS_KILL
 

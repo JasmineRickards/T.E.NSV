@@ -78,7 +78,8 @@
 		return FALSE
 	if(!use_power)
 		return TRUE
-
+	if(machine_stat & EMPED)
+		return FALSE
 	var/area/A = get_area(src)		// make sure it's in an area
 	if(!A)
 		return FALSE					// if not, then not powered
@@ -104,14 +105,16 @@
 /obj/machinery/proc/removeStaticPower(value, powerchannel)
 	addStaticPower(-value, powerchannel)
 
-/obj/machinery/proc/power_change()		// called whenever the power settings of the containing area change
-										// by default, check equipment channel & set flag
-										// can override if needed
-	if(powered(power_channel))
-		stat &= ~NOPOWER
-	else
+// called whenever the power settings of the containing area change
+// by default, check equipment channel & set flag
+// can override if needed
+/obj/machinery/proc/power_change()
+	SIGNAL_HANDLER
 
-		stat |= NOPOWER
+	if(powered(power_channel))
+		machine_stat &= ~NOPOWER
+	else
+		machine_stat |= NOPOWER
 	return
 
 // connect the machine to a powernet if a node cable is present on the turf
@@ -201,6 +204,11 @@
 			. += C
 	return .
 
+/obj/machinery/power/lateShuttleMove(turf/oldT, list/movement_force, move_dir)
+	. = ..()
+	disconnect_from_network()
+	connect_to_network()
+
 ///////////////////////////////////////////
 // GLOBAL PROCS for powernets handling
 //////////////////////////////////////////
@@ -256,14 +264,13 @@
 			worklist |= C.get_connections() //get adjacents power objects, with or without a powernet
 
 		else if(P.anchored && istype(P, /obj/machinery/power))
-			var/obj/machinery/power/M = P
-			found_machines |= M //we wait until the powernet is fully propagates to connect the machines
+			found_machines |= P //we wait until the powernet is fully propagates to connect the machines
 
 		else
 			continue
 
 	//now that the powernet is set, connect found machines to it
-	for(var/obj/machinery/power/PM in found_machines)
+	for(var/obj/machinery/power/PM as() in found_machines)
 		if(!PM.connect_to_network()) //couldn't find a node on its turf...
 			PM.disconnect_from_network() //... so disconnect if already on a powernet
 

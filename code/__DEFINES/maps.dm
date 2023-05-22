@@ -35,9 +35,14 @@ require only minor tweaks.
 #define ZTRAIT_REEBE "Reebe"
 #define ZTRAIT_RESERVED "Transit/Reserved"
 #define ZTRAIT_AWAY "Away Mission"
-#define ZTRAIT_SPACE_RUINS "Space Ruins"
+#define ZTRAIT_DYNAMIC_LEVEL "Dynamic Level"
 #define ZTRAIT_LAVA_RUINS "Lava Ruins"
 #define ZTRAIT_POCKETDIM "Pocket Dimension"
+#define ZTRAIT_ISOLATED_RUINS "Isolated Ruins" //Placing ruins on z levels with this trait will use turf reservation instead of usual placement.
+
+// boolean - weather types that occur on the level
+#define ZTRAIT_ASHSTORM "Weather_Ashstorm"
+#define ZTRAIT_ACIDRAIN "Weather_Acidrain"
 
 #define ZTRAIT_OVERMAP "Overmap" //NSV13
 #define ZTRAIT_BOARDABLE "Boardable Ship" //NSV13 - System defines blah
@@ -68,13 +73,15 @@ require only minor tweaks.
 
 /// default trait definitions, used by SSmapping
 #define ZTRAITS_CENTCOM list(ZTRAIT_CENTCOM = TRUE)
-#define ZTRAITS_STATION list( ZTRAIT_STATION = TRUE, ZTRAIT_BOARDABLE = TRUE) //Nsv13 - Added ZTRAIT_BOARDABLE HERE, removed default to have z linking be handled by JSON until I properly fix this -Jalleo.
-#define ZTRAITS_SPACE list(ZTRAIT_LINKAGE = CROSSLINKED, ZTRAIT_SPACE_RUINS = TRUE, ZTRAIT_BOARDABLE = TRUE)//Nsv13 - Added ZTRAIT_BOARDABLE HERE
+#define ZTRAITS_STATION list(ZTRAIT_STATION = TRUE, ZTRAIT_BOARDABLE = TRUE) //Nsv13 - Added ZTRAIT_BOARDABLE HERE, removed default to have z linking be handled by JSON until I properly fix this -Jalleo.
+#define ZTRAITS_SPACE list(ZTRAIT_LINKAGE = SELFLOOPING, ZTRAIT_DYNAMIC_LEVEL = TRUE, ZTRAIT_BOARDABLE = TRUE) //Nsv13 - Added ZTRAIT_BOARDABLE HERE
 #define ZTRAITS_LAVALAND list(\
     ZTRAIT_MINING = TRUE, \
+	ZTRAIT_ASHSTORM = TRUE, \
     ZTRAIT_LAVA_RUINS = TRUE, \
     ZTRAIT_BOMBCAP_MULTIPLIER = 2, \
     ZTRAIT_BASETURF = /turf/open/lava/smooth/lava_land_surface)
+// NSV13 - traits for overmap types
 #define ZTRAITS_OVERMAP list(ZTRAIT_LINKAGE = SELFLOOPING, ZTRAIT_OVERMAP = TRUE, ZTRAIT_BOARDABLE = FALSE, ZTRAIT_CENTCOM = TRUE) //NSV13
 #define ZTRAITS_BOARDABLE_SHIP list(ZTRAIT_LINKAGE = SELFLOOPING, ZTRAIT_STATION = FALSE, ZTRAIT_BOARDABLE = TRUE) //NSV13
 #define ZTRAITS_MINING_SHIP list(ZTRAIT_LINKAGE = SELFLOOPING, ZTRAIT_STATION = FALSE, ZTRAIT_BOARDABLE = TRUE, ZTRAIT_MINING_SHIP = TRUE) //NSV13
@@ -103,6 +110,27 @@ require only minor tweaks.
 #define PLACEMENT_TRIES 100 //! How many times we try to fit the ruin somewhere until giving up (really should just swap to some packing algo)
 
 #define PLACE_DEFAULT "random"
-#define PLACE_SAME_Z "same"
-#define PLACE_SPACE_RUIN "space"
-#define PLACE_LAVA_RUIN "lavaland"
+#define PLACE_SAME_Z "same" //On same z level as original ruin
+#define PLACE_SPACE_RUIN "space" //On space ruin z level(s)
+#define PLACE_LAVA_RUIN "lavaland" //On lavaland ruin z levels(s)
+#define PLACE_BELOW "below" //On z levl below - centered on same tile
+#define PLACE_ISOLATED "isolated" //On isolated ruin z level
+
+///Map generation defines
+#define PERLIN_LAYER_HEIGHT "perlin_height"
+#define PERLIN_LAYER_HUMIDITY "perlin_humidity"
+#define PERLIN_LAYER_HEAT "perlin_heat"
+
+#define BIOME_LOW_HEAT "low_heat"
+#define BIOME_LOWMEDIUM_HEAT "lowmedium_heat"
+#define BIOME_HIGHMEDIUM_HEAT "highmedium_heat"
+#define BIOME_HIGH_HEAT "high_heat"
+
+#define BIOME_LOW_HUMIDITY "low_humidity"
+#define BIOME_LOWMEDIUM_HUMIDITY "lowmedium_humidity"
+#define BIOME_HIGHMEDIUM_HUMIDITY "highmedium_humidity"
+#define BIOME_HIGH_HUMIDITY "high_humidity"
+
+///Hint for whether a genturf should generate as a closed or open turf. null for default.
+#define GENTURF_HINT_OPEN "open"
+#define GENTURF_HINT_CLOSED "closed"

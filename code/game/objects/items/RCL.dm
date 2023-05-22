@@ -1,6 +1,6 @@
 /obj/item/rcl
 	name = "rapid cable layer"
-	desc = "A device used to rapidly deploy cables. It has screws on the side which can be removed to slide off the cables. Do not use without insulation!"
+	desc = "A device used to rapidly deploy cable. It has screws on the side which can be removed to slide off the cables. Do not use without insulation!"
 	icon = 'icons/obj/tools.dmi'
 	icon_state = "rcl-0"
 	item_state = "rcl-0"
@@ -23,6 +23,27 @@
 	var/datum/radial_menu/persistent/wiring_gui_menu
 	var/mob/listeningTo
 
+/obj/item/rcl/Initialize(mapload)
+	. = ..()
+	RegisterSignal(src, COMSIG_TWOHANDED_WIELD, PROC_REF(on_wield))
+	RegisterSignal(src, COMSIG_TWOHANDED_UNWIELD, PROC_REF(on_unwield))
+
+/obj/item/rcl/ComponentInitialize()
+	. = ..()
+	AddComponent(/datum/component/two_handed)
+
+/// triggered on wield of two handed item
+/obj/item/rcl/proc/on_wield(obj/item/source, mob/user)
+	SIGNAL_HANDLER
+
+	active = TRUE
+
+/// triggered on unwield of two handed item
+/obj/item/rcl/proc/on_unwield(obj/item/source, mob/user)
+	SIGNAL_HANDLER
+
+	active = FALSE
+
 /obj/item/rcl/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/stack/cable_coil))
 		var/obj/item/stack/cable_coil/C = W
@@ -34,6 +55,7 @@
 			else
 				loaded = W //W.loc is src at this point.
 				loaded.max_amount = max_amount //We store a lot.
+				update_icon()
 				return
 
 		if(loaded.amount < max_amount)
@@ -118,8 +140,6 @@
 			QDEL_NULL(loaded)
 			loaded = null
 		QDEL_NULL(wiring_gui_menu)
-		SEND_SIGNAL(src, COMSIG_ITEM_UNWIELD, user)
-		active = (SEND_SIGNAL(src, COMSIG_ITEM_IS_WIELDED) & COMPONENT_WIELDED)
 		return TRUE
 	return FALSE
 
@@ -137,7 +157,6 @@
 
 /obj/item/rcl/attack_self(mob/user)
 	..()
-	active = (SEND_SIGNAL(src, COMSIG_ITEM_IS_WIELDED) & COMPONENT_WIELDED)
 	if(!active)
 		last = null
 	else if(!last)
@@ -151,10 +170,12 @@
 		return
 	if(listeningTo)
 		UnregisterSignal(listeningTo, COMSIG_MOVABLE_MOVED)
-	RegisterSignal(to_hook, COMSIG_MOVABLE_MOVED, .proc/trigger)
+	RegisterSignal(to_hook, COMSIG_MOVABLE_MOVED, PROC_REF(trigger))
 	listeningTo = to_hook
 
 /obj/item/rcl/proc/trigger(mob/user)
+	SIGNAL_HANDLER
+
 	if(active)
 		layCable(user)
 	if(wiring_gui_menu) //update the wire options as you move
@@ -189,7 +210,7 @@
 					return //If we've run out, display message and exit
 			else
 				last = null
-		loaded.item_color	 = colors[current_color_index]
+		loaded.cable_color = colors[current_color_index]
 		last = loaded.place_turf(get_turf(src), user, turn(user.dir, 180))
 		is_empty(user) //If we've run out, display message
 	update_icon()
@@ -212,8 +233,6 @@
 			continue
 		if(C.d1 == 0)
 			return C
-	return
-
 
 /obj/item/rcl/proc/wiringGuiGenerateChoices(mob/user)
 	var/fromdir = 0
@@ -235,7 +254,7 @@
 /obj/item/rcl/proc/showWiringGui(mob/user)
 	var/list/choices = wiringGuiGenerateChoices(user)
 
-	wiring_gui_menu = show_radial_menu_persistent(user, src , choices, select_proc = CALLBACK(src, .proc/wiringGuiReact, user), radius = 42)
+	wiring_gui_menu = show_radial_menu_persistent(user, src , choices, select_proc = CALLBACK(src, PROC_REF(wiringGuiReact), user), radius = 42)
 
 /obj/item/rcl/proc/wiringGuiUpdate(mob/user)
 	if(!wiring_gui_menu)
@@ -245,7 +264,6 @@
 	var/list/choices = wiringGuiGenerateChoices(user)
 
 	wiring_gui_menu.change_choices(choices,FALSE)
-
 
 //Callback used to respond to interactions with the wiring menu
 /obj/item/rcl/proc/wiringGuiReact(mob/living/user,choice)
@@ -265,7 +283,7 @@
 	if(T.intact || !T.can_have_cabling())
 		return
 
-	loaded.item_color	 = colors[current_color_index]
+	loaded.cable_color = colors[current_color_index]
 
 	var/obj/structure/cable/linkingCable = findLinkingCable(user)
 	if(linkingCable)
@@ -279,18 +297,16 @@
 
 	wiringGuiUpdate(user)
 
-
-/obj/item/rcl/pre_loaded/Initialize() //Comes preloaded with cable, for testing stuff
+/obj/item/rcl/pre_loaded/Initialize(mapload) //Comes preloaded with cable, for testing stuff
 	. = ..()
 	loaded = new()
 	loaded.max_amount = max_amount
 	loaded.amount = max_amount
 	update_icon()
 
-/obj/item/rcl/Initialize()
+/obj/item/rcl/Initialize(mapload)
 	. = ..()
 	update_icon()
-	AddComponent(/datum/component/twohanded, 5, 24)
 
 /obj/item/rcl/ui_action_click(mob/user, action)
 	if(istype(action, /datum/action/item_action/rcl_col))
@@ -300,7 +316,7 @@
 		var/cwname = colors[current_color_index]
 		to_chat(user, "Color changed to [cwname]!")
 		if(loaded)
-			loaded.item_color= colors[current_color_index]
+			loaded.cable_color = colors[current_color_index]
 		if(wiring_gui_menu)
 			wiringGuiUpdate(user)
 	else if(istype(action, /datum/action/item_action/rcl_gui))

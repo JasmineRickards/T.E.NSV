@@ -26,11 +26,11 @@
 								"Subspace Telecomms",
 								"Research Machinery",
 								"Misc. Machinery",
-								"Computer Parts",
-								"Advanced Munitions",
-								"Asteroid Mining",
-								"Ship Components",
-								"Vehicles"
+								"Advanced Munitions", //NSV13
+								"Asteroid Mining", //NSV13
+								"Ship Components", //NSV13
+								"Vehicles", //NSV13
+								"Circuitry"
 								)
 	console_link = FALSE
 	production_animation = "protolathe_n"

@@ -14,51 +14,52 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	invisibility = INVISIBILITY_LIGHTING
 
-	var/map_name // Set in New(); preserves the name set by the map maker, even if renamed by the Blueprints.
+	var/area_flags = VALID_TERRITORY | BLOBS_ALLOWED | UNIQUE_AREA
 
-	var/valid_territory = TRUE // If it's a valid territory for gangs to claim
-	var/blob_allowed = TRUE // Does it count for blobs score? By default, all areas count.
 	var/clockwork_warp_allowed = TRUE // Can servants warp into this area from Reebe?
 	var/clockwork_warp_fail = "The structure there is too dense for warping to pierce. (This is normal in high-security areas.)"
 
 	var/fire = null
-	var/atmos = TRUE
+	///Whether there is an atmos alarm in this area
 	var/atmosalm = FALSE
 	var/poweralm = TRUE
 	var/lightswitch = TRUE
 	var/vacuum = null
 
-	var/requires_power = TRUE
-	var/always_unpowered = FALSE	// This gets overridden to 1 for space in area/Initialize().
-
-	var/outdoors = FALSE //For space, the asteroid, lavaland, etc. Used with blueprints to determine if we are adding a new area (vs editing a station room)
+	/// For space, the asteroid, lavaland, etc. Used with blueprints or with weather to determine if we are adding a new area (vs editing a station room)
+	var/outdoors = FALSE
 
 	var/areasize = 0 //Size of the area in open turfs, only calculated for indoors areas.
 
 	var/mood_bonus = 0 //Mood for being here
 	var/mood_message = "<span class='nicegreen'>This area is pretty nice!\n</span>" //Mood message for being here, only shows up if mood_bonus != 0
+	/// if defined, restricts what jobs get this buff using JOB_NAME defines (-candycane/etherware)
+	var/list/mood_job_allowed = null
+	/// if true, mood_job_allowed will represent jobs exempt from getting the mood.
+	var/mood_job_reverse = FALSE
+
+	///Will objects this area be needing power?
+	var/requires_power = TRUE
+	/// This gets overridden to 1 for space in area/Initialize(mapload).
+	var/always_unpowered = FALSE
 
 	var/power_equip = TRUE
 	var/power_light = TRUE
 	var/power_environ = TRUE
 
-	var/has_gravity = 0
+	var/has_gravity = FALSE
 	///Are you forbidden from teleporting to the area? (centcom, mobs, wizard, hand teleporter)
 	var/teleport_restriction = TELEPORT_ALLOW_ALL
-	///Hides area from player Teleport function.
-	var/hidden = FALSE
-	///Is the area teleport-safe: no space / radiation / aggresive mobs / other dangers
-	var/safe = FALSE
-	/// If false, loading multiple maps with this area type will create multiple instances.
-	var/unique = TRUE
-
-	var/no_air = null
 
 	var/parallax_movedir = 0
 
-	var/list/ambient_music = null // OOC, doesn't require the user to actually be able to hear it
-	var/list/ambient_effects = GENERIC // IC, requires the user to actually be able to hear it, will play spontaneously
+	var/ambience_index = AMBIENCE_GENERIC
+	var/list/ambientsounds
+
 	var/ambient_buzz = 'sound/ambience/shipambience.ogg' // Ambient buzz of the station, plays repeatedly, also IC
+
+	var/ambient_music_index
+	var/list/ambientmusic
 
 	flags_1 = CAN_BE_DIRTY_1
 
@@ -66,8 +67,6 @@
 	var/list/cameras
 	var/list/firealarms
 	var/firedoors_last_closed_on = 0
-	/// Can the Xenobio management console transverse this area by default?
-	var/xenobiology_compatible = FALSE
 	/// typecache to limit the areas that atoms in this area can smooth with, used for shuttles IIRC
 	var/list/canSmoothWithAreas
 
@@ -76,9 +75,32 @@
 	var/lighting_colour_tube = "#FFF6ED"
 	var/lighting_colour_bulb = "#FFE6CC"
 	var/lighting_colour_night = "#FFDBB5"
-	var/lighting_brightness_tube = 10
+	var/lighting_brightness_tube = 11
 	var/lighting_brightness_bulb = 6
 	var/lighting_brightness_night = 6
+
+	///Used to decide what the minimum time between ambience is
+	var/min_ambience_cooldown = 30 SECONDS
+	///Used to decide what the maximum time between ambience is
+	var/max_ambience_cooldown = 90 SECONDS
+	///Used to decide what kind of reverb the area makes sound have
+	var/sound_environment = SOUND_ENVIRONMENT_NONE
+
+	//Lighting overlay
+	var/obj/effect/lighting_overlay
+	var/lighting_overlay_colour = "#FFFFFF"
+	var/lighting_overlay_opacity = 0
+
+	///This datum, if set, allows terrain generation behavior to be ran on Initialize()
+	var/datum/map_generator/map_generator
+
+	///Lazylist that contains additional turfs that map generation should be ran on. This is used for ruins which need a noop turf under non-noop areas so they don't leave genturfs behind.
+	var/list/additional_genturfs
+
+	/// Default network root for this area aka station, lavaland, etc
+	var/network_root_id = null
+	/// Area network id when you want to find all devices hooked up to this area
+	var/network_area_id = null
 
 /**
   * A list of teleport locations
@@ -110,7 +132,7 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 		if (picked && is_station_level(picked.z))
 			GLOB.teleportlocs[AR.name] = AR
 
-	sortTim(GLOB.teleportlocs, /proc/cmp_text_asc)
+	sortTim(GLOB.teleportlocs, GLOBAL_PROC_REF(cmp_text_asc))
 
 /**
   * Called when an area loads
@@ -120,7 +142,7 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 /area/New()
 	// This interacts with the map loader, so it needs to be set immediately
 	// rather than waiting for atoms to initialize.
-	if (unique)
+	if (area_flags & UNIQUE_AREA)
 		GLOB.areas_by_type[type] = src
 	power_usage = new /list(AREA_USAGE_LEN) // Some atoms would like to use power in Initialize()
 	return ..()
@@ -133,11 +155,15 @@ GLOBAL_LIST_EMPTY(teleportlocs)
   *
   * returns INITIALIZE_HINT_LATELOAD
   */
-/area/Initialize()
+/area/Initialize(mapload)
 	icon_state = ""
-	layer = AREA_LAYER
-	map_name = name // Save the initial (the name set in the map) name of the area.
 	canSmoothWithAreas = typecacheof(canSmoothWithAreas)
+
+	if(!ambientsounds && ambience_index)
+		ambientsounds = GLOB.ambience_assoc[ambience_index]
+
+	if(!ambientmusic && ambient_music_index)
+		ambientmusic = GLOB.ambient_music_assoc[ambient_music_index]
 
 	if(requires_power)
 		luminosity = 0
@@ -160,8 +186,16 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 
 	if(!IS_DYNAMIC_LIGHTING(src))
 		add_overlay(/obj/effect/fullbright)
-
+	else if(lighting_overlay_opacity && lighting_overlay_colour)
+		lighting_overlay = new /obj/effect/fullbright
+		lighting_overlay.color = lighting_overlay_colour
+		lighting_overlay.alpha = lighting_overlay_opacity
+		add_overlay(lighting_overlay)
 	reg_in_areas_in_z()
+	if(!mapload)
+		if(!network_root_id)
+			network_root_id = STATION_NETWORK_ROOT // default to station root because this might be created with a blueprint
+		SSnetworks.assign_area_network_id(src)
 
 	return INITIALIZE_HINT_LATELOAD
 
@@ -170,6 +204,28 @@ GLOBAL_LIST_EMPTY(teleportlocs)
   */
 /area/LateInitialize()
 	power_change()		// all machines set to current power level, also updates icon
+
+/area/proc/RunGeneration()
+	if(map_generator)
+		map_generator = new map_generator()
+		var/list/turfs = list()
+		for(var/turf/T in contents)
+			turfs += T
+		if(additional_genturfs)
+			turfs += additional_genturfs
+			additional_genturfs = null
+		map_generator.generate_terrain(turfs)
+
+/area/proc/test_gen()
+	if(map_generator)
+		var/list/turfs = list()
+		for(var/turf/T in contents)
+			turfs += T
+		if(additional_genturfs)
+			turfs += additional_genturfs
+			additional_genturfs = null
+		map_generator.generate_terrain(turfs)
+
 
 /**
   * Register this area as belonging to a z level
@@ -255,10 +311,11 @@ GLOBAL_LIST_EMPTY(teleportlocs)
   *
   * Sends to all ai players, alert consoles, drones and alarm monitor programs in the world
   */
-/area/proc/atmosalert(danger_level, obj/source)
-	if(danger_level != atmosalm)
-		if (danger_level==2)
+/area/proc/atmosalert(isdangerous, obj/source)
+	if(isdangerous != atmosalm)
+		if(isdangerous==TRUE)
 
+			set_vacuum_alarm_effect() //NSV13
 			for (var/item in GLOB.silicon_mobs)
 				var/mob/living/silicon/aiPlayer = item
 				aiPlayer.triggerAlarm("Atmosphere", src, cameras, source)
@@ -272,7 +329,8 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 				var/datum/computer_file/program/alarm_monitor/p = item
 				p.triggerAlarm("Atmosphere", src, cameras, source)
 
-		else if (src.atmosalm == 2)
+		else
+			unset_vacuum_alarm_effect() //NSV13
 			for (var/item in GLOB.silicon_mobs)
 				var/mob/living/silicon/aiPlayer = item
 				aiPlayer.cancelAlarm("Atmosphere", src, source)
@@ -286,9 +344,9 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 				var/datum/computer_file/program/alarm_monitor/p = item
 				p.cancelAlarm("Atmosphere", src, source)
 
-		src.atmosalm = danger_level
-		return 1
-	return 0
+		atmosalm = isdangerous
+		return TRUE
+	return FALSE
 
 /**
   * Try to close all the firedoors in the area
@@ -305,11 +363,11 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 					if(A.fire)
 						cont = FALSE
 						break
-			if(cont && D.is_operational())
+			if(cont && D.is_operational)
 				if(D.operating)
 					D.nextstate = opening ? FIREDOOR_OPEN : FIREDOOR_CLOSED
 				else if(!(D.density ^ opening))
-					INVOKE_ASYNC(D, (opening ? /obj/machinery/door/firedoor.proc/open : /obj/machinery/door/firedoor.proc/close))
+					INVOKE_ASYNC(D, (opening ? TYPE_PROC_REF(/obj/machinery/door/firedoor, open) : TYPE_PROC_REF(/obj/machinery/door/, close)))
 
 /**
   * Generate an firealarm alert for this area
@@ -424,7 +482,7 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 		var/mob/living/silicon/SILICON = i
 		if(SILICON.triggerAlarm("Burglar", src, cameras, trigger))
 			//Cancel silicon alert after 1 minute
-			addtimer(CALLBACK(SILICON, /mob/living/silicon.proc/cancelAlarm,"Burglar",src,trigger), 600)
+			addtimer(CALLBACK(SILICON, TYPE_PROC_REF(/mob/living/silicon, cancelAlarm),"Burglar",src,trigger), 600)
 
 /**
   * Trigger the fire alarm visual affects in an area
@@ -481,13 +539,14 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 			weather_icon = TRUE
 	if(!weather_icon)
 		icon_state = null
+	return ..()
 
 /**
   * Update the icon of the area (overridden to always be null for space
   */
 /area/space/update_icon_state()
 	icon_state = null
-
+	return ..()
 
 /**
   * Returns int 1 or 0 if the area has power for the given channel
@@ -559,27 +618,40 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 		if(AREA_USAGE_DYNAMIC_START to AREA_USAGE_DYNAMIC_END)
 			power_usage[chan] += amount
 
-
 /**
   * Call back when an atom enters an area
   *
-  * Sends signals COMSIG_AREA_ENTERED and COMSIG_ENTER_AREA (to the atom)
+  * Sends signals COMSIG_AREA_ENTERED and COMSIG_MOVABLE_ENTERED_AREA (to the atom)
   *
   * If the area has ambience, then it plays some ambience music to the ambience channel
   */
-/area/Entered(atom/movable/M)
+/area/Entered(atom/movable/arrived, area/old_area)
 	set waitfor = FALSE
-	SEND_SIGNAL(src, COMSIG_AREA_ENTERED, M)
-	SEND_SIGNAL(M, COMSIG_ENTER_AREA, src) //The atom that enters the area
+	SEND_SIGNAL(src, COMSIG_AREA_ENTERED, arrived, old_area)
+	SEND_SIGNAL(arrived, COMSIG_MOVABLE_ENTERED_AREA, src) //The atom that enters the area
+
+	//NSV13 - creaky ship damage noises
+	var/mob/mymob = arrived
+	var/obj/structure/linked_overmap = mymob.get_overmap()
+	if(linked_overmap && istype(mymob))
+		var/progress = linked_overmap.obj_integrity
+		var/goal = linked_overmap.max_integrity
+		progress = CLAMP(progress, 0, goal)
+		progress = round(((progress / goal) * 100), 50)//If the ship goes below 50% health, we start creaking like mad.
+		if((progress <= 50) && (mymob.client?.prefs.toggles & PREFTOGGLE_SOUND_AMBIENCE) && mymob.can_hear_ambience())
+			var/list/creaks = list('nsv13/sound/ambience/ship_damage/creak1.ogg','nsv13/sound/ambience/ship_damage/creak2.ogg','nsv13/sound/ambience/ship_damage/creak3.ogg','nsv13/sound/ambience/ship_damage/creak4.ogg','nsv13/sound/ambience/ship_damage/creak5.ogg','nsv13/sound/ambience/ship_damage/creak6.ogg','nsv13/sound/ambience/ship_damage/creak7.ogg')
+			var/creak = pick(creaks)
+			SEND_SOUND(mymob, sound(creak, repeat = 0, wait = 0, volume = 100, channel = CHANNEL_AMBIENT_EFFECTS))
+			return
 
 /**
   * Called when an atom exits an area
   *
-  * Sends signals COMSIG_AREA_EXITED and COMSIG_EXIT_AREA (to the atom)
+  * Sends signals COMSIG_AREA_EXITED and COMSIG_MOVABLE_EXITTED_AREA (to the atom)
   */
-/area/Exited(atom/movable/M)
-	SEND_SIGNAL(src, COMSIG_AREA_EXITED, M)
-	SEND_SIGNAL(M, COMSIG_EXIT_AREA, src) //The atom that exits the area
+/area/Exited(atom/movable/gone, direction)
+	SEND_SIGNAL(src, COMSIG_AREA_EXITED, gone, direction)
+	SEND_SIGNAL(gone, COMSIG_MOVABLE_EXITTED_AREA, src) //The atom that exits the area
 
 /**
   * Returns true if this atom has gravity for the passed in turf or other gravity-mimicking behaviors
@@ -613,7 +685,8 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 			max_grav = max(max_grav, i)
 		return max_grav
 
-	if(isspaceturf(T)) // Turf never has gravity
+
+	if(!T.check_gravity()) // Turf never has gravity
 		return 0
 
 	var/area/A = get_area(T)
@@ -621,9 +694,9 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 		return A.has_gravity
 	else
 		// There's a gravity generator on our z level
-		if(GLOB.gravity_generators["[T.z]"])
+		if(GLOB.gravity_generators["[T.get_virtual_z_level()]"])
 			var/max_grav = 0
-			for(var/obj/machinery/gravity_generator/main/G in GLOB.gravity_generators["[T.z]"])
+			for(var/obj/machinery/gravity_generator/main/G in GLOB.gravity_generators["[T.get_virtual_z_level()]"])
 				max_grav = max(G.setting,max_grav)
 			return max_grav
 	return SSmapping.level_trait(T.z, ZTRAIT_GRAVITY)
@@ -638,8 +711,8 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 	power_light = FALSE
 	power_environ = FALSE
 	always_unpowered = FALSE
-	valid_territory = FALSE
-	blob_allowed = FALSE
+	area_flags &= ~VALID_TERRITORY
+	area_flags &= ~BLOBS_ALLOWED
 	addSorted()
 /**
   * Set the area size of the area
@@ -667,5 +740,26 @@ GLOBAL_LIST_EMPTY(teleportlocs)
 	CRASH("Bad op: area/drop_location() called")
 
 /// A hook so areas can modify the incoming args (of what??)
-/area/proc/PlaceOnTopReact(list/new_baseturfs, turf/fake_turf_type, flags)
+/area/proc/PlaceOnTopReact(turf/T, list/new_baseturfs, turf/fake_turf_type, flags)
 	return flags
+
+/// Gets an areas virtual z value. For having multiple areas on the same z-level treated mechanically as different z-levels
+/area/proc/get_virtual_z(turf/T)
+	return T.z
+
+/area/get_virtual_z_level()
+	return get_virtual_z(get_turf(src))
+
+/// if it returns true, the mood effect assigned to the area is defined. Defaults to checking mood_job_allowed
+/area/proc/mood_check(mob/living/carbon/subject)
+	if(!mood_bonus)
+		return FALSE
+
+	. = TRUE
+
+	if(!length(mood_job_allowed))
+		return .
+	if(!(subject.mind?.assigned_role in mood_job_allowed))
+		. = FALSE
+	if(mood_job_reverse)
+		return !.  // the most eye bleeding syntax ive written

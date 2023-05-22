@@ -3,9 +3,11 @@
 	typepath = /datum/round_event/ghost_role/alien_infestation
 	weight = 5
 
-	min_players = 10
+	min_players = 20 //NSV13 - increased to 20
 
 	dynamic_should_hijack = TRUE
+	cannot_spawn_after_shuttlecall = TRUE
+	can_malf_fake_alert = TRUE
 
 /datum/round_event_control/alien_infestation/canSpawnEvent()
 	. = ..()
@@ -17,7 +19,7 @@
 			return FALSE
 
 /datum/round_event/ghost_role/alien_infestation
-	announceWhen	= 400
+	announceWhen	= 300 //NSV13 - changed from 400 to 300
 
 	minimum_required = 1
 	role_name = "alien larva"
@@ -39,7 +41,7 @@
 			living_aliens = TRUE
 
 	if(living_aliens || fake)
-		priority_announce("Unidentified lifesigns detected coming aboard [station_name()]. Secure any exterior access, including ducting and ventilation.", "Lifesign Alert", 'sound/ai/aliens.ogg')
+		priority_announce("Unidentified lifesigns detected coming aboard [station_name()]. Secure any exterior access, including ducting and ventilation.", "Lifesign Alert", ANNOUNCER_ALIENS)
 
 
 /datum/round_event/ghost_role/alien_infestation/spawn_role()

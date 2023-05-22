@@ -1,6 +1,6 @@
 //MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
 "b" = (
-/obj/item/twohanded/required/kirbyplants/random,
+/obj/item/kirbyplants/random,
 /obj/machinery/light/small{
 	dir = 1
 	},
@@ -42,7 +42,7 @@
 /turf/open/floor/plasteel,
 /area/template_noop)
 "g" = (
-/obj/item/twohanded/required/kirbyplants/random,
+/obj/item/kirbyplants/random,
 /obj/machinery/status_display/evac{
 	pixel_y = 32
 	},
@@ -51,7 +51,7 @@
 /area/template_noop)
 "h" = (
 /obj/structure/table,
-/obj/item/stack/packageWrap,
+/obj/item/stack/package_wrap,
 /obj/effect/decal/cleanable/dirt,
 /obj/item/hand_labeler,
 /obj/item/reagent_containers/food/snacks/grown/tea,
@@ -98,7 +98,7 @@
 /turf/open/floor/plasteel,
 /area/template_noop)
 "n" = (
-/obj/item/twohanded/required/kirbyplants/random,
+/obj/item/kirbyplants/random,
 /obj/effect/decal/cleanable/dirt,
 /obj/effect/turf_decal/delivery,
 /turf/open/floor/plasteel,

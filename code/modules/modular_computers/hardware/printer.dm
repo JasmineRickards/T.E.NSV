@@ -5,6 +5,7 @@
 	icon_state = "printer"
 	w_class = WEIGHT_CLASS_NORMAL
 	device_type = MC_PRINT
+	expansion_hw = TRUE
 	var/stored_paper = 20
 	var/max_paper = 30
 
@@ -17,10 +18,16 @@
 	. += "<span class='notice'>Paper level: [stored_paper]/[max_paper].</span>"
 
 
-/obj/item/computer_hardware/printer/proc/print_text(var/text_to_print, var/paper_title = "")
+/obj/item/computer_hardware/printer/proc/can_print()
 	if(!stored_paper)
 		return FALSE
 	if(!check_functionality())
+		return FALSE
+
+	return TRUE
+
+/obj/item/computer_hardware/printer/proc/print_text(text_to_print, paper_title = "")
+	if(!can_print())
 		return FALSE
 
 	var/obj/item/paper/P = new/obj/item/paper(holder.drop_location())
@@ -34,7 +41,30 @@
 		P.name = paper_title
 	P.update_icon()
 	stored_paper--
-	P = null
+
+	return TRUE
+
+/obj/item/computer_hardware/printer/proc/print_type(type_to_print, paper_title, do_malfunction = FALSE)
+	if(!can_print())
+		return FALSE
+	if(!ispath(type_to_print, /obj))
+		return FALSE
+
+	var/obj/O = new type_to_print(holder.drop_location())
+
+	if(istype(O, /obj/item/paper))
+		var/obj/item/paper/P = O
+		// Damaged printer causes the resulting paper to be somewhat harder to read.
+		if(do_malfunction && damage > damage_malfunction)
+			P.info = stars(P.info, 100-malfunction_probability)
+			// From the stars definition:
+			//   This proc is dangerously laggy, avoid it or die
+			// Because of this, malfunction is disabled by default for this, since we might be printing big things
+		if(paper_title)
+			P.name = paper_title
+
+	stored_paper--
+
 	return TRUE
 
 /obj/item/computer_hardware/printer/try_insert(obj/item/I, mob/living/user = null)

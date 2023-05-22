@@ -17,10 +17,10 @@
 	hl3_release_date = _half_life
 	can_contaminate = _can_contaminate
 	if(istype(parent, /atom))
-		RegisterSignal(parent, COMSIG_PARENT_EXAMINE, .proc/rad_examine)
+		RegisterSignal(parent, COMSIG_PARENT_EXAMINE, PROC_REF(rad_examine))
 		if(istype(parent, /obj/item))
-			RegisterSignal(parent, COMSIG_ITEM_ATTACK, .proc/rad_attack)
-			RegisterSignal(parent, COMSIG_ITEM_ATTACK_OBJ, .proc/rad_attack)
+			RegisterSignal(parent, COMSIG_ITEM_ATTACK, PROC_REF(rad_attack))
+			RegisterSignal(parent, COMSIG_ITEM_ATTACK_OBJ, PROC_REF(rad_attack))
 	else
 		return COMPONENT_INCOMPATIBLE
 	if(strength * (RAD_CONTAMINATION_STR_COEFFICIENT * RAD_CONTAMINATION_BUDGET_SIZE) > RAD_COMPONENT_MINIMUM)
@@ -29,7 +29,7 @@
 	//This relies on parent not being a turf or something. IF YOU CHANGE THAT, CHANGE THIS
 	var/atom/movable/master = parent
 	master.add_filter("rad_glow", 2, list("type" = "outline", "color" = "#39ff1430", "size" = 2))
-	addtimer(CALLBACK(src, .proc/glow_loop, master), rand(1,19))//Things should look uneven
+	addtimer(CALLBACK(src, PROC_REF(glow_loop), master), rand(1,19))//Things should look uneven
 	START_PROCESSING(SSradiation, src)
 
 /datum/component/radioactive/Destroy()
@@ -38,9 +38,11 @@
 	master.remove_filter("rad_glow")
 	return ..()
 
-/datum/component/radioactive/process()
+/datum/component/radioactive/process(delta_time)
+	if(!DT_PROB(50, delta_time))
+		return
 	if(strength >= RAD_WAVE_MINIMUM)
-		radiation_pulse(parent, strength, RAD_DISTANCE_COEFFICIENT * RAD_DISTANCE_COEFFICIENT_COMPONENT_MULTIPLIER, FALSE, can_contaminate)
+		radiation_pulse(parent, strength, RAD_DISTANCE_COEFFICIENT*RAD_DISTANCE_COEFFICIENT_COMPONENT_MULTIPLIER, FALSE, can_contaminate)
 	if(!hl3_release_date)
 		return
 	strength -= strength / hl3_release_date
@@ -54,7 +56,7 @@
 		animate(filter, alpha = 110, time = 15, loop = -1)
 		animate(alpha = 40, time = 25)
 
-/datum/component/radioactive/InheritComponent(datum/component/C, i_am_original, list/arguments)
+/datum/component/radioactive/InheritComponent(datum/component/C, i_am_original, _strength, _source, _half_life, _can_contaminate)
 	if(!i_am_original)
 		return
 	if(!hl3_release_date) // Permanently radioactive things don't get to grow stronger
@@ -63,9 +65,11 @@
 		var/datum/component/radioactive/other = C
 		strength += other.strength
 	else
-		strength += arguments[1]
+		strength = max(strength, _strength)
 
 /datum/component/radioactive/proc/rad_examine(datum/source, mob/user, atom/thing)
+	SIGNAL_HANDLER
+
 	var/atom/master = parent
 	var/list/out = list()
 	if(get_dist(master, user) <= 1)
@@ -82,6 +86,8 @@
 	to_chat(user, out.Join())
 
 /datum/component/radioactive/proc/rad_attack(datum/source, atom/movable/target, mob/living/user)
+	SIGNAL_HANDLER
+
 	radiation_pulse(parent, strength/20)
 	target.rad_act(strength/2)
 	if(!hl3_release_date)

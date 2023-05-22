@@ -5,6 +5,7 @@
 	min_players = 20
 	earliest_start = 30 MINUTES //deadchat sink, lets not even consider it early on.
 	gamemode_blacklist = list("nuclear")
+	cannot_spawn_after_shuttlecall = TRUE
 
 /datum/round_event/ghost_role/fugitives
 	minimum_required = 1
@@ -55,7 +56,7 @@
 //after spawning
 	playsound(src, 'sound/weapons/emitter.ogg', 50, 1)
 	new /obj/item/storage/toolbox/mechanical(landing_turf) //so they can actually escape maint
-	addtimer(CALLBACK(src, .proc/spawn_hunters), 10 MINUTES)
+	addtimer(CALLBACK(src, PROC_REF(spawn_hunters)), 10 MINUTES)
 	role_name = "fugitive hunter"
 	return SUCCESSFUL_SPAWN
 
@@ -68,7 +69,7 @@
 	player_mind.special_role = "Fugitive"
 	player_mind.add_antag_datum(/datum/antagonist/fugitive)
 	var/datum/antagonist/fugitive/fugitiveantag = player_mind.has_antag_datum(/datum/antagonist/fugitive)
-	INVOKE_ASYNC(fugitiveantag, /datum/antagonist/fugitive.proc/greet, backstory) //some fugitives have a sleep on their greet, so we don't want to stop the entire antag granting proc with fluff
+	INVOKE_ASYNC(fugitiveantag, TYPE_PROC_REF(/datum/antagonist/fugitive, greet), backstory) //some fugitives have a sleep on their greet, so we don't want to stop the entire antag granting proc with fluff
 
 	switch(backstory)
 		if("prisoner")
@@ -115,4 +116,4 @@
 	for(var/turf/A in ship.get_affected_turfs(T))
 		for(var/obj/effect/mob_spawn/human/fugitive/spawner in A)
 			announce_to_ghosts(spawner)
-	priority_announce("Unidentified ship detected near the station.")
+	priority_announce("Unidentified ship detected near the station.", sound = SSstation.announcer.get_rand_alert_sound())

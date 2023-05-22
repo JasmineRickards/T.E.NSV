@@ -10,18 +10,30 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 	plane           = OPENSPACE_BACKDROP_PLANE
 	mouse_opacity 	= MOUSE_OPACITY_TRANSPARENT
 	layer           = SPLASHSCREEN_LAYER
-
+//I don't know why the others are aligned but I shall do the same.
+	vis_flags		= VIS_INHERIT_ID
 /turf/open/openspace
 	name = "open space"
 	desc = "Watch your step!"
 	icon_state = "transparent"
 	baseturfs = /turf/open/openspace
 	CanAtmosPassVertical = ATMOS_PASS_YES
+	allow_z_travel = TRUE
+
+	FASTDMM_PROP(\
+		pipe_astar_cost = 100\
+	)
+
 	//mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	var/can_cover_up = TRUE
 	var/can_build_on = TRUE
 
 	intact = 0
+
+	var/static/list/allowed_floors = typecacheof(list(
+			/obj/item/stack/tile/plasteel,
+			/obj/item/stack/tile/durasteel)) // NSV13 - allow building floor with durasteel tiles
+
 /turf/open/openspace/airless
 	initial_gas_mix = AIRLESS_ATMOS
 
@@ -29,12 +41,12 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 	..()
 	return TRUE
 
-/turf/open/openspace/Initialize() // handle plane and layer here so that they don't cover other obs/turfs in Dream Maker
+/turf/open/openspace/Initialize(mapload) // handle plane and layer here so that they don't cover other obs/turfs in Dream Maker
 	. = ..()
 	plane = OPENSPACE_PLANE
 	layer = OPENSPACE_LAYER
 
-	vis_contents += GLOB.openspace_backdrop_one_for_all //Special grey square for projecting backdrop darkness filter on it.
+	overlays += GLOB.openspace_backdrop_one_for_all //Special grey square for projecting backdrop darkness filter on it.
 
 	return INITIALIZE_HINT_LATELOAD
 
@@ -48,6 +60,9 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 /turf/open/openspace/can_have_cabling()
 	if(locate(/obj/structure/lattice/catwalk, src))
 		return TRUE
+	var/turf/B = below()
+	if(B)
+		return B.can_lay_cable()
 	return FALSE
 
 /turf/open/openspace/update_multiz(prune_on_fail = FALSE, init = FALSE)
@@ -79,15 +94,37 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 	return TRUE
 
 /turf/open/openspace/zPassIn(atom/movable/A, direction, turf/source)
-	return TRUE
+	if(direction == DOWN)
+		for(var/obj/O in contents)
+			if(O.obj_flags & BLOCK_Z_IN_DOWN)
+				return FALSE
+		return TRUE
+	if(direction == UP)
+		for(var/obj/O in contents)
+			if(O.obj_flags & BLOCK_Z_IN_UP)
+				return FALSE
+		return TRUE
+	return FALSE
 
 /turf/open/openspace/zPassOut(atom/movable/A, direction, turf/destination)
+	//Check if our fall location has gravity
+	/* NSV13 - actually yes, please let us move up and down without gravity
+	if(!A.has_gravity(destination))
+		return FALSE
+	*/
 	if(A.anchored)
 		return FALSE
-	for(var/obj/O in contents)
-		if(O.obj_flags & BLOCK_Z_FALL)
-			return FALSE
-	return TRUE
+	if(direction == DOWN)
+		for(var/obj/O in contents)
+			if(O.obj_flags & BLOCK_Z_OUT_DOWN)
+				return FALSE
+		return TRUE
+	if(direction == UP)
+		for(var/obj/O in contents)
+			if(O.obj_flags & BLOCK_Z_OUT_UP)
+				return FALSE
+		return TRUE
+	return FALSE
 
 /turf/open/openspace/proc/CanCoverUp()
 	return can_cover_up
@@ -121,12 +158,12 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 		else
 			to_chat(user, "<span class='warning'>You need one rod to build a lattice.</span>")
 		return
-	if(istype(C, /obj/item/stack/tile/plasteel))
+	if(allowed_floors[C.type]) // NSV13 - allow building with monotiles
 		if(!CanCoverUp())
 			return
 		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
 		if(L)
-			var/obj/item/stack/tile/plasteel/S = C
+			var/obj/item/stack/tile/S = C // NSV13 - genericized to all tile stacks allowed
 			if(S.use(1))
 				qdel(L)
 				playsound(src, 'sound/weapons/genhit.ogg', 50, 1)
@@ -157,3 +194,15 @@ GLOBAL_DATUM_INIT(openspace_backdrop_one_for_all, /atom/movable/openspace_backdr
 			PlaceOnTop(/turf/open/floor/plating, flags = CHANGETURF_INHERIT_AIR)
 			return TRUE
 	return FALSE
+
+/turf/open/openspace/rust_heretic_act()
+	return FALSE
+
+//Returns FALSE if gravity is force disabled. True if grav is possible
+/turf/open/openspace/check_gravity()
+	var/turf/T = below()
+	if(!T)
+		return TRUE
+	if(isspaceturf(T))
+		return FALSE
+	return TRUE

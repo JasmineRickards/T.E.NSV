@@ -21,10 +21,10 @@ GLOBAL_DATUM_INIT(lore_terminal_controller, /datum/lore_controller, new)
 /obj/machinery/computer/lore_terminal/awaymission //Example for having a terminal preloaded with only a set list of files.
 	access_tag = "awaymission_default"
 
-/obj/machinery/computer/lore_terminal/Initialize()
+/obj/machinery/computer/lore_terminal/Initialize(mapload)
 	. = ..()
 	get_entries()
-	soundloop = new(list(src), FALSE)
+	soundloop = new(src)
 
 /datum/looping_sound/computer_click
 	mid_sounds = list('nsv13/sound/effects/computer/scroll1.ogg','nsv13/sound/effects/computer/scroll2.ogg','nsv13/sound/effects/computer/scroll3.ogg','nsv13/sound/effects/computer/scroll5.ogg')
@@ -150,7 +150,7 @@ GLOBAL_DATUM_INIT(lore_terminal_controller, /datum/lore_controller, new)
 	icon_state = "terminal_scroll"
 	clicks = clicks/3
 	var/loops = clicks/3 //Each click sound has 4 clicks in it, so we only need to click 1/4th of the time per character yeet.
-	addtimer(CALLBACK(src, .proc/stop_clicking), loops)
+	addtimer(CALLBACK(src, PROC_REF(stop_clicking)), loops)
 	soundloop?.start()
 
 
@@ -177,13 +177,13 @@ GLOBAL_DATUM_INIT(lore_terminal_controller, /datum/lore_controller, new)
 	var/title = null //What it's all about
 	var/classified = "Declassified" //Fluff, is this a restricted file or not?
 	var/content = null //You may choose to set this here, or via a .txt. file if it's long. Newlines / Enters will break it!
-	var/path = null //The location at which we're stored. If you don't have this, you don't get content
+	var/filename = null //The name of the actual file in the repo. Files are stored in LORE_DIR
 	var/access_tag = "placeholder" //Set this to match the terminals that you want to be able to access it. EG "ntcommon" for declassified shit.
 
 /datum/lore_entry/New()
-	. = ..()
-	if(path)
-		content = file2text("[path]")
+	..()
+	if(filename)
+		content = file2text("[LORE_DIR]/[SANITIZE_FILENAME(filename)]")
 
 /*
 
@@ -199,54 +199,54 @@ SPECIAL KEYS RESPOND AS FOLLOWS:
 /datum/lore_entry/nt
 	name = "new_employees_memo.ntmail"
 	title = "Intercepted message"
-	path = "nsv13/lore_entries/welcome.txt"
+	filename = "welcome.txt"
 	access_tag = "ntcommon"
 
 /datum/lore_entry/nt/ragnarok
 	name = "ragnarok_class.ntdoc"
 	title = "Ragnarok Class Specifications"
-	path = "nsv13/lore_entries/ragnarok.txt"
+	filename = "ragnarok.txt"
 
 /datum/lore_entry/nt/firing_proceedure
 	name = "firing_proceedure.ntdoc"
 	title = "Ship-to-ship munitions"
-	path = "nsv13/lore_entries/firing_proceedure.txt"
+	filename = "firing_proceedure.txt"
 
 /datum/lore_entry/nt/stormdrive_operation
 	name = "stormdrive_operation.ntdoc"
 	title = "Setting up power"
-	path = null
+	filename = null
 	content = "-Activate constrictors with an open hand ` -Open 'plasma input' valves to constrictors and set their pressure to 'MAX' ` -Assemble particle accelerator with a wrench, coil of wire and screwdriver. ` -Open reactor inlet valves and set their pressure to 'MAX'` `-Use the particle accelerator control console, set the setting to '2' and toggle its power `-When you have successfully started the reactor, it will begin emitting cherenkov radiation, giving off a 'blue glow' around the core. When the reactor is activated, turn off the particle accelerator to prevent power waste. `-It is recommended that engineers use control rod setting '2' for optimal power generation, however the control rods are not rated to withstand temperatures of over 200 degrees for long, and will thus require reinforcement with sheets of plasteel. ` If fuel fails to fill into the reactor, a backpressure surge has occurred. Turn off all inputs to the reactor and open the waste release valve with the reactor console to flush any air out of the system. When this is done, close the valve again and re-enable fuel supplies."
 
 /datum/lore_entry/nt/meltdown_proceedures
 	name = "meltdown_proceedures.ntmail"
 	title = "Emergency proceedures regarding nuclear meltdowns:"
-	path = null
+	filename = null
 	content = "SYSADMIN -> Allcrew@seegnet.nt. RE: Emergency Meltdown proceedures. ` The nuclear storm drive is an inherently safe engine, however this does not mean it is foolproof. Dilligence will mean the difference between having a safe, reliable power output which can last for decades, and a nuclear hellfire which can destroy the entire ship. `What to do during a meltdown: `-A reactor will melt down when the fission inside it produces an uncontrollable amount of heat (in excess of 300 degrees celsius). If this ever happens, a shipwide alarm will sound. If you hear this alarm, you must act quickly and calmly, as you will have approximately 1 - 2 minutes before the reactor explodes. `-To avert meltdown, simply locate the control console, and choose the 'SCRAM' setting (the button labelled AZ-5). This will immediately lower all control rods and attempt to cool the reactor. `-In the event of damaged control rods, IMMEDIATELY shut off all plasma constrictors, supply pumps and filters and evacuate the engineering section IMMEDIATELY to prevent unecessary loss of life. `-As a meltdown occurs, nuclear fuel is deposited all over the ship, and must be cleaned up with a shovel. This spent fuel is HIGHLY radioactive, and must be handled with extreme care. If the unthinkable comes to pass, instruct crew to seek shelter in maintenance and proceed to immediately evacuate the ship. To avoid complications, it is recommended that engineers equip radiation proof suits and gas masks, and proceed to clear a path to the evacuation arm with shovels. Remember: Stay safe through vigilance!"
 
 /datum/lore_entry/nt/ship_weapon_maintenance
 	name = "weapon_maintenance_proceedure.ntmail"
 	title = "Ship-to-ship weapons maintenance and YOU"
-	path = null
+	filename = null
 	content = "SYSADMIN -> Munitions@seegnet.nt. RE: Weapons Maintenance ` ATTENTIVE SHIP SYSTEM MAINTENANCE STARTS WITH YOU ` All primary ship-to-ship offensive weapons, including torpedo tubes and railguns require regular maintenance from skilled workers to remain in an optimal state. ` Reminder: Before commencing any maintenance on ship weaponry, ensure all relevant safety systems are engaged and the weapon is not loaded. ` -Unscrew the maintenance hatch on the primary external casing ` -Unbolt the internal maintenance panel ` -Use a crowbar to carefully lever out the internal panel ` -Apply 10 units of Oil to the exposed internal machinery ` -Replace and bolt the panel, fix the hatch back in place ` IF MAINTENANCE IS NOT PERFORMED REGULARLY, FAILURE COULD OCCUR DURING COMBAT, LEADING TO THE INJURY AND/OR DEATH OF YOURSELF AND OTHER CREW"
 
 
 /datum/lore_entry/nt/fighter_maintenance
 	name = "fighter_maintenance.ntmail"
 	title = "FW: RE: How the frack do you put these hunks of junk into maintenance mode?"
-	path = null
+	filename = null
 	content = "MAAMASTER -> Munitions@seegnet.nt FW: RE: How the FRACK? `Attention MAAs Fleetwide, it has come to our attention your underlings may have trouble remembering simple maintenance cycle proceedures, please foward them this message as a reminder.` `--------------------------------` `FORWARDED MESSAGE` `--------------------------------` `REDACTED@seegnet.nt -> REDACTED@seegnet.net How the FRACK?` `Hey, can you help me out big time?` `I know these fancy new fighters are supposed to have some sort of special maintenance mode that lets you access all of its components and stuff, but I can't work out how the FRACK you are supposed to make it do its thing.` `PLEASE HELP ME!` `Boss will literally lynch me if I don't get this done by the time he's back.` `--------------------------------` `REDACTED@seegnet.nt -> REDACTED@seegnet.net RE:How the FRACK?` `Let me break this down for you:` `First locate the maintenance panel on the belly of the fighter, yes you have to crawl under it, take a wrench and a crowbar with you.` `Second unbolt the panel, just don't lose the nuts otherwise you are toast.` `Third slide back the maintenance panel, this should kick the fighter to go into maintenance mode, use a crowbar for leverage if it gets stuck.` `Reverse the process to reset it into flight mode at the end, simple, yes?`"
 
 /datum/lore_entry/nt/fighter_production
 	name = "fighter_production.ntdoc"
 	title = "Production and Assembly of Fighter Craft 101"
-	path = null
+	filename = null
 	content = "Welcome to the NT Guide for Production and Assembly of Fighter Craft 101 `This step by step guide will familiarise you with the process of producing fighter craft components and assembling them into a serviceable fighter for the NT fleet.` `WORD OF CAUTION: This proceedure requires cooperation from several departments.` `EXTRA WORD OF CAUTION: Spreading of rumours regarding this proceedure will lead to personal redaction of REDACTED` `@#g#!&40((%%%% -=FILE CORRUPTION DETECTED=- Let me make this simpler for you to read. ~PMV` `Start by ensuring the research division of your assigned vessel has the latest and most up to date blueprints available.` `Generate a requision request for required components (APPENDIX A) and deliver it to cargo for fabrication.` `Await requision delivery at arranged location.` `` `Step by step assembly proccedure follows:` `-Open and assemble Fighter Fuselage.` `-Wrench bolts on Fighter Fuselage.` `-Weld joints together on Fighter Fuselage.` `-Locate and attach Fighter Empennage.` `-Wrench bolts on Fighter Empennage.` `-Weld joints together on Fighter Empennage.` `-Locate and attach first Fighter Wing.` `-Wrench bolts on Fighter Wing.` `-Weld joints together on Fighter Wing.` `-Locate and attach second Fighter Wing.` `-Wrench bolts on Fighter Wing.` `-Weld joints together on Fighter Wing.` `-Locate and install Fighter Landing Gear.` `-Wrench bolts on Fighter Landing Gear.` `-Locate and install Fighter Armour Plating.` `-Screw Fighter Armour Plating in place.` `-Weld joints on Fighter Armour Plating.` `-Install wiring into the Fighter.` `-Calibrate wiring with Multitool.` `-Locate and install Fighter Fuel Tank.` `-Wrench bolts on Fighter Fuel Tank.` `-Locate and install Fighter Fuel Lines.` `-Wrench bolts on Fighter Fuel Lines.` `-Locate and install first Fighter Engine.` `-Weld joints on Fighter Engine.` `-Locate and install second Fighter Engine.` `-Calibrate both Fighter Engines with a multitool.` `-Locate and install Fighter Cockpit.` `-Screw Fighter Cockpit in place.` `-Wrench bolts on Fighter Cockpit.` `-Install additional wiring into the Fighter.` `-Locate and install Fighter Avionics.` `-Screw the Fighter Avionics in place.` `-Calibrate the Fighter Avionics with a multitool.` `-Locate and install Fighter Targeting Sensors.` `-Screw the Fighter Targeting Sensors in place.` `-Calibrate the Fighter Targeting Sensors with a multitool.` `-Apply paint scheme of choice for the Fighter.` `-Choose a name for the Fighter.` `` `Your new fighter should now be complete.` `Enter maintenance mode to install ship ordinance, make repairs and refuel the vessel.` `____________` `APPENDIX A` `____________` `Fighter Components:` `-Fighter Fuselage Components Crate x1` `-Fighter Cockpit Components Box x1` `-Fighter Wing Components Box x2` `-Fighter Empennage Components Box x1` `-Fighter Landing Gear Components Box x1` `-Fighter Armour Plating x1` `-Fighter Fuel Tank x1` `-Fighter Avionics x1` `-Fighter Targeting Sensors x1` `-Fighter Fuel Line Kit x1` `-Fighter Engine x2`"
 
 /datum/lore_entry/nt/fighters
 	name = "fighter_operations.ntdoc"
 	title = "Fighter operational proceedures"
-	path = null
+	filename = null
 	content = "Pre flight checklist:`\
 	Hit ignition switch`\
 	Fuel pump switch`\
@@ -268,6 +268,18 @@ SPECIAL KEYS RESPOND AS FOLLOWS:
 	Activate the brakes and begin a shutdown of your fighter. Once you have received more fuel, begin startup sequence as expected. If you run out of fuel, you will be stuck adrift. It is highly recommended that you RTB when you hit 100 fuel as you'll have 30 seconds or so more burn time before you fizzle out.`\
 	Tyrosene production:`\
 	1 part hydrogen : 1 part carbon to make hydrocarbon heated to 333K. Mix hydrocarbon and welding fuel to produce tyrosene fuel and apply to tyrosene fuel tanks to allow for fighter refuel ops."
+
+/datum/lore_entry/nt/targeting
+	name = "targeting_systems.ntdoc"
+	title = "Guided Weapons Systems Employment"
+	filename = null
+	content = "Targeting enemy craft:`- Set DRADIS array to targeting mode`- Ensure weapons safety interlocks are disabled`- Move DRADIS cursor over hostile target and depress the designation switch to paint your target`Note: Most large ships only support up to 3 active paints at any given time. Most small craft support one paint.```-------------------```After a target has been painted, you may lock the target by using the tactical console and selecting the target you wish to lock.`If available and in range, your gunner camera will be slaved to the targeting radar and provide you with a view of the target.`Small craft (such as the Rapier or Scimitar) will automatically lock onto the first painted target.`If ordnance is employed without a lock, it will guide onto the first painted target.```-------------------```Always ensure proper emissions control procedures are followed when employing radar-guided ordnance.`Semi-active and active missiles and torpedos will give away the position of the launching craft, which may lead to detection and engagement at inopportune times.`Although some weapons (such as the FTL-1301 Magneton shell) may not require active guidance from the launching craft, a lock is still required for an accurate firing solution.```-------------------```"
+
+/datum/lore_entry/nt/datalink
+	name = "datalink.ntdoc"
+	title = "DRADIS Tactical Data Link Employment"
+	filename = null
+	content = "Transmitting targets via Data Link:`- Set DRADIS array to targeting mode`- Paint and lock onto a target`- Move DRADIS cursor over the friendly you wish to transmit the target to and depress the designation switch```-------------------```When a target is transmitted via datalink, it will automatically be considered painted by the receiving craft's targeting computer.`The transmitting craft will then continuously transmit data via DRADIS uplink to the receiving craft.`In order for the transmission to be successful, the transmitting craft must maintain a track on the target, and the receiving craft must be able to support the additional paint.`If datalink track is lost, the receiving craft will attempt to track the target using its own sensors, and dump the target track if that is unsuccessful.```-------------------```Proper employment of datalink systems is important in establishing an effective kill chain between early-warning craft and strike craft.`This allows for long-range or off-axis strikes by small craft, as well as long-range detection and tracking of stealth-capable craft that would otherwise escape a capital ship's notice.`Note that all information received via datalink should be considered C6 operational intelligence. Do not share opcodes with unauthorized personnel.```-------------------```"
 
 /datum/lore_entry/away_example
 	title = "Intercepted log file"

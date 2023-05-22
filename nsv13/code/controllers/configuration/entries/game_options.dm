@@ -9,3 +9,19 @@
 
 /datum/config_entry/string/alert_zebra_upto
 	config_entry_value = "Attention all hands assume defense condition zebra. Compartmental interlocks have now been activated, prepare for incoming fire."
+
+/datum/config_entry/number/min_pop_kill_objectives
+	config_entry_value = 15
+	min_val = 0
+
+/datum/config_entry/keyed_list/omode_probability
+	key_mode = KEY_MODE_TEXT
+	value_mode = VALUE_MODE_NUM
+
+/datum/config_entry/keyed_list/omode_max_pop
+	key_mode = KEY_MODE_TEXT
+	value_mode = VALUE_MODE_NUM
+
+/datum/config_entry/keyed_list/omode_min_pop
+	key_mode = KEY_MODE_TEXT
+	value_mode = VALUE_MODE_NUM

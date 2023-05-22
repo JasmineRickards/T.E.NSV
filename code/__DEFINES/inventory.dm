@@ -4,7 +4,7 @@
 #define WEIGHT_CLASS_TINY     1 //! Usually items smaller then a human hand, (e.g. playing cards, lighter, scalpel, coins/holochips)
 #define WEIGHT_CLASS_SMALL    2 //! Pockets can hold small and tiny items, (e.g. flashlight, multitool, grenades, GPS device)
 #define WEIGHT_CLASS_NORMAL   3 //! Standard backpacks can carry tiny, small & normal items, (e.g. fire extinguisher, stun baton, gas mask, iron sheets)
-#define WEIGHT_CLASS_BULKY    4 //! Items that can be weilded or equipped but not stored in an inventory, (e.g. defibrillator, backpack, space suits)
+#define WEIGHT_CLASS_BULKY    4 //! Items that can be wielded or equipped but not stored in an inventory, (e.g. defibrillator, backpack, space suits)
 #define WEIGHT_CLASS_HUGE     5 //! Usually represents objects that require two hands to operate, (e.g. shotgun, two-handed melee weapons)
 #define WEIGHT_CLASS_GIGANTIC 6 //! Essentially means it cannot be picked up or placed in an inventory, (e.g. mech parts, safe)
 
@@ -54,6 +54,12 @@
 #define HIDEHAIR		(1<<8)
 #define HIDEFACIALHAIR	(1<<9)
 #define HIDENECK		(1<<10)
+/// for wigs, only obscures the headgear
+//#define HIDEHEADGEAR (1<<11)
+///for lizard snouts, because some HIDEFACE clothes don't actually conceal that portion of the head.
+#define HIDESNOUT (1<<12)
+///hides mutant/moth wings, does not apply to functional wings
+//#define HIDEMUTWINGS (1<<13)
 
 //bitflags for clothing coverage - also used for limbs
 #define HEAD		(1<<0)
@@ -74,6 +80,10 @@
 #define NECK		(1<<11)
 #define FULL_BODY	(~0)
 
+//defines for the index of hands
+#define LEFT_HANDS 1
+#define RIGHT_HANDS 2
+
 //flags for female outfits: How much the game can safely "take off" the uniform without it looking weird
 #define NO_FEMALE_UNIFORM			0
 #define FEMALE_UNIFORM_FULL			1
@@ -85,8 +95,10 @@
 #define DIGITIGRADE_STYLE 	2
 
 //flags for outfits that have mutantrace variants (try not to use this): Currently only needed if you're trying to add tight fitting bootyshorts
-#define NO_MUTANTRACE_VARIATION		0
-#define MUTANTRACE_VARIATION		1
+//This system takes priority over Sprite Sheets.
+#define NO_VARIATION			(1<<0)
+#define DIGITIGRADE_VARIATION	(1<<1)
+#define DIGITIGRADE_VARIATION_NO_NEW_ICON (1<<2)
 
 #define NOT_DIGITIGRADE				0
 #define FULL_DIGITIGRADE			1
@@ -94,7 +106,7 @@
 
 //! ## flags for covering body parts
 #define GLASSESCOVERSEYES	(1<<0)
-#define MASKCOVERSEYES		(1<<1)		//! get rid of some of the other retardation in these flags
+#define MASKCOVERSEYES		(1<<1)		//! get rid of some of the other stupidity in these flags
 #define HEADCOVERSEYES		(1<<2)		//! feel free to realloc these numbers for other purposes
 #define MASKCOVERSMOUTH		(1<<3)		//! on other items, these are just for mask/head
 #define HEADCOVERSMOUTH		(1<<4)
@@ -150,7 +162,7 @@ GLOBAL_LIST_INIT(detective_vest_allowed, typecacheof(list(
 	/obj/item/storage/fancy/cigarettes,
 	/obj/item/tank/internals/emergency_oxygen,
 	/obj/item/tank/internals/plasmaman)))
-
+//Nsv13 - /obj/item/gun/ballistic/automatic/mp_smg
 GLOBAL_LIST_INIT(security_vest_allowed, typecacheof(list(
 	/obj/item/ammo_box,
 	/obj/item/ammo_casing,
@@ -164,6 +176,7 @@ GLOBAL_LIST_INIT(security_vest_allowed, typecacheof(list(
 	/obj/item/reagent_containers/spray/pepper,
 	/obj/item/restraints/handcuffs,
 	/obj/item/tank/internals/emergency_oxygen,
+	/obj/item/gun/ballistic/automatic/mp_smg,
 	/obj/item/tank/internals/plasmaman)))
 
 GLOBAL_LIST_INIT(security_wintercoat_allowed, typecacheof(list(

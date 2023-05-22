@@ -69,20 +69,25 @@
 /datum/game_mode/proc/can_start()
 	var/playerC = 0
 	for(var/mob/dead/new_player/player in GLOB.player_list)
-		if((player.client)&&(player.ready == PLAYER_READY_TO_PLAY) && player.has_valid_preferences())
+		if(player.client && (player.ready == PLAYER_READY_TO_PLAY) && player.check_preferences())
 			playerC++
 	if(!GLOB.Debug2)
 		if(playerC < required_players || (maximum_players >= 0 && playerC > maximum_players))
-			return 0
-	antag_candidates = get_players_for_role(antag_flag)
+			return FALSE
+	setup_antag_candidates()
 	if(!GLOB.Debug2)
 		if(antag_candidates.len < required_enemies)
-			return 0
-		return 1
+			return FALSE
+		return TRUE
 	else
 		message_admins("<span class='notice'>DEBUG: GAME STARTING WITHOUT PLAYER NUMBER CHECKS, THIS WILL PROBABLY BREAK SHIT.</span>")
-		return 1
+		return TRUE
 
+/datum/game_mode/proc/setup_maps()
+	return 1
+
+/datum/game_mode/proc/setup_antag_candidates()
+	antag_candidates = get_players_for_role(antag_flag)
 
 ///Attempts to select players for special roles the mode might have.
 /datum/game_mode/proc/pre_setup()
@@ -139,7 +144,7 @@
 /datum/game_mode/proc/post_setup(report) //Gamemodes can override the intercept report. Passing TRUE as the argument will force a report.
 	if(!report)
 		report = !CONFIG_GET(flag/no_intercept_report)
-	addtimer(CALLBACK(GLOBAL_PROC, .proc/display_roundstart_logout_report), ROUNDSTART_LOGOUT_REPORT_TIME)
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(display_roundstart_logout_report)), ROUNDSTART_LOGOUT_REPORT_TIME)
 
 	if(CONFIG_GET(flag/reopen_roundstart_suicide_roles))
 		var/delay = CONFIG_GET(number/reopen_roundstart_suicide_roles_delay)
@@ -147,7 +152,7 @@
 			delay = (delay SECONDS)
 		else
 			delay = (4 MINUTES) //default to 4 minutes if the delay isn't defined.
-		addtimer(CALLBACK(GLOBAL_PROC, .proc/reopen_roundstart_suicide_roles), delay)
+		addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(reopen_roundstart_suicide_roles)), delay)
 
 	if(SSdbcore.Connect())
 		var/list/to_set = list()
@@ -169,7 +174,7 @@
 	create_special_antags()
 	generate_station_goals()
 	if(report)
-		addtimer(CALLBACK(src, .proc/send_intercept, 0), rand(waittime_l, waittime_h))
+		addtimer(CALLBACK(src, PROC_REF(send_intercept), 0), rand(waittime_l, waittime_h))
 	else // goals only become purchasable when on_report is called, this also makes a replacement announcement.
 		for(var/datum/station_goal/G in station_goals)
 			G.prepare_report()
@@ -251,7 +256,7 @@
 	var/list/antag_candidates = list()
 
 	for(var/mob/living/carbon/human/H in living_crew)
-		if(H.client && H.client.prefs.allow_midround_antag && !is_centcom_level(H.z))
+		if(H.client && (H.client.prefs.toggles & PREFTOGGLE_MIDROUND_ANTAG) && !is_centcom_level(H.z))
 			antag_candidates += H
 
 	if(!antag_candidates)
@@ -263,7 +268,7 @@
 	if(CONFIG_GET(flag/protect_roles_from_antagonist))
 		replacementmode.restricted_jobs += replacementmode.protected_jobs
 	if(CONFIG_GET(flag/protect_assistant_from_antagonist))
-		replacementmode.restricted_jobs += "Assistant"
+		replacementmode.restricted_jobs += JOB_NAME_ASSISTANT
 	if(CONFIG_GET(flag/protect_heads_from_antagonist))
 		replacementmode.restricted_jobs += GLOB.command_positions
 
@@ -387,17 +392,27 @@
 		intercepttext += "<hr>"
 		intercepttext += report
 
-	if(station_goals.len)
-		intercepttext += "<hr><b>Special Orders for [station_name()]:</b>"
-		for(var/datum/station_goal/G in station_goals)
-			G.on_report()
-			intercepttext += G.get_report()
+	intercepttext += generate_station_goal_report()
 
 	print_command_report(intercepttext, "Central Command Status Summary", announce=FALSE)
-	priority_announce("A summary has been copied and printed to all communications consoles.", "Enemy communication intercepted. Security level elevated.", 'sound/ai/intercept.ogg')
+	priority_announce("A summary has been copied and printed to all communications consoles.", "Enemy communication intercepted. Security level elevated.", ANNOUNCER_INTERCEPT)
 	if(GLOB.security_level < SEC_LEVEL_BLUE)
 		set_security_level(SEC_LEVEL_BLUE)
 
+
+/*
+ * Generate a list of station goals available to purchase to report to the crew.
+ *
+ * Returns a formatted string all station goals that are available to the station.
+ */
+/datum/game_mode/proc/generate_station_goal_report()
+	if(!station_goals.len)
+		return
+	. = "<hr><b>Special Orders for [station_name()]:</b><BR>"
+	for(var/datum/station_goal/station_goal in station_goals)
+		station_goal.on_report()
+		. += station_goal.get_report()
+	return
 
 // This is a frequency selection system. You may imagine it like a raffle where each player can have some number of tickets. The more tickets you have the more likely you are to
 // "win". The default is 100 tickets. If no players use any extra tickets (earned with the antagonist rep system) calling this function should be equivalent to calling the normal
@@ -431,6 +446,9 @@
 	for(var/datum/mind/mind in candidates)
 		p_ckey = ckey(mind.key)
 		var/mob/dead/new_player/player = get_mob_by_ckey(p_ckey)
+		if(!player)
+			candidates -= mind
+			continue
 		total_tickets += min(((role in player.client.prefs.be_special) ? SSpersistence.antag_rep[p_ckey] : 0) + DEFAULT_ANTAG_TICKETS, MAX_TICKETS_PER_ROLL)
 
 	var/antag_select = rand(1,total_tickets)
@@ -529,7 +547,7 @@
 							//			Less if there are not enough valid players in the game entirely to make recommended_enemies.
 
 
-/datum/game_mode/proc/get_alive_non_antagonsist_players_for_role(role)
+/datum/game_mode/proc/get_alive_non_antagonsist_players_for_role(role, list/restricted_roles)
 	var/list/candidates = list()
 
 	for(var/mob/living/carbon/human/player in GLOB.player_list)
@@ -539,9 +557,10 @@
 					if(age_check(player.client) && !player.mind.special_role) //Must be older than the minimum age
 						candidates += player.mind				// Get a list of all the people who want to be the antagonist for this round
 
-	if(restricted_jobs)
+	var/restricted_list = length(restricted_roles) ? restricted_roles : restricted_jobs
+	if(restricted_list)
 		for(var/datum/mind/player in candidates)
-			for(var/job in restricted_jobs)					// Remove people who want to be antagonist but have a job already that precludes it
+			for(var/job in restricted_list)					// Remove people who want to be antagonist but have a job already that precludes it
 				if(player.assigned_role == job)
 					candidates -= player
 
@@ -643,6 +662,8 @@
 //////////////////////////
 /proc/display_roundstart_logout_report()
 	var/list/msg = list("<span class='boldnotice'>Roundstart logout report\n\n</span>")
+	var/list/mapvoters = SSpersistence.LoadMapVoters()
+	var/list/bad_mapvoters = list() // NSV13 - check for people who voted and ran
 	for(var/i in GLOB.mob_living_list)
 		var/mob/living/L = i
 		var/mob/living/carbon/C = L
@@ -651,6 +672,8 @@
 
 		if(L.ckey && !GLOB.directory[L.ckey])
 			msg += "<b>[L.name]</b> ([L.key]), the [L.job] (<font color='#ffcc00'><b>Disconnected</b></font>)\n"
+			if(replacetext(L.ckey, "@", "") in mapvoters) //NSV13 - mapvote tracking
+				bad_mapvoters += L.ckey
 
 
 		if(L.ckey && L.client)
@@ -678,6 +701,8 @@
 //				WARNING("AR_DEBUG: Zeroed [p_ckey]'s antag_rep_change")
 				SSpersistence.antag_rep_change[p_ckey] = 0
 
+			if(failed && (replacetext(L.client.ckey, "@", "") in mapvoters)) //NSV13 - mapvote tracking
+				bad_mapvoters += L.client.ckey
 			continue //Happy connected client
 		for(var/mob/dead/observer/D in GLOB.dead_mob_list)
 			if(D.mind && D.mind.current == L)
@@ -695,7 +720,8 @@
 						msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (<span class='boldannounce'>Ghosted</span>)\n"
 						continue //Ghosted while alive
 
-
+	msg += "\n<b>Absent mapvoters:</b> [english_list(bad_mapvoters)]\n"
+	log_vote("These voters were absent during the roundstart logout check: [english_list(bad_mapvoters)]")
 	for (var/C in GLOB.admins)
 		to_chat(C, msg.Join())
 
@@ -759,6 +785,7 @@
 		SSticker.news_report = STATION_DESTROYED_NUKE
 	if(EMERGENCY_ESCAPED_OR_ENDGAMED)
 		SSticker.news_report = STATION_EVACUATED
+		SSblackbox.record_feedback("text", "nsv_endings", 1, "evacuated")
 		if(SSshuttle.emergency.is_hijacked())
 			SSticker.news_report = SHUTTLE_HIJACK
 
@@ -783,6 +810,15 @@
 		round_credits += "<center><h2>[current.name] as the [current.assigned_role]</h2>"
 	if(round_credits.len == len_before_addition)
 		round_credits += list("<center><h2>[station_name()] had no silicon helpers!</h2>", "<center><h2>Not a single door was opened today!</h2>")
+	round_credits += "<br>"
+
+	// MUNITIONS - NSV13
+	round_credits += "<center><h1>The Valiant Munitions Crew:</h1>"
+	len_before_addition = round_credits.len
+	for(var/datum/mind/current in SSticker.mode.get_all_by_department(GLOB.munitions_positions))
+		round_credits += "<center><h2>[current.name] as the [current.assigned_role]</h2>"
+	if(round_credits.len == len_before_addition)
+		round_credits += list("<center><h2>The ship was likely defenceless!</h2>", "<center><h2>No one fired torp today!</h2>")
 	round_credits += "<br>"
 
 	// SECURITY
@@ -835,7 +871,7 @@
 	round_credits += "<center><h1>The Hardy Civilians:</h1>"
 	len_before_addition = round_credits.len
 	for(var/datum/mind/current in SSticker.mode.get_all_by_department(GLOB.civilian_positions | GLOB.gimmick_positions))
-		if(current.assigned_role == "Assistant")
+		if(current.assigned_role == JOB_NAME_ASSISTANT)
 			human_garbage += current
 		else
 			round_credits += "<center><h2>[current.name] as the [current.assigned_role]</h2>"

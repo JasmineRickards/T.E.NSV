@@ -22,6 +22,7 @@
 
 /datum/brain_trauma/hypnosis/on_gain()
 	message_admins("[ADMIN_LOOKUPFLW(owner)] was hypnotized with the phrase '[hypnotic_phrase]'.")
+	owner.log_message("was hypnotized with the phrase '[hypnotic_phrase]'.", LOG_ATTACK, color="#960000")
 	log_game("[key_name(owner)] was hypnotized with the phrase '[hypnotic_phrase]'.")
 	to_chat(owner, "<span class='reallybig hypnophrase'>[hypnotic_phrase]</span>")
 	to_chat(owner, "<span class='notice'>[pick("You feel your thoughts focusing on this phrase... you can't seem to get it out of your head.",\
@@ -33,13 +34,22 @@
 										as long as you act like the words are your highest priority.</span>")
 	var/atom/movable/screen/alert/hypnosis/hypno_alert = owner.throw_alert("hypnosis", /atom/movable/screen/alert/hypnosis)
 	hypno_alert.desc = "\"[hypnotic_phrase]\"... your mind seems to be fixated on this concept."
+	var/datum/atom_hud/antag/traitorhud = GLOB.huds[ANTAG_HUD_BRAINWASHED]
+	traitorhud.join_hud(owner.mind.current)
+	if(!owner.mind.antag_hud_icon_state)
+		set_antag_hud(owner.mind.current, "brainwash")
 	..()
 
 /datum/brain_trauma/hypnosis/on_lose()
 	message_admins("[ADMIN_LOOKUPFLW(owner)] is no longer hypnotized with the phrase '[hypnotic_phrase]'.")
 	log_game("[key_name(owner)] is no longer hypnotized with the phrase '[hypnotic_phrase]'.")
+	owner.log_message("is no longer hypnotized with the phrase '[hypnotic_phrase]'.", LOG_ATTACK, color="#960000")
 	to_chat(owner, "<span class='userdanger'>You suddenly snap out of your hypnosis. The phrase '[hypnotic_phrase]' no longer feels important to you.</span>")
 	owner.clear_alert("hypnosis")
+	var/datum/atom_hud/antag/traitorhud = GLOB.huds[ANTAG_HUD_BRAINWASHED]
+	traitorhud.leave_hud(owner.mind.current)
+	if(owner.mind.antag_hud_icon_state == "brainwash")
+		set_antag_hud(owner.mind.current, null)
 	..()
 
 /datum/brain_trauma/hypnosis/on_life()
@@ -51,6 +61,5 @@
 			if(2)
 				new /datum/hallucination/chat(owner, TRUE, FALSE, "<span class='hypnophrase'>[hypnotic_phrase]</span>")
 
-/datum/brain_trauma/hypnosis/on_hear(message, speaker, message_language, raw_message, radio_freq)
-	message = target_phrase.Replace(message, "<span class='hypnophrase'>$1</span>")
-	return message
+/datum/brain_trauma/hypnosis/handle_hearing(datum/source, list/hearing_args)
+	hearing_args[HEARING_RAW_MESSAGE] = target_phrase.Replace(hearing_args[HEARING_RAW_MESSAGE], "<span class='hypnophrase'>$1</span>")

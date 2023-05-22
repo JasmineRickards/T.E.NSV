@@ -31,36 +31,22 @@
 #SPAWN = mob transformations, spawning of most atoms including mobs (high-risk atoms, e.g. blackholes, will require the +FUN flag too).
 #AUTOADMIN = admin gains powers upon connect. This defaults to on, you can exclude AUTOADMIN to make a role require using the readmin verb to gain powers (this does not effect the admin's ability to walk past bans or other on-connect limitations like panic bunker or pop limit).
 #DBRANKS = when sql-based admin loading is enabled, allows for non-temporary changes in the permissions panel to be saved (requires DB).
+#SUPPRESS = allows administrators to issue bans that are completely hidden, and may only be removed by direct data modification. This permission should not be given to general administrators.
 #EVERYTHING = Simply gives you everything without having to type every flag.
 #@ = special keyword for the current permission type that adds all the keywords that the preceding rank has of the same type.
 
-Name = Admin Observer
-Include =
-Exclude = AUTOADMIN
-Edit =
-
-Name = Moderator
-Include = ADMIN
+Name = Server Ops Team
+Include = EVERYTHING
 Exclude =
-Edit =
-
-Name = Admin Candidate
-Include = @
-Exclude =
-Edit =
+Edit = EVERYTHING
 
 Name = Trial Admin
-Include = @ SPAWN VAREDIT BAN
-Exclude =
-Edit =
-
-Name = Badmin
-Include = @ POSSESS POLL BUILD SERVER FUN
+Include = ADMIN BAN SPAWN VAREDIT
 Exclude =
 Edit =
 
 Name = Admin
-Include = @ STEALTH SOUND DEBUG
+Include = ADMIN BAN BUILD DEBUG FUN POLL POSSESS SERVER SOUND SPAWN STEALTH VAREDIT 
 Exclude =
 Edit =
 
@@ -69,17 +55,7 @@ Include = EVERYTHING
 Exclude =
 Edit = EVERYTHING
 
-Name = Lazy Master
-Include = EVERYTHING
-Exclude = AUTOADMIN
-Edit = EVERYTHING
-
 Name = Host
-Include = EVERYTHING
-Exclude =
-Edit = EVERYTHING
-
-Name = Lurker
 Include = EVERYTHING
 Exclude =
 Edit = EVERYTHING
@@ -90,11 +66,11 @@ Exclude =
 Edit = EVERYTHING
 
 Name = Coder
-Include = DEBUG VAREDIT SERVER SPAWN POLL
+Include = DEBUG POLL SERVER SPAWN VAREDIT
 Exclude = AUTOADMIN
 Edit =
 
-Name = CouncilMember
+Name = Project Lead
 Include = EVERYTHING
 Exclude =
 Edit = EVERYTHING

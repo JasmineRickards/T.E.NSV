@@ -20,13 +20,14 @@
 	var/map_pad_id = "" as text //what's my name
 	var/map_pad_link_id = "" as text //who's my friend
 
-/obj/machinery/quantumpad/Initialize()
+/obj/machinery/quantumpad/Initialize(mapload)
 	. = ..()
 	wires = new /datum/wires/quantum_pad(src)
 	if(map_pad_id)
 		mapped_quantum_pads[map_pad_id] = src
 
 /obj/machinery/quantumpad/Destroy()
+	QDEL_NULL(wires)
 	mapped_quantum_pads -= map_pad_id
 	return ..()
 
@@ -116,7 +117,7 @@
 		to_chat(user, "<span class='warning'>Target pad is busy. Please wait.</span>")
 		return
 
-	if(target_pad.stat & NOPOWER)
+	if(target_pad.machine_stat & NOPOWER)
 		to_chat(user, "<span class='warning'>Target pad is not responding to ping.</span>")
 		return
 	add_fingerprint(user)
@@ -145,11 +146,11 @@
 			if(!src || QDELETED(src))
 				teleporting = FALSE
 				return
-			if(stat & NOPOWER)
+			if(machine_stat & NOPOWER)
 				to_chat(user, "<span class='warning'>[src] is unpowered!</span>")
 				teleporting = FALSE
 				return
-			if(!target_pad || QDELETED(target_pad) || target_pad.stat & NOPOWER)
+			if(!target_pad || QDELETED(target_pad) || target_pad.machine_stat & NOPOWER)
 				to_chat(user, "<span class='warning'>Linked pad is not responding to ping. Teleport aborted.</span>")
 				teleporting = FALSE
 				return
@@ -163,9 +164,9 @@
 			target_pad.sparks()
 
 			flick("qpad-beam", src)
-			playsound(get_turf(src), 'sound/weapons/emitter2.ogg', 25, 1, extrarange = 3, falloff = 5)
+			playsound(get_turf(src), 'sound/weapons/emitter2.ogg', 25, 1, extrarange = 3, falloff_exponent = 5)
 			flick("qpad-beam", target_pad)
-			playsound(get_turf(target_pad), 'sound/weapons/emitter2.ogg', 25, 1, extrarange = 3, falloff = 5)
+			playsound(get_turf(target_pad), 'sound/weapons/emitter2.ogg', 25, 1, extrarange = 3, falloff_exponent = 5)
 			for(var/atom/movable/ROI in get_turf(src))
 				if(QDELETED(ROI))
 					continue //sleeps in CHECK_TICK
@@ -181,7 +182,7 @@
 					else if(!isobserver(ROI))
 						continue
 
-				do_teleport(ROI, get_turf(target_pad),null,TRUE,null,null,null,null,TRUE, channel = TELEPORT_CHANNEL_QUANTUM)
+				do_teleport(ROI, get_turf(target_pad),null,null,null,null,null,TRUE, channel = TELEPORT_CHANNEL_QUANTUM)
 				CHECK_TICK
 
 /obj/machinery/quantumpad/proc/initMappedLink()

@@ -7,8 +7,12 @@
 	layer = CATWALK_LAYER
 	smooth = SMOOTH_TRUE
 	canSmoothWith = null
-	obj_flags = CAN_BE_HIT | BLOCK_Z_FALL
+	obj_flags = CAN_BE_HIT
 	var/hatch_open = FALSE //To easily access wiring
+
+/obj/structure/lattice/catwalk/over/ship/light
+	color = "#ffffff"
+	icon_state = "catwalk_platedwhite"
 
 /obj/structure/lattice/catwalk/over/ship/dark
  	color = "#4c535b" //Curse you baystation
@@ -24,7 +28,7 @@
 				break
 	if(I.use_tool(src, user, 0.5 SECONDS, volume=50))
 		user.visible_message("[user] flips [hatch_open ? "closed" : "open"] [src]'s maintenance hatch.",
-			"<span class='notice'>you flip [hatch_open ? "closed" : "open"] [src]'s maintenance hatch.</span>")
+			"<span class='notice'>You flip [hatch_open ? "closed" : "open"] [src]'s maintenance hatch.</span>")
 		hatch_open = !hatch_open
 		update_icon()
 	return TRUE
@@ -33,11 +37,14 @@
 	. = ..()
 	if(hatch_open)
 		icon_state = "catwalk_hatch_open"
-		obj_flags &= ~BLOCK_Z_FALL //Minecraft trap door.
+		obj_flags &= ~(BLOCK_Z_OUT_DOWN | BLOCK_Z_IN_UP) //Minecraft trap door.
 		smooth = SMOOTH_FALSE
 		clear_smooth_overlays()
 	else
 		icon_state = initial(icon_state)
-		obj_flags |= BLOCK_Z_FALL
+		obj_flags |= (BLOCK_Z_OUT_DOWN | BLOCK_Z_IN_UP)
 		smooth = SMOOTH_TRUE
 		queue_smooth(src)
+
+/obj/structure/lattice/catwalk/over/ship/can_lay_cable()
+	return hatch_open

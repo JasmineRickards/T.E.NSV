@@ -38,8 +38,7 @@
 				user.put_in_hands(PA)
 
 /obj/item/chrono_eraser/item_action_slot_check(slot, mob/user)
-	if(slot == ITEM_SLOT_BACK)
-		return 1
+	return slot == ITEM_SLOT_BACK
 
 /obj/item/gun/energy/chrono_gun
 	name = "T.E.D. Projection Apparatus"
@@ -56,7 +55,7 @@
 	var/obj/structure/chrono_field/field = null
 	var/turf/startpos = null
 
-/obj/item/gun/energy/chrono_gun/Initialize()
+/obj/item/gun/energy/chrono_gun/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NODROP, CHRONO_GUN_TRAIT)
 	if(istype(loc, /obj/item/chrono_eraser))
@@ -110,10 +109,10 @@
 		if(field == F)
 			var/turf/currentpos = get_turf(src)
 			var/mob/living/user = loc
-			if((currentpos == startpos) && (field in view(CHRONO_BEAM_RANGE, currentpos)) && (user.mobility_flags & MOBILITY_STAND) && (user.stat == CONSCIOUS))
-				return 1
+			if(currentpos == startpos && isliving(user) && (user.mobility_flags & MOBILITY_STAND) && (user.stat == CONSCIOUS) && (field in view(CHRONO_BEAM_RANGE, currentpos)))
+				return TRUE
 		field_disconnect(F)
-		return 0
+		return FALSE
 
 /obj/item/gun/energy/chrono_gun/proc/pass_mind(datum/mind/M)
 	if(TED)
@@ -127,11 +126,15 @@
 	nodamage = TRUE
 	var/obj/item/gun/energy/chrono_gun/gun = null
 
-/obj/item/projectile/energy/chrono_beam/Initialize()
+/obj/item/projectile/energy/chrono_beam/Initialize(mapload)
 	. = ..()
 	var/obj/item/ammo_casing/energy/chrono_beam/C = loc
 	if(istype(C))
 		gun = C.gun
+
+/obj/item/projectile/energy/chrono_beam/Destroy()
+	gun = null
+	return ..()
 
 /obj/item/projectile/energy/chrono_beam/on_hit(atom/target)
 	if(target && gun && isliving(target))
@@ -146,12 +149,14 @@
 	e_cost = 0
 	var/obj/item/gun/energy/chrono_gun/gun
 
-/obj/item/ammo_casing/energy/chrono_beam/Initialize()
+/obj/item/ammo_casing/energy/chrono_beam/Initialize(mapload)
 	if(istype(loc))
 		gun = loc
 	. = ..()
 
-
+/obj/item/ammo_casing/energy/chrono_beam/Destroy()
+	gun = null
+	return ..()
 
 
 
@@ -167,19 +172,21 @@
 	interaction_flags_atom = NONE
 	var/mob/living/captured = null
 	var/obj/item/gun/energy/chrono_gun/gun = null
-	var/tickstokill = 15
+	var/timetokill = 3 SECONDS
 	var/mutable_appearance/mob_underlay
-	var/preloaded = 0
 	var/RPpos = null
+	var/attached = TRUE //if the gun arg isn't included initially, then the chronofield will work without one
 
 /obj/structure/chrono_field/Initialize(mapload, mob/living/target, obj/item/gun/energy/chrono_gun/G)
-	if(target && isliving(target) && G)
+	if(target && isliving(target))
+		if(!G)
+			attached = FALSE
 		target.forceMove(src)
 		captured = target
 		var/icon/mob_snapshot = getFlatIcon(target)
 		var/icon/cached_icon = new()
 
-		for(var/i=1, i<=CHRONO_FRAME_COUNT, i++)
+		for(var/i in 1 to CHRONO_FRAME_COUNT)
 			var/icon/removing_frame = icon('icons/obj/chronos.dmi', "erasing", SOUTH, i)
 			var/icon/mob_icon = icon(mob_snapshot)
 			mob_icon.Blend(removing_frame, ICON_MULTIPLY)
@@ -193,28 +200,28 @@
 	return ..()
 
 /obj/structure/chrono_field/Destroy()
-	if(gun && gun.field_check(src))
+	if(gun?.field_check(src))
 		gun.field_disconnect(src)
 	return ..()
 
 /obj/structure/chrono_field/update_icon()
-	var/ttk_frame = 1 - (tickstokill / initial(tickstokill))
+	var/ttk_frame = 1 - (timetokill / initial(timetokill))
 	ttk_frame = CLAMP(CEILING(ttk_frame * CHRONO_FRAME_COUNT, 1), 1, CHRONO_FRAME_COUNT)
 	if(ttk_frame != RPpos)
 		RPpos = ttk_frame
+		underlays -= mob_underlay
 		mob_underlay.icon_state = "frame[RPpos]"
-		underlays = list() //hack: BYOND refuses to update the underlay to match the icon_state otherwise
 		underlays += mob_underlay
 
-/obj/structure/chrono_field/process()
+/obj/structure/chrono_field/process(delta_time)
 	if(captured)
-		if(tickstokill > initial(tickstokill))
+		if(timetokill > initial(timetokill))
 			for(var/atom/movable/AM in contents)
 				AM.forceMove(drop_location())
 			qdel(src)
-		else if(tickstokill <= 0)
+		else if(timetokill <= 0)
 			to_chat(captured, "<span class='boldnotice'>As the last essence of your being is erased from time, you are taken back to your most enjoyable memory. You feel happy...</span>")
-			var/mob/dead/observer/ghost = captured.ghostize(1)
+			var/mob/dead/observer/ghost = captured.ghostize(TRUE,SENTIENCE_ERASE)
 			if(captured.mind)
 				if(ghost)
 					ghost.mind = null
@@ -229,12 +236,14 @@
 			update_icon()
 			if(gun)
 				if(gun.field_check(src))
-					tickstokill--
+					timetokill -= delta_time
 				else
 					gun = null
 					return .()
+			else if(!attached)
+				timetokill -= delta_time
 			else
-				tickstokill++
+				timetokill += delta_time
 	else
 		qdel(src)
 
@@ -252,8 +261,8 @@
 
 /obj/structure/chrono_field/return_air() //we always have nominal air and temperature
 	var/datum/gas_mixture/GM = new
-	GM.set_moles(/datum/gas/oxygen, MOLES_O2STANDARD)
-	GM.set_moles(/datum/gas/nitrogen, MOLES_N2STANDARD)
+	GM.set_moles(GAS_O2, MOLES_O2STANDARD)
+	GM.set_moles(GAS_N2, MOLES_N2STANDARD)
 	GM.set_temperature(T20C)
 	return GM
 

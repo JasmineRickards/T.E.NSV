@@ -16,7 +16,8 @@
 	var/list/messages = list("This party is great!", "Wooo!!!", "Party!", "Check out these moves!", "Hey, want to dance with me?")
 	var/list/message_social_anxiety = list("I want to go home...", "Where are the toilets?", "I don't like this song.")
 
-/obj/item/grenade/discogrenade/prime()
+/obj/item/grenade/discogrenade/prime(mob/living/lanced_by)
+	. = ..()
 	update_mob()
 	var/current_turf = get_turf(src)
 	if(!current_turf)
@@ -54,10 +55,14 @@
 	var/launch_distance = rand(2, 6)
 	for(var/i in 1 to launch_distance)
 		step_away(src, loc)
-	addtimer(CALLBACK(src, .proc/prime), rand(10, 60))
+	addtimer(CALLBACK(src, PROC_REF(prime)), rand(10, 60))
 	randomiseLightColor()
 
-/obj/item/grenade/discogrenade/subgrenade/prime()
+/obj/item/grenade/discogrenade/subgrenade/prime(mob/living/lanced_by)
+	if(dud_flags)
+		active = FALSE
+		update_icon()
+		return FALSE
 	update_mob()
 	var/current_turf = get_turf(src)
 	if(!current_turf)
@@ -83,7 +88,7 @@
 	set_light(range, power, lightcolor)
 	add_atom_colour("#[lightcolor]", FIXED_COLOUR_PRIORITY)
 	update_icon()
-	timerID = addtimer(CALLBACK(src, .proc/randomiseLightColor), 2, TIMER_STOPPABLE)
+	timerID = addtimer(CALLBACK(src, PROC_REF(randomiseLightColor)), 2, TIMER_STOPPABLE)
 
 /obj/item/grenade/discogrenade/subgrenade/proc/forcedance(turf/T , mob/living/carbon/human/M)
 	if(!T)

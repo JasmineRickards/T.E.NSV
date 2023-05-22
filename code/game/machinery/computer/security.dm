@@ -5,13 +5,10 @@
 	icon_keyboard = "security_key"
 	req_one_access = list(ACCESS_SEC_RECORDS)
 	circuit = /obj/item/circuitboard/computer/secure_data
-	var/obj/item/card/id/scan = null
-	var/authenticated = null
 	var/rank = null
 	var/screen = null
 	var/datum/data/record/active1 = null
 	var/datum/data/record/active2 = null
-	var/a_id = null
 	var/temp = null
 	var/printing = null
 	var/can_change_id = 0
@@ -22,10 +19,180 @@
 	var/order = 1 // -1 = Descending - 1 = Ascending
 	light_color = LIGHT_COLOR_RED
 
-/obj/machinery/computer/secure_data/examine(mob/user)
+/obj/machinery/computer/secure_data/Initialize(mapload, obj/item/circuitboard/C)
 	. = ..()
-	if(scan)
-		. += "<span class='notice'>Alt-click to eject the ID card.</span>"
+	AddComponent(/datum/component/usb_port, list(
+		/obj/item/circuit_component/arrest_console_data,
+		/obj/item/circuit_component/arrest_console_arrest,
+	))
+
+/obj/item/circuit_component/arrest_console_data
+	display_name = "Security Records Data"
+	display_desc = "Outputs the security records data, where it can then be filtered with a Select Query component"
+	circuit_flags = CIRCUIT_FLAG_INPUT_SIGNAL|CIRCUIT_FLAG_OUTPUT_SIGNAL
+
+	/// The records retrieved
+	var/datum/port/output/records
+
+	/// Sends a signal on failure
+	var/datum/port/output/on_fail
+
+	var/obj/machinery/computer/secure_data/attached_console
+
+/obj/item/circuit_component/arrest_console_data/Initialize(mapload)
+	. = ..()
+	records = add_output_port("Security Records", PORT_TYPE_TABLE)
+	on_fail = add_output_port("Failed", PORT_TYPE_SIGNAL)
+
+/obj/item/circuit_component/arrest_console_data/Destroy()
+	records = null
+	on_fail = null
+	return ..()
+
+
+/obj/item/circuit_component/arrest_console_data/register_usb_parent(atom/movable/parent)
+	. = ..()
+	if(istype(parent, /obj/machinery/computer/secure_data))
+		attached_console = parent
+
+/obj/item/circuit_component/arrest_console_data/unregister_usb_parent(atom/movable/parent)
+	attached_console = null
+	return ..()
+
+/obj/item/circuit_component/arrest_console_data/get_ui_notices()
+	. = ..()
+	. += create_table_notices(list(
+		"name",
+		"id",
+		"rank",
+		"arrest_status",
+		"gender",
+		"age",
+		"species",
+		"fingerprint",
+	))
+
+
+/obj/item/circuit_component/arrest_console_data/input_received(datum/port/input/port)
+	. = ..()
+	if(.)
+		return
+
+	if(!attached_console || !attached_console.authenticated)
+		on_fail.set_output(COMPONENT_SIGNAL)
+		return
+
+	if(isnull(GLOB.data_core.general))
+		on_fail.set_output(COMPONENT_SIGNAL)
+		return
+
+	var/list/new_table = list()
+	for(var/datum/data/record/player_record as anything in GLOB.data_core.general)
+		var/list/entry = list()
+		var/datum/data/record/player_security_record = find_record("id", player_record.fields["id"], GLOB.data_core.security)
+		if(player_security_record)
+			entry["arrest_status"] = player_security_record.fields["criminal"]
+			entry["security_record"] = player_security_record
+		entry["name"] = player_record.fields["name"]
+		entry["id"] = player_record.fields["id"]
+		entry["rank"] = player_record.fields["rank"]
+		entry["gender"] = player_record.fields["gender"]
+		entry["age"] = player_record.fields["age"]
+		entry["species"] = player_record.fields["species"]
+		entry["fingerprint"] = player_record.fields["fingerprint"]
+
+		new_table += list(entry)
+
+	records.set_output(new_table)
+
+/obj/item/circuit_component/arrest_console_arrest
+	display_name = "Security Records Set Status"
+	display_desc = "Receives a table to use to set people's arrest status. Table should be from the security records data component. If New Status port isn't set, the status will be decided by the options."
+	circuit_flags = CIRCUIT_FLAG_INPUT_SIGNAL|CIRCUIT_FLAG_OUTPUT_SIGNAL
+
+	/// The targets to set the status of.
+	var/datum/port/input/targets
+
+	/// Sets the new status of the targets. If set to null, the status is taken from the options.
+	var/datum/port/input/new_status
+
+	/// Returns the new status set once the setting is complete. Good for locating errors.
+	var/datum/port/output/new_status_set
+
+	/// Sends a signal on failure
+	var/datum/port/output/on_fail
+
+	var/obj/machinery/computer/secure_data/attached_console
+
+/obj/item/circuit_component/arrest_console_arrest/register_usb_parent(atom/movable/parent)
+	. = ..()
+	if(istype(parent, /obj/machinery/computer/secure_data))
+		attached_console = parent
+
+/obj/item/circuit_component/arrest_console_arrest/unregister_usb_parent(atom/movable/parent)
+	attached_console = null
+	return ..()
+
+/obj/item/circuit_component/arrest_console_arrest/populate_options()
+	var/static/list/component_options = list(
+		COMP_STATE_ARREST,
+		COMP_STATE_PRISONER,
+		COMP_STATE_PAROL,
+		COMP_STATE_DISCHARGED,
+		COMP_STATE_NONE,
+	)
+	options = component_options
+
+/obj/item/circuit_component/arrest_console_arrest/Initialize(mapload)
+	. = ..()
+	targets = add_input_port("Targets", PORT_TYPE_TABLE)
+	new_status = add_input_port("New Status", PORT_TYPE_STRING)
+	new_status_set = add_output_port("Set Status", PORT_TYPE_STRING)
+	on_fail = add_output_port("Failed", PORT_TYPE_SIGNAL)
+
+/obj/item/circuit_component/arrest_console_arrest/Destroy()
+	targets = null
+	new_status = null
+	new_status_set = null
+	on_fail = null
+	return ..()
+
+/obj/item/circuit_component/arrest_console_arrest/input_received(datum/port/input/port)
+	. = ..()
+	if(.)
+		return
+
+	if(!attached_console || !attached_console.authenticated)
+		on_fail.set_output(COMPONENT_SIGNAL)
+		return
+
+	var/status_to_set = new_status.input_value
+	if(!status_to_set || !(status_to_set in options))
+		status_to_set = current_option
+
+	new_status_set.set_output(status_to_set)
+	var/list/target_table = targets.input_value
+	if(!target_table)
+		on_fail.set_output(COMPONENT_SIGNAL)
+		return
+
+	var/successful_set = 0
+	var/list/names_of_entries = list()
+	for(var/list/target in target_table)
+		var/datum/data/record/sec_record = target["security_record"]
+		if(!sec_record)
+			continue
+
+		successful_set++
+		sec_record.fields["criminal"] = status_to_set
+		names_of_entries += target["name"]
+
+	if(successful_set > 0)
+		investigate_log("[names_of_entries.Join(", ")] have been set to [status_to_set] by [parent.get_creator()].", INVESTIGATE_RECORDS)
+		if(successful_set > COMP_SECURITY_ARREST_AMOUNT_TO_FLAG)
+			message_admins("[successful_set] security entries have been set to [status_to_set] by [parent.get_creator_admin()]. [ADMIN_COORDJMP(src)]")
+		for(var/mob/living/carbon/human/human as anything in GLOB.carbon_list)
+			human.sec_hud_set_security_status()
 
 /obj/machinery/computer/secure_data/syndie
 	icon_keyboard = "syndie_key"
@@ -37,34 +204,23 @@
 	icon_screen = "seclaptop"
 	icon_keyboard = "laptop_key"
 	clockwork = TRUE //it'd look weird
+	broken_overlay_emissive = TRUE
 	pass_flags = PASSTABLE
-
-/obj/machinery/computer/secure_data/attackby(obj/item/O, mob/user, params)
-	if(istype(O, /obj/item/card/id))
-		if(!scan)
-			if(!user.transferItemToLoc(O, src))
-				return
-			scan = O
-			to_chat(user, "<span class='notice'>You insert [O].</span>")
-			playsound(src, 'sound/machines/terminal_insert_disc.ogg', 50, 0)
-			updateUsrDialog()
-		else
-			to_chat(user, "<span class='warning'>There's already an ID card in the console.</span>")
-	else
-		return ..()
 
 //Someone needs to break down the dat += into chunks instead of long ass lines.
 /obj/machinery/computer/secure_data/ui_interact(mob/user)
 	. = ..()
+	if(isliving(user))
+		playsound(src, 'sound/machines/terminal_prompt_confirm.ogg', 50, FALSE)
 	if(src.z > 6)
 		to_chat(user, "<span class='boldannounce'>Unable to establish a connection</span>: \black You're too far away from the station!")
 		return
 	var/dat
 
 	if(temp)
-		dat = text("<TT>[]</TT><BR><BR><A href='?src=[REF(src)];choice=Clear Screen'>Clear Screen</A>", temp)
+		dat = "<TT>[temp]</TT><BR><BR><A href='?src=[REF(src)];choice=Clear Screen'>Clear Screen</A>"
 	else
-		dat = text("Confirm Identity: <A href='?src=[REF(src)];choice=Confirm Identity'>[]</A><HR>", (scan ? text("[]", scan.name) : "----------"))
+		dat = ""
 		if(authenticated)
 			switch(screen)
 				if(1)
@@ -193,7 +349,7 @@
 						dat += {"<table><tr><td><table>
 						<tr><td>Name:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=name'>&nbsp;[active1.fields["name"]]&nbsp;</A></td></tr>
 						<tr><td>ID:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=id'>&nbsp;[active1.fields["id"]]&nbsp;</A></td></tr>
-						<tr><td>Sex:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=sex'>&nbsp;[active1.fields["sex"]]&nbsp;</A></td></tr>
+						<tr><td>Gender:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=gender'>&nbsp;[active1.fields["gender"]]&nbsp;</A></td></tr>
 						<tr><td>Age:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=age'>&nbsp;[active1.fields["age"]]&nbsp;</A></td></tr>"}
 						dat += "<tr><td>Species:</td><td><A href ='?src=[REF(src)];choice=Edit Field;field=species'>&nbsp;[active1.fields["species"]]&nbsp;</A></td></tr>"
 						dat += {"<tr><td>Rank:</td><td><A href='?src=[REF(src)];choice=Edit Field;field=rank'>&nbsp;[active1.fields["rank"]]&nbsp;</A></td></tr>
@@ -320,36 +476,38 @@ What a mess.*/
 				active1 = null
 				active2 = null
 
-			if("Confirm Identity")
-				eject_id(usr)
-
 			if("Log Out")
 				authenticated = null
 				screen = null
 				active1 = null
 				active2 = null
+				playsound(src, 'sound/machines/terminal_off.ogg', 50, FALSE)
 
 			if("Log In")
-				if(issilicon(usr))
-					var/mob/living/silicon/borg = usr
+				var/mob/M = usr
+				var/obj/item/card/id/I = M.get_idcard(TRUE)
+				if(issilicon(M))
 					active1 = null
 					active2 = null
-					authenticated = borg.name
-					rank = "AI"
+					authenticated = M.name
+					rank = JOB_NAME_AI
 					screen = 1
-				else if(IsAdminGhost(usr))
+				else if(IsAdminGhost(M))
 					active1 = null
 					active2 = null
-					authenticated = usr.client.holder.admin_signature
-					rank = "Central Command"
+					authenticated = M.client.holder.admin_signature
+					rank = JOB_CENTCOM_CENTRAL_COMMAND
 					screen = 1
-				else if(istype(scan, /obj/item/card/id))
+				else if(I && check_access(I))
 					active1 = null
 					active2 = null
-					if(check_access(scan))
-						authenticated = scan.registered_name
-						rank = scan.assignment
-						screen = 1
+					authenticated = I.registered_name
+					rank = I.assignment
+					screen = 1
+				else
+					to_chat(usr, "<span class='danger'>Unauthorized Access.</span>")
+				playsound(src, 'sound/machines/terminal_on.ogg', 50, FALSE)
+
 //RECORD FUNCTIONS
 			if("Record Maintenance")
 				screen = 2
@@ -396,7 +554,7 @@ What a mess.*/
 					var/obj/item/paper/P = new /obj/item/paper( loc )
 					P.info = "<CENTER><B>Security Record - (SR-[GLOB.data_core.securityPrintCount])</B></CENTER><BR>"
 					if((istype(active1, /datum/data/record) && GLOB.data_core.general.Find(active1)))
-						P.info += text("Name: [] ID: []<BR>\nSex: []<BR>\nAge: []<BR>", active1.fields["name"], active1.fields["id"], active1.fields["sex"], active1.fields["age"])
+						P.info += text("Name: [] ID: []<BR>\nGender: []<BR>\nAge: []<BR>", active1.fields["name"], active1.fields["id"], active1.fields["gender"], active1.fields["age"])
 						P.info += "\nSpecies: [active1.fields["species"]]<BR>"
 						P.info += text("\nFingerprint: []<BR>\nPhysical Status: []<BR>\nMental Status: []<BR>", active1.fields["fingerprint"], active1.fields["p_stat"], active1.fields["m_stat"])
 					else
@@ -444,15 +602,17 @@ What a mess.*/
 								default_description += "[c.crimeDetails]\n"
 
 						var/headerText = stripped_input(usr, "Please enter Poster Heading (Max 7 Chars):", "Print Wanted Poster", "WANTED", 8)
-
+						var/posternum = CLAMP((input("Number of posters to print (Max 5):","Number:",1) as num|null), 1, 5)
 						var/info = stripped_multiline_input(usr, "Please input a description for the poster:", "Print Wanted Poster", default_description, null)
 						if(info)
-							playsound(loc, 'sound/items/poster_being_created.ogg', 100, 1)
 							printing = 1
-							sleep(30)
-							if((istype(active1, /datum/data/record) && GLOB.data_core.general.Find(active1)))//make sure the record still exists.
-								var/obj/item/photo/photo = active1.fields["photo_front"]
-								new /obj/item/poster/wanted(loc, photo.picture.picture_image, wanted_name, info, headerText)
+							for(var/i in 1 to posternum)
+								playsound(loc, 'sound/items/poster_being_created.ogg', 100, 1)
+
+								sleep(30)
+								if((istype(active1, /datum/data/record) && GLOB.data_core.general.Find(active1)))//make sure the record still exists.
+									var/obj/item/photo/photo = active1.fields["photo_front"]
+									new /obj/item/poster/wanted(loc, photo.picture.picture_image, wanted_name, info, headerText)
 							printing = 0
 			if("Print Missing")
 				if(!( printing ))
@@ -461,15 +621,16 @@ What a mess.*/
 						var/default_description = "A poster declaring [missing_name] to be a missing individual, missed by Nanotrasen. Report any sightings to security immediately."
 
 						var/headerText = stripped_input(usr, "Please enter Poster Heading (Max 7 Chars):", "Print Missing Persons Poster", "MISSING", 8)
-
+						var/posternum = CLAMP((input("Number of posters to print (Max 5):","Number:",1) as num|null), 1, 5)
 						var/info = stripped_multiline_input(usr, "Please input a description for the poster:", "Print Missing Persons Poster", default_description, null)
 						if(info)
-							playsound(loc, 'sound/items/poster_being_created.ogg', 100, 1)
 							printing = 1
-							sleep(30)
-							if((istype(active1, /datum/data/record) && GLOB.data_core.general.Find(active1)))//make sure the record still exists.
-								var/obj/item/photo/photo = active1.fields["photo_front"]
-								new /obj/item/poster/wanted/missing(loc, photo.picture.picture_image, missing_name, info, headerText)
+							for(var/i in 1 to posternum)
+								playsound(loc, 'sound/items/poster_being_created.ogg', 100, 1)
+								sleep(30)
+								if((istype(active1, /datum/data/record) && GLOB.data_core.general.Find(active1)))//make sure the record still exists.
+									var/obj/item/photo/photo = active1.fields["photo_front"]
+									new /obj/item/poster/wanted/missing(loc, photo.picture.picture_image, missing_name, info, headerText)
 							printing = 0
 
 //RECORD DELETE
@@ -496,7 +657,7 @@ What a mess.*/
 				var/counter = 1
 				while(active2.fields[text("com_[]", counter)])
 					counter++
-				active2.fields[text("com_[]", counter)] = text("Made by [] ([]) on [] [], []<BR>[]", src.authenticated, src.rank, station_time_timestamp(), time2text(world.realtime, "MMM DD"), GLOB.year_integer+540, t1)
+				active2.fields[text("com_[]", counter)] = text("Made by [] ([]) on [] [], []<BR>[]", src.authenticated, src.rank, station_time_timestamp(), time2text(world.realtime, "MMM DD"), GLOB.year_integer+YEAR_OFFSET, t1) //NSV13 edit: year offset change
 
 			if("Delete Record (ALL)")
 				if(active1)
@@ -533,7 +694,7 @@ What a mess.*/
 				G.fields["name"] = "New Record"
 				G.fields["id"] = "[num2hex(rand(1, 1.6777215E7), 6)]"
 				G.fields["rank"] = "Unassigned"
-				G.fields["sex"] = "Male"
+				G.fields["gender"] = "Male"
 				G.fields["age"] = "Unknown"
 				G.fields["species"] = "Human"
 				G.fields["photo_front"] = new /icon()
@@ -604,16 +765,18 @@ What a mess.*/
 							if(!canUseSecurityRecordsConsole(usr, t1, a1))
 								return
 							active1.fields["fingerprint"] = t1
-					if("sex")
+					if("gender")
 						if(istype(active1, /datum/data/record))
-							if(active1.fields["sex"] == "Male")
-								active1.fields["sex"] = "Female"
+							if(active1.fields["gender"] == "Male")
+								active1.fields["gender"] = "Female"
+							else if(active1.fields["gender"] == "Female")
+								active1.fields["gender"] = "Other"
 							else
-								active1.fields["sex"] = "Male"
+								active1.fields["gender"] = "Male"
 					if("age")
 						if(istype(active1, /datum/data/record))
 							var/t1 = input("Please input age:", "Secure. records", active1.fields["age"], null) as num
-							if(!canUseSecurityRecordsConsole(usr, "age", a1))
+							if(!isnum_safe(t1) || !canUseSecurityRecordsConsole(usr, "age", a1))
 								return
 							active1.fields["age"] = t1
 					if("species")
@@ -707,16 +870,16 @@ What a mess.*/
 							if(!canUseSecurityRecordsConsole(usr, t1, null, a2))
 								return
 
-							var/crime = GLOB.data_core.createCrimeEntry(t1, "", authenticated, station_time_timestamp(), fine)
-							for (var/obj/item/pda/P in GLOB.PDAs)
-								if(P.owner == active1.fields["name"])
+							var/datum/data/crime/crime = GLOB.data_core.createCrimeEntry(t1, "", authenticated, station_time_timestamp(), fine)
+							for (var/obj/item/modular_computer/tablet in GLOB.TabletMessengers)
+								if(tablet.saved_identification == active1.fields["name"])
 									var/message = "You have been fined [fine] credits for '[t1]'. Fines may be paid at security."
-									var/datum/signal/subspace/messaging/pda/signal = new(src, list(
+									var/datum/signal/subspace/messaging/tablet_msg/signal = new(src, list(
 										"name" = "Security Citation",
 										"job" = "Citation Server",
 										"message" = message,
-										"targets" = list("[P.owner] ([P.ownjob])"),
-										"automated" = 1
+										"targets" = list(tablet),
+										"automated" = TRUE
 									))
 									signal.send_to_receivers()
 									usr.log_message("(PDA: Citation Server) sent \"[message]\" to [signal.format_target()]", LOG_PDA)
@@ -747,7 +910,7 @@ What a mess.*/
 							temp += "<li><a href='?src=[REF(src)];choice=Change Criminal Status;criminal2=released'>Discharged</a></li>"
 							temp += "</ul>"
 					if("rank")
-						var/list/L = list( "Head of Personnel", "Captain", "AI", "Central Command" )
+						var/list/L = list( JOB_NAME_HEADOFPERSONNEL, JOB_NAME_CAPTAIN, JOB_NAME_AI, JOB_CENTCOM_CENTRAL_COMMAND)
 						//This was so silly before the change. Now it actually works without beating your head against the keyboard. /N
 						if((istype(active1, /datum/data/record) && L.Find(rank)))
 							temp = "<h5>Rank:</h5>"
@@ -763,7 +926,7 @@ What a mess.*/
 				switch(href_list["choice"])
 					if("Change Rank")
 						if(active1)
-							active1.fields["rank"] = href_list["rank"]
+							active1.fields["rank"] = strip_html(href_list["rank"])
 							if(href_list["rank"] in get_all_jobs())
 								active1.fields["real_rank"] = href_list["real_rank"]
 
@@ -842,7 +1005,7 @@ What a mess.*/
 /obj/machinery/computer/secure_data/emp_act(severity)
 	. = ..()
 
-	if(stat & (BROKEN|NOPOWER) || . & EMP_PROTECT_SELF)
+	if(machine_stat & (BROKEN|NOPOWER) || . & EMP_PROTECT_SELF)
 		return
 
 	for(var/datum/data/record/R in GLOB.data_core.security)
@@ -850,11 +1013,11 @@ What a mess.*/
 			switch(rand(1,8))
 				if(1)
 					if(prob(10))
-						R.fields["name"] = "[pick(lizard_name(MALE),lizard_name(FEMALE))]"
+						R.fields["name"] = "[pick(random_lizard_name(MALE),random_lizard_name(FEMALE))]"
 					else
 						R.fields["name"] = "[pick(pick(GLOB.first_names_male), pick(GLOB.first_names_female))] [pick(GLOB.last_names)]"
 				if(2)
-					R.fields["sex"] = pick("Male", "Female")
+					R.fields["gender"] = pick("Male", "Female", "Other")
 				if(3)
 					R.fields["age"] = rand(5, 85)
 				if(4)
@@ -885,23 +1048,3 @@ What a mess.*/
 					if(!record2 || record2 == active2)
 						return 1
 	return 0
-
-/obj/machinery/computer/secure_data/AltClick(mob/user)
-	if(user.canUseTopic(src, !issilicon(user)))
-		eject_id(user)
-
-/obj/machinery/computer/secure_data/proc/eject_id(mob/user)
-	if(scan)
-		scan.forceMove(drop_location())
-		if(!issilicon(user) && Adjacent(user))
-			user.put_in_hands(scan)
-		scan = null
-		playsound(src, 'sound/machines/terminal_insert_disc.ogg', 50, 0)
-	else //switching the ID with the one you're holding
-		if(issilicon(user) || !Adjacent(user))
-			return
-		var/obj/item/card/id/held_id = user.is_holding_item_of_type(/obj/item/card/id)
-		if(QDELETED(held_id) || !user.transferItemToLoc(held_id, src))
-			return
-		scan = held_id
-		playsound(src, 'sound/machines/terminal_insert_disc.ogg', 50, 0)

@@ -14,7 +14,6 @@ export const NtosWindow = (props, context) => {
     title,
     width = 575,
     height = 700,
-    resizable,
     theme = 'ntos',
     children,
   } = props;
@@ -29,14 +28,15 @@ export const NtosWindow = (props, context) => {
     PC_stationtime,
     PC_programheaders = [],
     PC_showexitprogram,
+    PC_classic_color,
   } = data;
   return (
     <Window
       title={title}
       width={width}
       height={height}
-      theme={theme}
-      resizable={resizable}>
+      theme={PC_device_theme || theme}
+      override_bg={PC_classic_color && PC_device_theme === "thinktronic-classic" ? PC_classic_color : null}>
       <div className="NtosWindow">
         <div className="NtosWindow__header NtosHeader">
           <div className="NtosHeader__left">
@@ -44,7 +44,7 @@ export const NtosWindow = (props, context) => {
               {PC_stationtime}
             </Box>
             <Box inline italic mr={2} opacity={0.33}>
-              {PC_device_theme === 'ntos' && 'NtOS'}
+              {PC_device_theme?.startsWith('ntos') && 'NtOS'}
               {PC_device_theme === 'syndicate' && 'Syndix'}
             </Box>
           </div>
@@ -102,7 +102,7 @@ export const NtosWindow = (props, context) => {
                 color="transparent"
                 icon="window-close-o"
                 tooltip="Close"
-                tooltipPosition="bottom-left"
+                tooltipPosition="bottom-start"
                 onClick={() => act('PC_exit')} />
             )}
             {!PC_showexitprogram && (
@@ -114,7 +114,7 @@ export const NtosWindow = (props, context) => {
                 color="transparent"
                 icon="power-off"
                 tooltip="Power off"
-                tooltipPosition="bottom-left"
+                tooltipPosition="bottom-start"
                 onClick={() => act('PC_shutdown')} />
             )}
           </div>

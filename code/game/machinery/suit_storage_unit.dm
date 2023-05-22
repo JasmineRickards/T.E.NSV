@@ -43,7 +43,7 @@
 	* * If TRUE, decontamination sequence will burn and decontaminate all items contained within, and if occupied by a mob, intensifies burn damage delt. All wires will be cut at the end.
 	*/
 	var/uv_super = FALSE
-	/// NSV13 for managing the messages sent back when the machine was hacked
+	/// For managing the messages sent back when the machine was hacked
 	var/toasted = FALSE
 	/// How many cycles remain for the decontamination sequence.
 	var/uv_cycles = 6
@@ -52,7 +52,7 @@
 	/// How long it takes to break out of the SSU.
 	var/breakout_time = 300
 	/// How fast it charges cells in a suit
-	var/charge_rate = 500
+	var/charge_rate = 250
 
 /obj/machinery/suit_storage_unit/standard_unit
 	suit_type = /obj/item/clothing/suit/space/eva
@@ -78,7 +78,7 @@
 	mask_type = /obj/item/clothing/mask/gas/sechailer
 
 /obj/machinery/suit_storage_unit/hos
-	suit_type = /obj/item/clothing/suit/space/hardsuit/security/hos
+	suit_type = /obj/item/clothing/suit/space/hardsuit/security/head_of_security
 	mask_type = /obj/item/clothing/mask/gas/sechailer
 	storage_type = /obj/item/tank/internals/oxygen
 
@@ -95,12 +95,16 @@
 	suit_type = /obj/item/clothing/suit/space/hardsuit/mining
 	mask_type = /obj/item/clothing/mask/breath
 
+/obj/machinery/suit_storage_unit/exploration
+	suit_type = /obj/item/clothing/suit/space/hardsuit/exploration
+	mask_type = /obj/item/clothing/mask/breath
+
 /obj/machinery/suit_storage_unit/cmo
 	suit_type = /obj/item/clothing/suit/space/hardsuit/medical/cmo
 	mask_type = /obj/item/clothing/mask/breath
 
 /obj/machinery/suit_storage_unit/rd
-	suit_type = /obj/item/clothing/suit/space/hardsuit/rd
+	suit_type = /obj/item/clothing/suit/space/hardsuit/research_director
 	mask_type = /obj/item/clothing/mask/breath
 
 /obj/machinery/suit_storage_unit/syndicate
@@ -138,7 +142,7 @@
 	state_open = TRUE
 	density = FALSE
 
-/obj/machinery/suit_storage_unit/Initialize()
+/obj/machinery/suit_storage_unit/Initialize(mapload)
 	. = ..()
 	wires = new /datum/wires/suit_storage_unit(src)
 	if(suit_type)
@@ -152,21 +156,22 @@
 	update_icon()
 
 /obj/machinery/suit_storage_unit/Destroy()
-	dump_contents() //NSV13 made SSU's not delete all items inside but drop them instead
+	QDEL_NULL(wires)
+	dump_contents()
 	return ..()
 
 /obj/machinery/suit_storage_unit/update_icon()
 	cut_overlays()
 
 	if(uv)
-		if(uv_super | (obj_flags & EMAGGED)) //NSV13 Emagged flag check
+		if(uv_super || (obj_flags & EMAGGED))
 			add_overlay("super")
 		else if(occupant)
 			add_overlay("uvhuman")
 		else
 			add_overlay("uv")
 	else if(state_open)
-		if(stat & BROKEN)
+		if(machine_stat & BROKEN)
 			add_overlay("broken")
 		else
 			add_overlay("open")
@@ -181,7 +186,7 @@
 
 /obj/machinery/suit_storage_unit/power_change()
 	. = ..()
-	if(!is_operational() && state_open)
+	if(!is_operational && state_open)
 		open_machine()
 		dump_contents()
 	update_icon()
@@ -194,17 +199,17 @@
 	storage = null
 	occupant = null
 
-//NSV13 gave SSU's an emag and emp interaction
 /obj/machinery/suit_storage_unit/emp_act()
 	. = ..()
-	uv_super = TRUE
+	uv_super = !uv_super
+	wires.ui_update()
+	ui_update()
 
 /obj/machinery/suit_storage_unit/emag_act(mob/user)
 	if(obj_flags & EMAGGED)
 		return
 	obj_flags |= EMAGGED
 	to_chat(user, "<span class='warning'>You reprogram [src]'s decontamination subroutines.</span>")
-//end of NSV13 change
 
 /obj/machinery/suit_storage_unit/deconstruct(disassembled = TRUE)
 	if(!(flags_1 & NODECONSTRUCT_1))
@@ -224,7 +229,7 @@
 	if(!state_open)
 		to_chat(user, "<span class='warning'>The unit's doors are shut!</span>")
 		return
-	if(!is_operational())
+	if(!is_operational)
 		to_chat(user, "<span class='warning'>The unit is not operational!</span>")
 		return
 	if(occupant || helmet || suit || storage)
@@ -261,17 +266,17 @@
 		locked = TRUE
 		update_icon()
 		if(occupant)
-			if(uv_super | (obj_flags & EMAGGED)) //NSV13 Emagged flag check
+			if(uv_super || (obj_flags & EMAGGED))
 				mob_occupant.adjustFireLoss(rand(20, 36))
 			else
 				mob_occupant.adjustFireLoss(rand(10, 16))
 			mob_occupant.emote("scream")
-		addtimer(CALLBACK(src, .proc/cook), 50)
+		addtimer(CALLBACK(src, PROC_REF(cook)), 50)
 	else
 		uv_cycles = initial(uv_cycles)
 		uv = FALSE
 		locked = FALSE
-		if(uv_super | (obj_flags & EMAGGED)) //NSV13 start of edited segment, adds Emag check, different occupant message if it's also hacked and makes the items get damaged instead of deleted.
+		if(uv_super || (obj_flags & EMAGGED))
 			toasted = TRUE
 			if(occupant)
 				visible_message("<span class='warning'>[src]'s door creaks open with a loud whining noise. A foul stench and a cloud of smoke exit the chamber.</span>")
@@ -288,7 +293,7 @@
 				storage.take_damage(100,BURN,"fire")
 			// The wires get damaged too.
 			wires.cut_all()
-		if(!toasted) //NSV13 Special toast check to prevent a double finishing message.
+		if(!toasted) //Special toast check to prevent a double finishing message.
 			if(occupant)
 				visible_message("<span class='warning'>[src]'s door slides open, barraging you with the nauseating smell of charred flesh.</span>")
 				mob_occupant.radiation = 0
@@ -316,7 +321,7 @@
 			SEND_SIGNAL(AM, COMSIG_COMPONENT_CLEAN_ACT, CLEAN_STRONG)
 			var/datum/component/radioactive/contamination = AM.GetComponent(/datum/component/radioactive)
 			if(contamination)
-				qdel(contamination) //NSV13 moved entire cleaning segment (the bit above) to always trigger, cause the toasting just cleans it even better! end of NSV changes
+				qdel(contamination)
 		open_machine(FALSE)
 		if(occupant)
 			dump_contents()
@@ -360,7 +365,7 @@
 	if(locked)
 		visible_message("<span class='notice'>You see [user] kicking against the doors of [src]!</span>", \
 			"<span class='notice'>You start kicking against the doors...</span>")
-		addtimer(CALLBACK(src, .proc/resist_open, user), 300)
+		addtimer(CALLBACK(src, PROC_REF(resist_open), user), 300)
 	else
 		open_machine()
 		dump_contents()
@@ -372,7 +377,7 @@
 		open_machine()
 
 /obj/machinery/suit_storage_unit/attackby(obj/item/I, mob/user, params)
-	if(state_open && is_operational())
+	if(state_open && is_operational)
 		if(istype(I, /obj/item/clothing/suit))
 			if(suit)
 				to_chat(user, "<span class='warning'>The unit already contains a suit!.</span>")
@@ -404,6 +409,7 @@
 
 		visible_message("<span class='notice'>[user] inserts [I] into [src]</span>", "<span class='notice'>You load [I] into [src].</span>")
 		update_icon()
+		ui_update()
 		return
 
 	if(panel_open && is_wire_tool(I))
@@ -411,6 +417,7 @@
 		return
 	if(!state_open)
 		if(default_deconstruction_screwdriver(user, "panel", "close", I))
+			ui_update() // Wires might've changed availability of decontaminate button
 			return
 	if(default_pry_open(I))
 		dump_contents()
@@ -428,8 +435,9 @@
 		return TRUE
 	return ..()
 
+
 /obj/machinery/suit_storage_unit/default_pry_open(obj/item/I)//needs to check if the storage is locked.
-	. = !(state_open || panel_open || is_operational() || locked || (flags_1 & NODECONSTRUCT_1)) && I.tool_behaviour == TOOL_CROWBAR
+	. = !(state_open || panel_open || is_operational || locked || (flags_1 & NODECONSTRUCT_1)) && I.tool_behaviour == TOOL_CROWBAR
 	if(.)
 		I.play_tool_sound(src, 50)
 		visible_message("<span class='notice'>[usr] pries open \the [src].</span>", "<span class='notice'>You pry open \the [src].</span>")
@@ -514,4 +522,6 @@
 				if(I)
 					I.forceMove(loc)
 			. = TRUE
-	update_icon()
+
+	if(.)
+		update_icon()

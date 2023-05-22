@@ -3,7 +3,6 @@
 	id = "ship_shield_tech"
 	display_name = "Experimental Shield Technology"
 	description = "Highly experimental shield technology to vastly increase survivability in ships. Although Nanotrasen researchers have had access to this technology for quite some time, the incredible amount of power required to maintain shields has proven to be the greatest challenge in implementing them."
-	prereq_ids = list("")
 	design_ids = list("shield_fan", "shield_capacitor", "shield_modulator", "shield_interface", "shield_frame")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 1000)
 	export_price = 5000
@@ -14,7 +13,7 @@
 	display_name = "Ship computer circuitry"
 	description = "Allows you to rebuild the CIC when it inevitably gets bombed."
 	prereq_ids = list("comptech")
-	design_ids = list("helm_circuit", "navigation_console_circuit", "tactical_comp_circuit", "dradis_circuit", "mining_dradis_circuit", "astrometrics_console")
+	design_ids = list("helm_circuit", "navigation_console_circuit", "tactical_comp_circuit", "astrometrics_console", "dradis_console", "cargo_dradis_console")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 2000)
 	export_price = 1000
 
@@ -24,7 +23,7 @@
 	display_name = "Munitions computer circuitry"
 	description = "Allows you to rebuild Munitions computers after they suffer from gunpowder overdose."
 	prereq_ids = list("comptech")
-	design_ids = list("fighter_computer_circuit", "ordnance_comp_circuit", "fighter_launcher_circuit", "ammo_sorter_computer", "ammo_sorter")
+	design_ids = list("fighter_computer_circuit", "ordnance_comp_circuit", "fighter_launcher_circuit", "ammo_sorter_computer", "ammo_sorter", "munitions_computer_circuit")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 2000)
 	export_price = 1000
 
@@ -42,16 +41,26 @@
 	display_name = "Guided Munitions II"
 	description = "More advanced torpedo components"
 	prereq_ids = list("basic_torpedo_components", "exotic_ammo")
-	design_ids = list("bb_warhead", "nuke_warhead", "probe_warhead")
+	design_ids = list("bb_warhead", "hellfire_warhead", "probe_warhead")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 5000)
 	export_price = 7500
+
+/datum/techweb_node/prototype_disruption_warheads
+	id = "prototype_disruption_warheads"
+	display_name = "Disruption Warhead Prototype"
+	description = "Experimental Disruption Torpedo warheads, fresh from R&Ds reverse engineering department."
+	prereq_ids = list("advanced_torpedo_components", "emp_adv")
+	design_ids = list("proto_disruption_warhead")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 6500)
+	export_price = 7000
+	tech_tier = 3
 
 /datum/techweb_node/advanced_ballistics
 	id = "adv_ballistics"
 	display_name = "Advanced Ballistics"
 	description = "More guns means better guns... Right?"
 	prereq_ids = list("ballistic_weapons")
-	design_ids = list("munitions_computer_circuit", "ship_firing_electronics", "ams_console", "vls_tube", "naval_shell", "fiftycal", "fiftycalcomp","deck_gun","naval_artillery_comp","artillery_loader","powder_loader","payload_gate","powder_bag","gauss_rack_upgrade")
+	design_ids = list("naval_shell", "powder_bag", "gauss_rack_upgrade", "broadside_casing", "broadside_load", "broadside_packer", "plasma_core")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 5000)
 	export_price = 5000
 
@@ -60,7 +69,7 @@
 	display_name = "Macro-Ballistics"
 	description = "Asking important questions, like what if we made even bigger guns?"
 	prereq_ids = list("adv_ballistics", "adv_plasma")
-	design_ids = list("naval_shell_ap", "plasma_accelerant", "fiftycal_super", "deck_gun_autorepair", "deck_gun_autoelevator")
+	design_ids = list("naval_shell_ap", "plasma_accelerant", "deck_gun_autorepair", "deck_gun_autoelevator")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 7500)
 	export_price = 10000
 
@@ -143,5 +152,78 @@
 	description = "Researching of cutting edge missile launching equipment"
 	design_ids = list("ordnance_launcher_tier3","fighter_missile_launcher_tier3")
 	prereq_ids = list("fightergun2", "adv_weaponry")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 5000)
+	export_price = 5000
+
+/datum/techweb_node/fighter_mining
+	id = "fightermining"
+	display_name = "Aircraft Mining Equipment"
+	description = "Reasearch into mounting exosuit-grade mining equipment to utility vessels."
+	design_ids = list("r_cutter")
+	prereq_ids = list("fighter_tier1", "adv_mining", "adv_plasma")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 1500)
+	export_price = 1000
+
+/datum/techweb_node/autoinjector
+	id = "autoinjector"
+	display_name = "Autoinjector Medipens"
+	description = "Research of instant reagent delivery into patient bloodstreams"
+	design_ids = list("autoinjector")
+	prereq_ids = list("adv_biotech","adv_surgery")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 1500)
+	export_price = 1500
+
+/datum/techweb_node/xenoorgan_biotech
+    id = "xenoorgan_bio"
+    display_name = "Xeno-organ Biology"
+    description = "Plasmaman, Ethereals, Lizardpeople... What makes our non-human crewmembers tick?"
+    prereq_ids = list("adv_biotech")
+    design_ids = list("limbdesign_felinid", "limbdesign_lizard", "limbdesign_plasmaman", "limbdesign_ethereal", "limbdesign_moth", "limbdesign_apid")
+    research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 6500)
+    export_price = 9000
+
+//Vehicle Hardpoint tech
+/datum/techweb_node/vehicle_start
+	id = "vehicle_start"
+	display_name = "Mechanical Research"
+	description = "Researching the possibility of expanding the usage behind those useless Tugs"
+	design_ids = list("vehicle_engine_pathetic")
+	prereq_ids = list("engineering")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 1500)
+	export_price = 1000
+
+/datum/techweb_node/vehicle_utility
+	id = "vehicle_utility"
+	display_name = "Vehicle Utilities"
+	description = "Researching the value behind Bobbleheads and Tug Air Fresheners."
+	design_ids = list("vehicle_crate_loader", "vehicle_cryo_stasis")
+	prereq_ids = list("vehicle_start")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 2000)
+	export_price = 2000
+
+/datum/techweb_node/vehicle_tier1
+	id = "vehicle_tier1"
+	display_name = "Standard Vehicle Parts"
+	description = "Researching the strange spinning thingies found attached to the side of the Tug and what the loud rumbling box inside the Tug does."
+	design_ids = list("vehicle_engine", "vehicle_tyres")
+	prereq_ids = list("vehicle_start")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 2500)
+	export_price = 2500
+
+/datum/techweb_node/vehicle_tier2
+	id = "vehicle_tier2"
+	display_name = "Advanced Vehicle Parts"
+	description = "Researching the strange connection between drifting and a string of Murders caused by Janitors."
+	design_ids = list("vehicle_engine_upgraded", "vehicle_tyres_upgraded")
+	prereq_ids = list("vehicle_tier1")
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 3500)
+	export_price = 3500
+
+/datum/techweb_node/vehicle_tier3
+	id = "vehicle_tier3"
+	display_name = "Glorious Trukk Parts"
+	description = "DA RED WUNS GO FASTA!!!"
+	design_ids = list("vehicle_engine_maxupgrade", "vehicle_tyres_maxupgrade")
+	prereq_ids = list("vehicle_tier2")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 5000)
 	export_price = 5000

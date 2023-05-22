@@ -11,9 +11,13 @@
 /client/proc/mark_datum_mapview(datum/D as mob|obj|turf|area in view(view))
 	set category = "Debug"
 	set name = "Mark Object"
+
+	if(!check_rights(R_VAREDIT))
+		return
 	mark_datum(D)
 
 /datum/admins/proc/handle_marked_del(datum/source)
 	SIGNAL_HANDLER
+
 	UnregisterSignal(marked_datum, COMSIG_PARENT_QDELETING)
 	marked_datum = null

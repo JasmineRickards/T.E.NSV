@@ -16,7 +16,7 @@
 	var/list/head_announce = null
 
 	//Bitflags for the job
-	var/flag = NONE //Deprecated
+	var/flag = NONE //Deprecated //Except not really, still used throughout the codebase
 	var/department_flag = NONE //Deprecated
 	var/auto_deadmin_role_flags = NONE
 
@@ -35,7 +35,7 @@
 	//Supervisors, who this person answers to directly
 	var/supervisors = ""
 
-	//Sellection screen color
+	//Selection screen color
 	var/selection_color = "#ffffff"
 
 	//Overhead chat message colour
@@ -65,19 +65,47 @@
 
 	var/display_order = JOB_DISPLAY_ORDER_DEFAULT
 
+	// Goodies that can be received via the mail system.
+	// this is a weighted list.
+	// Keep the _job definition for this empty and use /obj/item/mail to define general gifts.
+	var/list/mail_goodies = list()
+
+	// If this job's mail goodies compete with generic goodies.
+	var/exclusive_mail_goodies = FALSE
+
 	var/gimmick = FALSE //least hacky way i could think of for this
 
 	var/display_rank = "" //nsv13 - Displays the player's actual rank alongside their name, such as GSGT Sergei Koralev
 
+	///Bitfield of departments this job belongs wit
+	var/departments = NONE
+	///Is this job affected by weird spawns like the ones from station traits
+	var/random_spawns_possible = TRUE
+	/// Should this job be allowed to be picked for the bureaucratic error event?
+	var/allow_bureaucratic_error = TRUE
+
+	///how at risk is this occupation at for being a carrier of a dormant disease
+	var/biohazard = 10
+
+	///RPG job names, for the memes
+	var/rpg_title
+
+	///A dictionary of species IDs and a path to the outfit.
+	//NSV13 - set default plasmaman outfit
+	var/list/species_outfits = list(
+		SPECIES_PLASMAMAN = /datum/outfit/plasmaman
+	)
+
+
 /datum/job/New()
 	. = ..()
-	say_span = replacetext(lowertext(title), " ", "")
 
 //Only override this proc, unless altering loadout code. Loadouts act on H but get info from M
 //H is usually a human unless an /equip override transformed it
 //do actions on H but send messages to M as the key may not have been transferred_yet
 /datum/job/proc/after_spawn(mob/living/H, mob/M, latejoin = FALSE)
 	//do actions on H but send messages to M as the key may not have been transferred_yet
+	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_JOB_AFTER_SPAWN, src, H, M, latejoin)
 	if(mind_traits)
 		for(var/t in mind_traits)
 			ADD_TRAIT(H.mind, t, JOB_TRAIT)
@@ -86,8 +114,8 @@
 		return
 	var/mob/living/carbon/human/human = H
 	var/list/gear_leftovers = list()
-	if(M.client && LAZYLEN(M.client.prefs.equipped_gear))
-		for(var/gear in M.client.prefs.equipped_gear)
+	if(M.client && LAZYLEN(M.client.prefs.active_character.equipped_gear))
+		for(var/gear in M.client.prefs.active_character.equipped_gear)
 			var/datum/gear/G = GLOB.gear_datums[gear]
 			if(G)
 				var/permitted = FALSE
@@ -111,12 +139,12 @@
 					if(M.client.ckey != G.ckey)
 						to_chat(M, "<span class='warning'>You somehow have someone else's donator item! Call a coder. Item: [gear]</span>")
 						message_admins("[ADMIN_LOOKUPFLW(M)] Somehow equipped the donator gear of [G.ckey]. It has been removed.")
-						M.client.prefs.equipped_gear -= gear
+						M.client.prefs.active_character.equipped_gear -= gear
 						M.client.prefs.purchased_gear -= gear
 						permitted = FALSE
 					if(!(M.client.ckey in config.active_donators))
 						to_chat(M, "<span class='warning'>Your patreon has expired! Your donator item has been removed. Item: [gear]</span>")
-						M.client.prefs.equipped_gear -= gear
+						M.client.prefs.active_character.equipped_gear -= gear
 						M.client.prefs.purchased_gear -= gear
 						permitted = FALSE
 
@@ -134,11 +162,11 @@
 					gear_leftovers += G
 
 			else
-				M.client.prefs.equipped_gear -= gear
+				M.client.prefs.active_character.equipped_gear -= gear
 
 	if(gear_leftovers.len)
 		for(var/datum/gear/G in gear_leftovers)
-			var/metadata = M.client.prefs.equipped_gear[G.id]
+			var/metadata = M.client.prefs.active_character.equipped_gear[G.id]
 			var/item = G.spawn_item(null, metadata)
 			var/atom/placed_in = human.equip_or_collect(item)
 
@@ -191,7 +219,7 @@
 	if(!H)
 		return FALSE
 	if(CONFIG_GET(flag/enforce_human_authority) && (title in GLOB.command_positions))
-		if(H.dna.species.id != "human")
+		if(H.dna.species.id != SPECIES_HUMAN)
 			H.set_species(/datum/species/human)
 			H.apply_pref_name("human", preference_source)
 	if(!visualsOnly)
@@ -202,13 +230,19 @@
 	//Equip the rest of the gear
 	H.dna.species.before_equip_job(src, H, visualsOnly)
 
+	if(src.species_outfits)
+		if(H.dna.species.id in src.species_outfits)
+			var/datum/outfit/O = species_outfits[H.dna.species.id]
+			H.equipOutfit(O, visualsOnly)
+
 	if(outfit_override || outfit)
 		H.equipOutfit(outfit_override ? outfit_override : outfit, visualsOnly)
 
-	H.dna.species.after_equip_job(src, H, visualsOnly)
+	H.dna.species.after_equip_job(src, H, visualsOnly, preference_source)
 
 	if(!visualsOnly && announce)
 		announce(H)
+	dormant_disease_check(H)
 
 /datum/job/proc/get_access()
 	if(!config)	//Needed for robots.
@@ -227,7 +261,7 @@
 /datum/job/proc/announce_head(var/mob/living/carbon/human/H, var/channels) //tells the given channel that the given mob is the new department head. See communications.dm for valid channels.
 	if(H && GLOB.announcement_systems.len)
 		//timer because these should come after the captain announcement
-		SSticker.OnRoundstart(CALLBACK(GLOBAL_PROC, .proc/addtimer, CALLBACK(pick(GLOB.announcement_systems), /obj/machinery/announcement_system/proc/announce, "NEWHEAD", H.real_name, H.job, channels), 1))
+		SSticker.OnRoundstart(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(_addtimer), CALLBACK(pick(GLOB.announcement_systems), /obj/machinery/announcement_system/proc/announce, "NEWHEAD", H.real_name, H.job, channels), 1))
 
 //If the configuration option is set to require players to be logged as old enough to play certain jobs, then this proc checks that they are, otherwise it just returns 1
 /datum/job/proc/player_old_enough(client/C)
@@ -260,12 +294,12 @@
 /datum/outfit/job
 	name = "Standard Gear"
 
-	var/jobtype = null
+	var/jobtype
 
 	uniform = /obj/item/clothing/under/color/grey
 	id = /obj/item/card/id
 	ears = /obj/item/radio/headset
-	belt = /obj/item/pda
+	belt = /obj/item/modular_computer/tablet/pda
 	back = /obj/item/storage/backpack
 	shoes = /obj/item/clothing/shoes/sneakers/black
 	box = /obj/item/storage/box/survival
@@ -293,6 +327,19 @@
 		else
 			back = backpack //Department backpack
 
+	//converts the uniform string into the path we'll wear, whether it's the skirt or regular variant
+	var/holder = "[uniform]" //NSV13 - no skirts
+	/*
+	if(H.jumpsuit_style == PREF_SKIRT)
+		holder = "[uniform]/skirt"
+		if(!text2path(holder))
+			holder = "[uniform]"
+	else
+		holder ="[uniform]"
+	*/
+	uniform = text2path(holder)
+
+
 /datum/outfit/job/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
 	if(visualsOnly)
 		return
@@ -307,6 +354,7 @@
 		shuffle_inplace(C.access) // Shuffle access list to make NTNet passkeys less predictable
 		C.registered_name = H.real_name
 		C.assignment = J.title
+		C.set_hud_icon_on_spawn(J.title)
 		C.update_label()
 		for(var/A in SSeconomy.bank_accounts)
 			var/datum/bank_account/B = A
@@ -316,11 +364,11 @@
 				break
 		H.sec_hud_set_ID()
 
-	var/obj/item/pda/PDA = H.get_item_by_slot(pda_slot)
+	var/obj/item/modular_computer/tablet/pda/PDA = H.get_item_by_slot(pda_slot)
 	if(istype(PDA))
-		PDA.owner = H.real_name
-		PDA.ownjob = J.title
-		PDA.update_label()
+		PDA.saved_identification = C.registered_name
+		PDA.saved_job = C.assignment
+		PDA.update_id_display()
 
 /datum/outfit/job/get_chameleon_disguise_info()
 	var/list/types = ..()
@@ -339,3 +387,32 @@
 //NSV13
 /datum/job/proc/get_rank()
 	return display_rank
+
+//why is this as part of a job? because it's something every human recieves at roundstart after all other initializations and factors job in. it fits best with the equipment proc
+//this gives a dormant disease for the virologist to check for. if this disease actually does something to the mob... call me, or your local coder
+/datum/job/proc/dormant_disease_check(mob/living/carbon/human/H)
+	var/datum/symptom/guaranteed
+	var/sickrisk = 1
+	var/unfunny = 4
+	if((flag == CLOWN) || (flag == MIME))
+		unfunny = 0
+	if(islizard(H) || iscatperson(H))
+		sickrisk += 0.5 //these races like eating diseased mice, ew
+	if(MOB_INORGANIC in H.mob_biotypes)
+		sickrisk -= 0.5
+		guaranteed = /datum/symptom/inorganic_adaptation
+	else if(MOB_ROBOTIC in H.mob_biotypes)
+		sickrisk -= 0.75
+		guaranteed = /datum/symptom/robotic_adaptation
+	else if(MOB_UNDEAD in H.mob_biotypes)//this doesnt matter if it's not halloween, but...
+		sickrisk -= 0.25
+		guaranteed = /datum/symptom/undead_adaptation
+	else if(!(MOB_ORGANIC in H.mob_biotypes))
+		return //this mob cant be given a disease
+	if(prob(biohazard * sickrisk))
+		var/datum/disease/advance/scandisease = new /datum/disease/advance/random(rand(1, 4), rand(7, 9), unfunny, guaranteed, infected = H)
+		scandisease.dormant = TRUE
+		scandisease.spread_flags = DISEASE_SPREAD_NON_CONTAGIOUS
+		scandisease.spread_text = "None"
+		scandisease.visibility_flags |= HIDDEN_SCANNER
+		H.ForceContractDisease(scandisease)

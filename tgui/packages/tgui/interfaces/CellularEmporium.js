@@ -1,4 +1,3 @@
-import { Fragment } from 'inferno';
 import { useBackend } from '../backend';
 import { Box, Button, LabeledList, Section } from '../components';
 import { Window } from '../layouts';
@@ -8,7 +7,7 @@ export const CellularEmporium = (props, context) => {
   const { abilities } = data;
   return (
     <Window
-      resizable
+      theme="generic"
       width={900}
       height={480}>
       <Window.Content scrollable>
@@ -35,7 +34,7 @@ export const CellularEmporium = (props, context) => {
                 className="candystripe"
                 label={ability.name}
                 buttons={(
-                  <Fragment>
+                  <>
                     {ability.dna_cost}
                     {' '}
                     <Button
@@ -44,7 +43,7 @@ export const CellularEmporium = (props, context) => {
                       onClick={() => act('evolve', {
                         name: ability.name,
                       })} />
-                  </Fragment>
+                  </>
                 )}>
                 {ability.desc}
                 <Box color="good">

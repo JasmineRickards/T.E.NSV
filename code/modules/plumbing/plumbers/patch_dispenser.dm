@@ -25,7 +25,7 @@
 	AddComponent(/datum/component/plumbing/simple_demand, bolt)
 
 /obj/machinery/plumbing/patch_dispenser/process()
-	if(stat & NOPOWER)
+	if(machine_stat & NOPOWER)
 		return
 	if((reagents.total_volume >= patch_size) && (stored_patches.len < max_stored_patches))
 		var/obj/item/reagent_containers/pill/patch/P = new(src)
@@ -62,10 +62,11 @@
 /obj/machinery/plumbing/patch_dispenser/ui_act(action, params)
 	if(..())
 		return
-	. = TRUE
 	switch(action)
 		if("change_patch_size")
 			patch_size = CLAMP(text2num(params["volume"]), 0, 40)
+			. = TRUE
 		if("change_patch_name")
 			var/new_name = stripped_input(usr, "Enter a patch name.", name, patch_name)
 			patch_name = new_name + " patch"
+			. = TRUE

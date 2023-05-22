@@ -16,7 +16,7 @@
 /datum/tgui_panel/New(client/client)
 	src.client = client
 	window = new(client, "browseroutput")
-	window.subscribe(src, .proc/on_message)
+	window.subscribe(src, PROC_REF(on_message))
 
 /datum/tgui_panel/Del()
 	window.unsubscribe(src)
@@ -36,17 +36,28 @@
  *
  * Initializes tgui panel.
  */
-/datum/tgui_panel/proc/initialize(force = FALSE)
+/datum/tgui_panel/proc/Initialize(force = FALSE)
+	set waitfor = FALSE
+	// Minimal sleep to defer initialization to after client constructor
+	sleep(1)
 	initialized_at = world.time
 	// Perform a clean initialization
 	window.initialize(inline_assets = list(
-		get_asset_datum(/datum/asset/simple/tgui_common),
 		get_asset_datum(/datum/asset/simple/tgui_panel),
 	))
 	window.send_asset(get_asset_datum(/datum/asset/simple/namespaced/fontawesome))
+	window.send_asset(get_asset_datum(/datum/asset/simple/namespaced/tgfont))
 	window.send_asset(get_asset_datum(/datum/asset/spritesheet/chat))
+	// Preload assets for /datum/tgui
+	var/datum/asset/asset_tgui = get_asset_datum(/datum/asset/simple/tgui)
+	var/flush_queue = asset_tgui.send(src.client)
+	if(flush_queue)
+		src.client.browse_queue_flush()
+	// Other setup
 	request_telemetry()
-	addtimer(CALLBACK(src, .proc/on_initialize_timed_out), 5 SECONDS)
+	// Send verbs
+	set_verb_infomation(client)
+	addtimer(CALLBACK(src, PROC_REF(on_initialize_timed_out)), 5 SECONDS)
 
 /**
  * private

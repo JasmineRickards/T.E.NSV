@@ -16,7 +16,10 @@ GLOBAL_VAR_INIT(normal_ooc_colour, "#002eb8")
 		if(!GLOB.ooc_allowed)
 			to_chat(src, "<span class='danger'>OOC is globally muted.</span>")
 			return
-		if(!GLOB.dooc_allowed && (mob.stat == DEAD))
+		if(SSticker.current_state < GAME_STATE_PLAYING && !istype(mob, /mob/dead/new_player))
+			to_chat(src, "<span class='danger'>Observers cannot use OOC pre-game.</span>")
+			return
+		if(mob.stat == DEAD && !GLOB.dooc_allowed)
 			to_chat(usr, "<span class='danger'>OOC for dead mobs has been turned off.</span>")
 			return
 		if(prefs.muted & MUTE_OOC)
@@ -65,28 +68,30 @@ GLOBAL_VAR_INIT(normal_ooc_colour, "#002eb8")
 
 	var/keyname = key
 	if(prefs.unlock_content)
-		if(prefs.toggles & MEMBER_PUBLIC)
+		if(prefs.toggles & PREFTOGGLE_MEMBER_PUBLIC)
 			keyname = "<font color='[prefs.ooccolor ? prefs.ooccolor : GLOB.normal_ooc_colour]'>[icon2html('icons/member_content.dmi', world, "blag")][keyname]</font>"
+	//Get client badges
+	var/badge_data = badge_parse(get_badges())
 	//The linkify span classes and linkify=TRUE below make ooc text get clickable chat href links if you pass in something resembling a url
 	for(var/client/C in GLOB.clients)
 		if(C.prefs.chat_toggles & CHAT_OOC)
 			if(holder)
 				if(!holder.fakekey || C.holder)
 					if(check_rights_for(src, R_ADMIN))
-						to_chat(C, "<span class='adminooc'>[CONFIG_GET(flag/allow_admin_ooccolor) && prefs.ooccolor ? "<font color=[prefs.ooccolor]>" :"" ]<span class='prefix'>OOC:</span> <EM>[keyname][holder.fakekey ? "/([holder.fakekey])" : ""]:</EM> <span class='message linkify'>[msg]</span></span></font>", allow_linkify = TRUE)
+						to_chat(C, "[badge_data]<span class='adminooc'>[CONFIG_GET(flag/allow_admin_ooccolor) && prefs.ooccolor ? "<font color=[prefs.ooccolor]>" :"" ]<span class='prefix'>OOC:</span> <EM>[keyname][holder.fakekey ? "/([holder.fakekey])" : ""]:</EM> <span class='message linkify'>[msg]</span></span></font>", allow_linkify = TRUE)
 					else
-						to_chat(C, "<span class='adminobserverooc'><span class='prefix'>OOC:</span> <EM>[keyname][holder.fakekey ? "/([holder.fakekey])" : ""]:</EM> <span class='message linkify'>[msg]</span></span>")
+						to_chat(C, "[badge_data]<span class='adminobserverooc'><span class='prefix'>OOC:</span> <EM>[keyname][holder.fakekey ? "/([holder.fakekey])" : ""]:</EM> <span class='message linkify'>[msg]</span></span>")
 				else
 					if(GLOB.OOC_COLOR)
-						to_chat(C, "<font color='[GLOB.OOC_COLOR]'><b><span class='prefix'>OOC:</span> <EM>[holder.fakekey ? holder.fakekey : key]:</EM> <span class='message linkify'>[msg]</span></b></font>")
+						to_chat(C, "[badge_data]<font color='[GLOB.OOC_COLOR]'><b><span class='prefix'>OOC:</span> <EM>[holder.fakekey ? holder.fakekey : key]:</EM> <span class='message linkify'>[msg]</span></b></font>")
 					else
-						to_chat(C, "<span class='ooc'><span class='prefix'>OOC:</span> <EM>[holder.fakekey ? holder.fakekey : key]:</EM> <span class='message linkify'>[msg]</span></span>")
+						to_chat(C, "[badge_data]<span class='ooc'><span class='prefix'>OOC:</span> <EM>[holder.fakekey ? holder.fakekey : key]:</EM> <span class='message linkify'>[msg]</span></span>")
 
 			else if(!(key in C.prefs.ignoring))
 				if(GLOB.OOC_COLOR)
-					to_chat(C, "<font color='[GLOB.OOC_COLOR]'><b><span class='prefix'>OOC:</span> <EM>[keyname]:</EM> <span class='message linkify'>[msg]</span></b></font>")
+					to_chat(C, "[badge_data]<font color='[GLOB.OOC_COLOR]'><b><span class='prefix'>OOC:</span> <EM>[keyname]:</EM> <span class='message linkify'>[msg]</span></b></font>")
 				else
-					to_chat(C, "<span class='ooc'><span class='prefix'>OOC:</span> <EM>[keyname]:</EM> <span class='message linkify'>[msg]</span></span>")
+					to_chat(C, "[badge_data]<span class='ooc'><span class='prefix'>OOC:</span> <EM>[keyname]:</EM> <span class='message linkify'>[msg]</span></span>")
 	// beestation, send to discord
 	if(holder?.fakekey)
 		discordsendmsg("ooc", "**[holder.fakekey]:** [msg]")
@@ -193,11 +198,7 @@ GLOBAL_VAR_INIT(normal_ooc_colour, "#002eb8")
 		to_chat(usr, "<span class='notice'>Sorry, tracking is currently disabled.</span>")
 		return
 
-	var/list/body = list()
-	body += "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8'><title>Playtime for [key]</title></head><BODY><BR>Playtime:"
-	body += get_exp_report()
-	body += "</BODY></HTML>"
-	usr << browse(body.Join(), "window=playerplaytime[ckey];size=550x615")
+	new /datum/job_report_menu(src, usr)
 
 /client/proc/ignore_key(client, displayed_key)
 	var/client/C = client
@@ -289,3 +290,28 @@ GLOBAL_VAR_INIT(normal_ooc_colour, "#002eb8")
 
 		pct += delta
 		winset(src, "mainwindow.split", "splitter=[pct]")
+
+/client/verb/view_runtimes_minimal()
+	set name = "View Minimal Runtimes"
+	set category = "OOC"
+	set desc = "Open the runtime error viewer, with reduced information"
+
+	if(!isobserver(mob) && SSticker.current_state != GAME_STATE_FINISHED)
+		to_chat(src, "<span class='warning'>You cannot currently do that at this time, please wait until the round end or while you are observing.</span>")
+		return
+
+	GLOB.error_cache.show_to_minimal(src)
+
+///NSV13 - Speech Formats
+/client/verb/speech_format_help()
+	set name = "Speech Format Help"
+	set category = "OOC"
+	set desc = "Chat formatting help"
+
+	var/message = "<span class='big'>You can add emphasis to your text by surrounding words or sentences in certain characters.</span>\n \
+		+bold+, _underline_, and |italics| are supported.\n\n \
+		<span class='big'>You can made custom saymods by doing <i>say 'screams* HELP IM DYING!'</i>. This works over the radio, and can be used to emote over the radio.</span>\n \
+		Example: say ';laughs maniacally!*' >> \[Common] Joe Schmoe laughs maniacally!"
+
+
+	to_chat(usr, "<span class='notice'>[message]</span>")

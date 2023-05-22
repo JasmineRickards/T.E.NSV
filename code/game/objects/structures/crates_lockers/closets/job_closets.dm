@@ -36,7 +36,7 @@
 		/obj/item/radio/headset/headset_srv = 2,
 		/obj/item/clothing/accessory/waistcoat = 2,
 		/obj/item/clothing/suit/apron/chef = 3,
-		/obj/item/clothing/head/soft/mime = 2,
+		/obj/item/clothing/head/soft = 2,
 		/obj/item/storage/box/mousetraps = 2,
 		/obj/item/circuitboard/machine/dish_drive = 1,
 		/obj/item/clothing/suit/toggle/chef = 1,
@@ -53,7 +53,7 @@
 /obj/structure/closet/jcloset/PopulateContents()
 	..()
 	new /obj/item/clothing/under/rank/civilian/janitor(src)
-	new /obj/item/cartridge/janitor(src)
+	new /obj/item/computer_hardware/hard_drive/role/janitor(src)
 	new /obj/item/clothing/gloves/color/black(src)
 	new /obj/item/clothing/head/soft/purple(src)
 	new /obj/item/paint/paint_remover(src)
@@ -121,7 +121,7 @@
 		/obj/item/storage/backpack/satchel/sec = 1,
 		/obj/item/storage/backpack/duffelbag/sec = 2,
 		/obj/item/clothing/under/rank/security/officer = 3,
-		/obj/item/clothing/under/rank/security/officer/skirt = 2,
+		// /obj/item/clothing/under/rank/security/officer/skirt = 2, //NSV13 no skirts
 		/obj/item/clothing/shoes/jackboots = 3,
 		/obj/item/clothing/head/beret/sec = 3,
 		/obj/item/clothing/head/soft/sec = 3,
@@ -137,6 +137,7 @@
 	var/static/items_inside = list(
 		/obj/item/clothing/suit/hooded/wintercoat/cargo = 1,
 		/obj/item/clothing/under/rank/cargo/tech = 3,
+		//obj/item/clothing/under/rank/cargo/tech/skirt = 3,  //NSV13 no skirts
 		/obj/item/clothing/shoes/sneakers/black = 3,
 		/obj/item/clothing/gloves/fingerless = 3,
 		/obj/item/clothing/head/soft = 3,
@@ -196,9 +197,9 @@
 		/obj/item/clothing/under/rank/medical/doctor/purple = 1,
 		/obj/item/clothing/under/rank/medical = 3,
 		/obj/item/clothing/suit/toggle/labcoat = 3,
-		/obj/item/clothing/suit/toggle/labcoat/emt = 3,
+		/obj/item/clothing/suit/toggle/labcoat/paramedic = 3,
 		/obj/item/clothing/shoes/sneakers/white = 3,
-		/obj/item/clothing/head/soft/emt = 3,
+		/obj/item/clothing/head/soft/paramedic = 3,
 		/obj/item/clothing/head/beret/med = 3)
 	generate_items_inside(items_inside,src)
 	return

@@ -302,9 +302,9 @@
 	status_type = STATUS_EFFECT_REPLACE
 	alert_type = null
 	var/mutable_appearance/marked_underlay
-	var/obj/item/twohanded/kinetic_crusher/hammer_synced
+	var/obj/item/kinetic_crusher/hammer_synced
 
-/datum/status_effect/crusher_mark/on_creation(mob/living/new_owner, obj/item/twohanded/kinetic_crusher/new_hammer_synced)
+/datum/status_effect/crusher_mark/on_creation(mob/living/new_owner, obj/item/kinetic_crusher/new_hammer_synced)
 	. = ..()
 	if(.)
 		hammer_synced = new_hammer_synced
@@ -499,7 +499,7 @@
 /obj/effect/temp_visual/curse
 	icon_state = "curse"
 
-/obj/effect/temp_visual/curse/Initialize()
+/obj/effect/temp_visual/curse/Initialize(mapload)
 	. = ..()
 	deltimer(timerid)
 
@@ -543,7 +543,7 @@
 /datum/status_effect/trance/on_apply()
 	if(!iscarbon(owner))
 		return FALSE
-	RegisterSignal(owner, COMSIG_MOVABLE_HEAR, .proc/hypnotize)
+	RegisterSignal(owner, COMSIG_MOVABLE_HEAR, PROC_REF(hypnotize))
 	ADD_TRAIT(owner, TRAIT_MUTE, "trance")
 	if(!owner.has_quirk(/datum/quirk/monochromatic))
 		owner.add_client_colour(/datum/client_colour/monochrome)
@@ -564,15 +564,17 @@
 		owner.remove_client_colour(/datum/client_colour/monochrome)
 	to_chat(owner, "<span class='warning'>You snap out of your trance!</span>")
 
-/datum/status_effect/trance/proc/hypnotize(datum/source, message, atom/movable/speaker, message_language, raw_message, radio_freq, list/spans, list/message_mods = list())
+/datum/status_effect/trance/proc/hypnotize(datum/source, list/hearing_args, list/spans, list/message_mods = list())
+	SIGNAL_HANDLER
+
 	if(!owner.can_hear())
 		return
-	if(speaker == owner)
+	if(hearing_args[HEARING_SPEAKER] == owner)
 		return
 	var/mob/living/carbon/C = owner
 	C.cure_trauma_type(/datum/brain_trauma/hypnosis, TRAUMA_RESILIENCE_SURGERY) //clear previous hypnosis
-	addtimer(CALLBACK(C, /mob/living/carbon.proc/gain_trauma, /datum/brain_trauma/hypnosis, TRAUMA_RESILIENCE_SURGERY, raw_message), 10)
-	addtimer(CALLBACK(C, /mob/living.proc/Stun, 60, TRUE, TRUE), 15) //Take some time to think about it
+	addtimer(CALLBACK(C, TYPE_PROC_REF(/mob/living/carbon, gain_trauma), /datum/brain_trauma/hypnosis, TRAUMA_RESILIENCE_SURGERY, hearing_args[HEARING_RAW_MESSAGE]), 10)
+	addtimer(CALLBACK(C, TYPE_PROC_REF(/mob/living, Stun), 60, TRUE, TRUE), 15) //Take some time to think about it
 	qdel(src)
 
 /datum/status_effect/spasms
@@ -665,11 +667,11 @@
 	to_chat(new_owner, "<span class='boldwarning'>My body can't handle the mutations! I need to get my mutations removed fast!</span>")
 
 /datum/status_effect/dna_melt/on_remove()
-	if(!ishuman(owner))
+	if(!owner.has_dna())
 		owner.gib() //fuck you in particular
 		return
-	var/mob/living/carbon/human/H = owner
-	H.something_horrible(kill_either_way)
+	var/mob/living/carbon/C = owner
+	C.something_horrible(kill_either_way)
 
 /atom/movable/screen/alert/status_effect/dna_melt
 	name = "Genetic Breakdown"
@@ -861,36 +863,192 @@
 	id = "corrosion_curse"
 	status_type = STATUS_EFFECT_REPLACE
 	alert_type = null
-	tick_interval = 1 SECONDS
+	tick_interval = 4 SECONDS
 
 /datum/status_effect/corrosion_curse/on_creation(mob/living/new_owner, ...)
 	. = ..()
-	to_chat(owner, "<span class='danger'>You feel your body starting to break apart.</span>")
+	to_chat(owner, "<span class='danger'>You hear a distant whisper that fills you with dread.</span>")
 
 /datum/status_effect/corrosion_curse/tick()
 	. = ..()
 	if(!ishuman(owner))
 		return
 	var/mob/living/carbon/human/H = owner
+	if (H.IsSleeping())
+		return
 	var/chance = rand(0,100)
+	var/message = "Coder did fucky wucky U w U"
 	switch(chance)
-		if(0 to 19)
+		if(0 to 39)
+			H.adjustStaminaLoss(20)
+			message = "<span class='notice'>You feel tired.</span>"
+		if(40 to 59)
+			H.Dizzy(3 SECONDS)
+			message = "<span class='warning'>Your feel light headed.</span>"
+		if(60 to 74)
+			H.confused = max(H.confused, 2 SECONDS)
+			message = "<span class='warning'>Your feel confused.</span>"
+		if(75 to 79)
+			H.adjustOrganLoss(ORGAN_SLOT_STOMACH,15)
 			H.vomit()
-		if(20 to 29)
-			H.Dizzy(10)
-		if(30 to 39)
-			H.adjustOrganLoss(ORGAN_SLOT_LIVER,5)
-		if(40 to 49)
-			H.adjustOrganLoss(ORGAN_SLOT_HEART,5)
-		if(50 to 59)
-			H.adjustOrganLoss(ORGAN_SLOT_STOMACH,5)
-		if(60 to 69)
-			H.adjustOrganLoss(ORGAN_SLOT_EYES,10)
-		if(70 to 79)
-			H.adjustOrganLoss(ORGAN_SLOT_EARS,10)
-		if(80 to 89)
-			H.adjustOrganLoss(ORGAN_SLOT_LUNGS,10)
-		if(90 to 99)
-			H.adjustOrganLoss(ORGAN_SLOT_TONGUE,10)
-		if(100)
-			H.adjustOrganLoss(ORGAN_SLOT_BRAIN,20)
+			message = "<span class='warning'>Black bile shoots out of your mouth.</span>"
+		if(80 to 84)
+			H.adjustOrganLoss(ORGAN_SLOT_LIVER,15)
+			H.SetKnockdown(10)
+			message = "<span class='warning'>Your feel a terrible pain in your abdomen.</span>"
+		if(85 to 89)
+			H.adjustOrganLoss(ORGAN_SLOT_EYES,15)
+			message = "<span class='warning'>Your eyes sting.</span>"
+		else
+			H.adjustOrganLoss(ORGAN_SLOT_EARS,15)
+			message = "<span class='warning'>Your inner ear hurts.</span>"
+	if (prob(33))	//so the victim isn't spammed with messages every 3 seconds
+		to_chat(H,message)
+
+/datum/status_effect/ghoul
+	id = "ghoul"
+	status_type = STATUS_EFFECT_UNIQUE
+	duration = -1
+	examine_text = "<span class='warning'>SUBJECTPRONOUN has a blank, catatonic like stare.</span>"
+	alert_type = /atom/movable/screen/alert/status_effect/ghoul
+
+/atom/movable/screen/alert/status_effect/ghoul
+	name = "Flesh Servant"
+	desc = "You are a Ghoul! A eldritch monster reanimated to serve its master."
+	icon_state = "mind_control"
+
+/datum/status_effect/spanish
+	id = "spanish"
+	duration = 120 SECONDS
+	alert_type = null
+
+/datum/status_effect/spanish/on_apply(mob/living/new_owner, ...)
+	. = ..()
+	to_chat(owner, "<span class='warning'>Alert: Vocal cords are malfunctioning.</span>")
+	owner.add_blocked_language(subtypesof(/datum/language/) - /datum/language/uncommon, LANGUAGE_EMP)
+	owner.grant_language(/datum/language/uncommon, FALSE, TRUE, LANGUAGE_EMP)
+
+/datum/status_effect/spanish/on_remove()
+	owner.remove_blocked_language(subtypesof(/datum/language/), LANGUAGE_EMP)
+	owner.remove_language(/datum/language/uncommon, TRUE, TRUE, LANGUAGE_EMP)
+	to_chat(owner, "<span class='warning'>Alert: Vocal cords restored to normal function.</span>")
+	return ..()
+
+/datum/status_effect/ipc/emp
+	id = "ipc_emp"
+	examine_text = "<span class='warning'>SUBJECTPRONOUN is buzzing and twitching!</span>"
+	duration = 120 SECONDS
+	alert_type = /atom/movable/screen/alert/status_effect/emp
+	status_type = STATUS_EFFECT_REFRESH
+/atom/movable/screen/alert/status_effect/emp
+	name = "Electro-Magnetic Pulse"
+	desc = "You've been hit with an EMP! You're malfunctioning!"
+	icon_state = "hypnosis"
+
+/datum/status_effect/slimegrub
+	id = "grub_infection"
+	duration = 60 SECONDS //a redgrub infestation in a slime
+	status_type = STATUS_EFFECT_UNIQUE
+	tick_interval = 1
+	alert_type = /atom/movable/screen/alert/status_effect/grub
+	var/adult = FALSE
+	var/spawnbonus = 0
+	var/deathcounter = 300
+	var/list/diseases = list()
+
+/datum/status_effect/slimegrub/on_apply(mob/living/new_owner, ...)
+	. = ..()
+	if(isslime(new_owner))
+		var/mob/living/simple_animal/slime/S = new_owner
+		if(S.is_adult)
+			adult = TRUE
+			duration = world.time + 120 SECONDS
+			if(S.amount_grown >= 9)
+				S.amount_grown = 8 //can't split or evolve
+		deathcounter = (300 + (300 * adult))
+
+/datum/status_effect/slimegrub/tick()
+	if(isslime(owner))
+		var/mob/living/simple_animal/slime/S = owner
+		if(S.amount_grown >= 9)
+			S.amount_grown = 8
+		if((S.reagents.has_reagent(/datum/reagent/consumable/capsaicin) || S.bodytemperature > BODYTEMP_HEAT_DAMAGE_LIMIT)) //redgrubs don't like heat. heating them up for too long kills them
+			if(prob(10))
+				qdel(src)
+		else //don't tick while being cured
+			deathcounter -= 2
+			if(deathcounter <= 0)
+				var/spawns = rand(1, 3 + (adult * 3))
+				for(var/I in 1 to (spawns + spawnbonus))
+					var/mob/living/simple_animal/hostile/redgrub/grub = new(S.loc)
+					grub.grubdisease = diseases
+					grub.food += 15
+				playsound(S, 'sound/effects/attackblob.ogg', 60, 1)
+				S.visible_message("<span class='warning'>[S] is eaten from the inside by [spawns] red grubs, leaving no trace!</span>")
+				S.gib()
+	else
+		qdel(src)//no effect on nonslimes
+
+/atom/movable/screen/alert/status_effect/grub
+	name = "Infected"
+	desc = "You have a redgrub infection, and can't reproduce or grow! If you don't find a source of heat, you will die!"
+	icon_state = "grub"
+
+/datum/status_effect/amok
+	id = "amok"
+	status_type = STATUS_EFFECT_REPLACE
+	alert_type = null
+	duration = 10 SECONDS
+	tick_interval = 1 SECONDS
+
+/datum/status_effect/amok/on_apply(mob/living/afflicted)
+	. = ..()
+	to_chat(owner, "<span class='boldwarning'>You feel filled with a rage that is not your own!</span>")
+
+/datum/status_effect/amok/tick()
+	. = ..()
+	var/prev_intent = owner.a_intent
+	owner.a_intent = INTENT_HARM
+
+	var/list/mob/living/targets = list()
+	for(var/mob/living/potential_target in oview(owner, 1))
+		if(IS_HERETIC(potential_target) || potential_target.mind?.has_antag_datum(/datum/antagonist/heretic_monster))
+			continue
+		targets += potential_target
+	if(LAZYLEN(targets))
+		owner.log_message(" attacked someone due to the amok debuff.", LOG_ATTACK) //the following attack will log itself
+		owner.ClickOn(pick(targets))
+	owner.a_intent = prev_intent
+
+/datum/status_effect/cloudstruck
+	id = "cloudstruck"
+	status_type = STATUS_EFFECT_REPLACE
+	duration = 3 SECONDS
+	on_remove_on_mob_delete = TRUE
+	///This overlay is applied to the owner for the duration of the effect.
+	var/mutable_appearance/mob_overlay
+
+/datum/status_effect/cloudstruck/on_creation(mob/living/new_owner, set_duration)
+	if(isnum(set_duration))
+		duration = set_duration
+	. = ..()
+
+/datum/status_effect/cloudstruck/on_apply()
+	mob_overlay = mutable_appearance('icons/effects/eldritch.dmi', "cloud_swirl", ABOVE_MOB_LAYER)
+	owner.overlays += mob_overlay
+	owner.update_icon()
+	ADD_TRAIT(owner, TRAIT_BLIND, "cloudstruck")
+	return TRUE
+
+/datum/status_effect/cloudstruck/on_remove()
+	. = ..()
+	if(QDELETED(owner))
+		return
+	REMOVE_TRAIT(owner, TRAIT_BLIND, "cloudstruck")
+	if(owner)
+		owner.overlays -= mob_overlay
+		owner.update_icon()
+
+/datum/status_effect/cloudstruck/Destroy()
+	. = ..()
+	QDEL_NULL(mob_overlay)

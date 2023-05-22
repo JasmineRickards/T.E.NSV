@@ -8,13 +8,13 @@
 	w_class = WEIGHT_CLASS_BULKY
 	distribute_pressure = ONE_ATMOSPHERE * O2STANDARD
 	actions_types = list(/datum/action/item_action/set_internals, /datum/action/item_action/toggle_jetpack, /datum/action/item_action/jetpack_stabilization)
-	var/gas_type = /datum/gas/oxygen
+	var/gas_type = GAS_O2
 	var/on = FALSE
 	var/stabilizers = FALSE
 	var/full_speed = TRUE // If the jetpack will have a speedboost in space/nograv or not
 	var/datum/effect_system/trail_follow/ion/ion_trail
 
-/obj/item/tank/jetpack/Initialize()
+/obj/item/tank/jetpack/Initialize(mapload)
 	. = ..()
 	ion_trail = new
 	ion_trail.set_up(src)
@@ -57,7 +57,7 @@
 	on = TRUE
 	icon_state = "[initial(icon_state)]-on"
 	ion_trail.start()
-	RegisterSignal(user, COMSIG_MOVABLE_MOVED, .proc/move_react)
+	RegisterSignal(user, COMSIG_MOVABLE_MOVED, PROC_REF(move_react))
 	if(full_speed)
 		user.add_movespeed_modifier(MOVESPEED_ID_JETPACK, priority=100, multiplicative_slowdown=-2, movetypes=FLOATING, conflict=MOVE_CONFLICT_JETPACK)
 
@@ -70,6 +70,8 @@
 	user.remove_movespeed_modifier(MOVESPEED_ID_JETPACK)
 
 /obj/item/tank/jetpack/proc/move_react(mob/user)
+	SIGNAL_HANDLER
+
 	allow_thrust(0.01, user)
 
 /obj/item/tank/jetpack/proc/allow_thrust(num, mob/living/user)
@@ -79,13 +81,7 @@
 		turn_off(user)
 		return
 
-	var/datum/gas_mixture/removed = air_contents.remove(num)
-	if(removed.total_moles() < 0.005)
-		turn_off(user)
-		return
-
-	var/turf/T = get_turf(user)
-	T.assume_air(removed)
+	assume_air_moles(air_contents, num)
 
 	return TRUE
 
@@ -118,13 +114,7 @@
 		turn_off(user)
 		return
 
-	var/datum/gas_mixture/removed = air_contents.remove(num)
-	if(removed.total_moles() < 0.005)
-		turn_off(user)
-		return
-
-	var/turf/T = get_turf(user)
-	T.assume_air(removed)
+	assume_air_moles(air_contents, num)
 
 	return TRUE
 
@@ -148,6 +138,7 @@
 	volume = 40
 	throw_range = 7
 	w_class = WEIGHT_CLASS_NORMAL
+	slot_flags = ITEM_SLOT_BACK | ITEM_SLOT_BELT
 
 /obj/item/tank/jetpack/oxygen/captain
 	name = "\improper Captain's jetpack"
@@ -157,6 +148,7 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	volume = 90
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | ACID_PROOF //steal objective items are hard to destroy.
+	investigate_flags = ADMIN_INVESTIGATE_TARGET
 
 /obj/item/tank/jetpack/oxygen/security
 	name = "security jetpack (oxygen)"
@@ -172,7 +164,7 @@
 	icon_state = "jetpack-black"
 	item_state =  "jetpack-black"
 	distribute_pressure = 0
-	gas_type = /datum/gas/carbon_dioxide
+	gas_type = GAS_CO2
 
 
 /obj/item/tank/jetpack/suit
@@ -190,7 +182,7 @@
 	var/obj/item/tank/internals/tank = null
 	var/mob/living/carbon/human/cur_user
 
-/obj/item/tank/jetpack/suit/Initialize()
+/obj/item/tank/jetpack/suit/Initialize(mapload)
 	. = ..()
 	STOP_PROCESSING(SSobj, src)
 	temp_air_contents = air_contents

@@ -42,6 +42,7 @@
 #define ACCESS_THEATRE 46
 #define ACCESS_RESEARCH 47
 #define ACCESS_MINING 48
+#define ACCESS_EXPLORATION 49
 #define ACCESS_MAILSORTING 50
 #define ACCESS_VAULT 53
 #define ACCESS_MINING_STATION 54
@@ -49,7 +50,6 @@
 #define ACCESS_CE 56
 #define ACCESS_HOP 57
 #define ACCESS_HOS 58
-#define ACCESS_APOTHECARY 59
 /// Request console announcements
 #define ACCESS_RC_ANNOUNCE 59
 /// Used for events which require at least two people to confirm them
@@ -66,15 +66,17 @@
 #define ACCESS_MUNITIONS 69 //NSV13 - Departmental ACCESS
 #define ACCESS_MAA 70 //NSV13 - MAA gets an office
 #define ACCESS_MUNITIONS_STORAGE 71 //NSV13 - Access to ordinance
-#define ACCESS_FIGHTER 72 //NSV13 - Fighternerds
-#define ACCESS_FL 73 //NSV13 - FL tagged decorated fighter
+#define ACCESS_COMBAT_PILOT 72 //NSV13 - Fighternerds
+#define ACCESS_TRANSPORT_PILOT 73 //NSV13 - Imagine getting your ATPLs
 #define ACCESS_MINING_ENGINEERING 74
 #define ACCESS_MINING_BRIDGE 75
 #define ACCESS_SEC_RECORDS 77 //! Update security records //NSV13 - changed from 69
 #define ACCESS_PRISONER 78 //! Nsv13 - Genpop. This access is added to prisoner IDs that have served their time.
+#define ACCESS_HANGAR 79 //NSV13 - Access to the hangar
 
 /// Room and launching.
 #define ACCESS_AUX_BASE 76 //NSV13 - changed from 72 to 76 to deconflict
+#define ACCESS_RD_SERVER 80 //! Access to the R&D server room //NSV13 - changed to 80
 
 	//BEGIN CENTCOM ACCESS
 	/*Should leave plenty of room if we need to add more access levels.
@@ -97,6 +99,10 @@
 #define ACCESS_SYNDICATE_REQUISITIONS 153 //! Syndicate cargo division
 #define ACCESS_SYNDICATE_MARINE_ARMOURY 154 //!Syndicate armoury
 // /Nsv13
+
+	//Independant Factions
+#define ACCESS_PIRATES 180 //! Pirate ship access
+#define ACCESS_HUNTERS 181 //! Bounty hunter access
 
 	//Away Missions or Ruins
 	/*For generic away-mission/ruin access. Why would normal crew have access to a long-abandoned derelict

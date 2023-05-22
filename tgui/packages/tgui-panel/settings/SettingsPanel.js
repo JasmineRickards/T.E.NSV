@@ -7,7 +7,7 @@
 import { toFixed } from 'common/math';
 import { useLocalState } from 'tgui/backend';
 import { useDispatch, useSelector } from 'common/redux';
-import { Box, Button, ColorBox, Divider, Dropdown, Flex, Input, LabeledList, NumberInput, Section, Tabs, TextArea, Grid } from 'tgui/components';
+import { Box, Button, ColorBox, Divider, Dropdown, Flex, Input, LabeledList, NumberInput, Section, Stack, Tabs, TextArea, Grid } from 'tgui/components';
 import { ChatPageSettings } from '../chat';
 import { rebuildChat, saveChatToDisk } from '../chat/actions';
 import { THEMES } from '../themes';
@@ -20,8 +20,8 @@ export const SettingsPanel = (props, context) => {
   const activeTab = useSelector(context, selectActiveTab);
   const dispatch = useDispatch(context);
   return (
-    <Flex>
-      <Flex.Item mr={1}>
+    <Stack fill>
+      <Stack.Item>
         <Section fitted fill minHeight="8em">
           <Tabs vertical>
             {SETTINGS_TABS.map(tab => (
@@ -36,8 +36,8 @@ export const SettingsPanel = (props, context) => {
             ))}
           </Tabs>
         </Section>
-      </Flex.Item>
-      <Flex.Item grow={1} basis={0}>
+      </Stack.Item>
+      <Stack.Item grow={1} basis={0}>
         {activeTab === 'general' && (
           <SettingsGeneral />
         )}
@@ -50,8 +50,8 @@ export const SettingsPanel = (props, context) => {
         {activeTab === 'statPanelpage' && (
           <SettingsStat />
         )}
-      </Flex.Item>
-    </Flex>
+      </Stack.Item>
+    </Stack>
   );
 };
 
@@ -66,7 +66,7 @@ export const SettingsGeneral = (props, context) => {
   const dispatch = useDispatch(context);
   const [freeFont, setFreeFont] = useLocalState(context, "freeFont", false);
   return (
-    <Section fill>
+    <Section>
       <Flex bold>
         General Settings
       </Flex>
@@ -123,7 +123,7 @@ export const SettingsGeneral = (props, context) => {
             step={1}
             stepPixelSize={10}
             minValue={8}
-            maxValue={32}
+            maxValue={24}
             value={fontSize}
             unit="px"
             format={value => toFixed(value)}
@@ -182,6 +182,9 @@ export const SettingsHighlight = (props, context) => {
   const {
     highlightText,
     highlightColor,
+    matchWord,
+    matchCase,
+    highlightSelf,
   } = useSelector(context, selectSettings);
   const dispatch = useDispatch(context);
   return (
@@ -193,7 +196,7 @@ export const SettingsHighlight = (props, context) => {
         <Divider />
         <Flex mb={1} color="label" align="baseline">
           <Flex.Item grow={1}>
-            Highlight words (comma separated):
+            Highlight text (comma separated):
           </Flex.Item>
           <Flex.Item shrink={0}>
             <ColorBox mr={1} color={highlightColor} />
@@ -213,6 +216,29 @@ export const SettingsHighlight = (props, context) => {
           onChange={(e, value) => dispatch(updateSettings({
             highlightText: value,
           }))} />
+        <Button.Checkbox
+          checked={matchWord}
+          tooltipPosition="bottom-start"
+          tooltip="Not compatible with punctuation."
+          onClick={() => dispatch(updateSettings({
+            matchWord: !matchWord,
+          }))}>
+          Match word
+        </Button.Checkbox>
+        <Button.Checkbox
+          checked={matchCase}
+          onClick={() => dispatch(updateSettings({
+            matchCase: !matchCase,
+          }))}>
+          Match case
+        </Button.Checkbox>
+        <Button.Checkbox
+          checked={highlightSelf}
+          onClick={() => dispatch(updateSettings({
+            highlightSelf: !highlightSelf,
+          }))}>
+          Highlight own Messages
+        </Button.Checkbox>
       </Box>
       <Divider />
       <Box>

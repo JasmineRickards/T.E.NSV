@@ -2,11 +2,19 @@
 
 #define in_range(source, user) (get_dist(source, user) <= 1 && (get_step(source, 0)?:z) == (get_step(user, 0)?:z))
 
+/// Within given range, but not counting z-levels
+#define IN_GIVEN_RANGE(source, other, given_range) (get_dist(source, other) <= given_range && (get_step(source, 0)?:z) == (get_step(other, 0)?:z))
+
 #define ismovableatom(A) ismovable(A)
 
 #define isatom(A) (isloc(A))
 
+#define isdatum(thing) (istype(thing, /datum))
+
 #define isweakref(D) (istype(D, /datum/weakref))
+
+// simple check whether or not a player is a guest using their key
+#define IS_GUEST_KEY(key)	(findtextEx(key, "Guest-", 1, 7))
 
 //Turfs
 //#define isturf(A) (istype(A, /turf)) This is actually a byond built-in. Added here for completeness sake.
@@ -48,10 +56,17 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 
 #define isbrain(A) (istype(A, /mob/living/brain))
 
+// basic mobs
+#define isbasicmob(A) (istype(A, /mob/living/basic))
+
 //Carbon mobs
 #define iscarbon(A) (istype(A, /mob/living/carbon))
 
 #define ishuman(A) (istype(A, /mob/living/carbon/human))
+
+//NSV13 - knpc helper
+#define isknpc(A) (istype(A, /mob/living/carbon/human/ai_boarder))
+//NSV13 end
 
 //Human sub-species
 #define isabductor(A) (is_species(A, /datum/species/abductor))
@@ -63,16 +78,18 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 #define isjellyperson(A) (is_species(A, /datum/species/jelly))
 #define isslimeperson(A) (is_species(A, /datum/species/jelly/slime))
 #define isluminescent(A) (is_species(A, /datum/species/jelly/luminescent))
+#define isstargazer(A) (is_species(A, /datum/species/jelly/stargazer))
 #define isoozeling(A) (is_species(A, /datum/species/oozeling))
 #define iszombie(A) (is_species(A, /datum/species/zombie))
 #define isskeleton(A) (is_species(A, /datum/species/skeleton))
 #define ismoth(A) (is_species(A, /datum/species/moth))
-#define ishumanbasic(A) (is_species(A, /datum/species/human))
-#define iscatperson(A) (ishumanbasic(A) && istype(A.dna.species, /datum/species/human/felinid) )
+#define ishumanbasic(A) (is_species(A, /datum/species/human) && !is_species(A, /datum/species/human/krokodil_addict))
+#define iscatperson(A) (ishumanbasic(A) && is_species(A, /datum/species/human/felinid) ) //NSV13 - I dunno why this wasn't using is_species like the rest
 #define isethereal(A) (is_species(A, /datum/species/ethereal))
 #define isvampire(A) (is_species(A,/datum/species/vampire))
 #define isipc(A) (is_species(A, /datum/species/ipc))
 #define isapid(A) (is_species(A, /datum/species/apid))
+#define isandroid(A) (is_species(A, /datum/species/android))
 
 //more carbon mobs
 #define ismonkey(A) (istype(A, /mob/living/carbon/monkey))
@@ -211,6 +228,14 @@ GLOBAL_LIST_INIT(heavyfootmob, typecacheof(list(
 
 #define isitem(A) (istype(A, /obj/item))
 
+#define isgrenade(A) (istype(A, /obj/item/grenade))
+
+#define islandmine(A) (istype(A, /obj/effect/mine))
+
+#define isammocasing(A) (istype(A, /obj/item/ammo_casing))
+
+#define isidcard(I) (istype(I, /obj/item/card/id))
+
 #define isstructure(A) (istype(A, /obj/structure))
 
 #define ismachinery(A) (istype(A, /obj/machinery))
@@ -259,6 +284,8 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 
 #define iseffect(O) (istype(O, /obj/effect))
 
+#define isholoeffect(O) (istype(O, /obj/effect/holodeck_effect))
+
 #define isblobmonster(O) (istype(O, /mob/living/simple_animal/hostile/blob))
 
 #define isshuttleturf(T) (length(T.baseturfs) && (/turf/baseturf_skipover/shuttle in T.baseturfs))
@@ -266,7 +293,7 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 /// isnum() returns TRUE for NaN. Also, NaN != NaN. Checkmate, BYOND.
 #define isnan(x) ( (x) != (x) )
 
-#define isinf(x) (isnum((x)) && (((x) == text2num("inf")) || ((x) == text2num("-inf"))))
+#define isinf(x) (isnum((x)) && (((x) == SYSTEM_TYPE_INFINITY) || ((x) == -SYSTEM_TYPE_INFINITY)))
 
 #define isProbablyWallMounted(O) (O.pixel_x > 20 || O.pixel_x < -20 || O.pixel_y > 20 || O.pixel_y < -20)
 
@@ -274,3 +301,5 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 
 /// NaN isn't a number, damn it. Infinity is a problem too.
 #define isnum_safe(x) ( isnum((x)) && !isnan((x)) && !isinf((x)) )
+
+#define iscash(A) (istype(A, /obj/item/coin) || istype(A, /obj/item/stack/spacecash) || istype(A, /obj/item/holochip))

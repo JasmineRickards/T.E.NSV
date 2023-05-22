@@ -76,4 +76,4 @@
 	var/obj/structure/destructible/clockwork/trap/skewer/S = parent
 	if(!istype(S))
 		return
-	S.stab()
+	INVOKE_ASYNC(S, TYPE_PROC_REF(/obj/structure/destructible/clockwork/trap/skewer, stab))

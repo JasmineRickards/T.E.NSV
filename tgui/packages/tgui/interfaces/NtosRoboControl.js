@@ -1,6 +1,5 @@
-import { Fragment } from 'inferno';
 import { useBackend } from '../backend';
-import { Button, Flex, LabeledList, ProgressBar, Section } from '../components';
+import { Button, LabeledList, ProgressBar, Section, Stack } from '../components';
 import { NtosWindow } from '../layouts';
 
 const getMuleByRef = (mules, ref) => {
@@ -16,21 +15,16 @@ export const NtosRoboControl = (props, context) => {
   } = data;
   return (
     <NtosWindow
-      resizable
       width={550}
       height={550}>
       <NtosWindow.Content scrollable>
         <Section title="Robot Control Console">
           <LabeledList>
-            <LabeledList.Item label="Id Card">
+            <LabeledList.Item label="ID Card">
               {id_owner}
-              {!!has_id && (
-                <Button
-                  ml={2}
-                  icon="eject"
-                  content="Eject"
-                  onClick={() => act('ejectcard')} />
-              )}
+            </LabeledList.Item>
+            <LabeledList.Item label="Bots In Range">
+              {data.botcount}
             </LabeledList.Item>
             <LabeledList.Item label="Bots in range">
               {data.botcount}
@@ -65,7 +59,7 @@ const RobotInfo = (props, context) => {
         border: `4px solid ${color}`,
       }}
       buttons={mule && (
-        <Fragment>
+        <>
           <Button
             icon="play"
             tooltip="Go to Destination."
@@ -81,14 +75,14 @@ const RobotInfo = (props, context) => {
           <Button
             icon="home"
             tooltip="Travel Home."
-            tooltipPosition="bottom-left"
+            tooltipPosition="bottom-start"
             onClick={() => act('home', {
               robot: mule.mule_ref,
             })} />
-        </Fragment>
+        </>
       )}>
-      <Flex spacing={1}>
-        <Flex.Item grow={1} basis={0}>
+      <Stack>
+        <Stack.Item grow={1} basis={0}>
           <LabeledList>
             <LabeledList.Item label="Model">
               {robot.model}
@@ -100,7 +94,7 @@ const RobotInfo = (props, context) => {
               {robot.mode}
             </LabeledList.Item>
             {mule && (
-              <Fragment>
+              <>
                 <LabeledList.Item label="Loaded Cargo">
                   {data.load || "N/A"}
                 </LabeledList.Item>
@@ -121,13 +115,13 @@ const RobotInfo = (props, context) => {
                       bad: [-Infinity, 20],
                     }} />
                 </LabeledList.Item>
-              </Fragment>
+              </>
             )}
           </LabeledList>
-        </Flex.Item>
-        <Flex.Item width="150px">
+        </Stack.Item>
+        <Stack.Item width="150px">
           {mule && (
-            <Fragment>
+            <>
               <Button
                 fluid
                 content="Set Destination"
@@ -173,10 +167,10 @@ const RobotInfo = (props, context) => {
                 onClick={() => act('report', {
                   robot: mule.mule_ref,
                 })} />
-            </Fragment>
+            </>
           )}
           {!mule && (
-            <Fragment>
+            <>
               <Button
                 fluid
                 content="Stop Patrol"
@@ -201,10 +195,10 @@ const RobotInfo = (props, context) => {
                 onClick={() => act('ejectpai', {
                   robot: robot.bot_ref,
                 })} />
-            </Fragment>
+            </>
           )}
-        </Flex.Item>
-      </Flex>
+        </Stack.Item>
+      </Stack>
     </Section>
   );
 };

@@ -17,9 +17,9 @@
 	name = "species hypnosis chamber"
 	brainwash = TRUE
 
-/obj/machinery/species_converter/Initialize()
+/obj/machinery/species_converter/Initialize(mapload)
 	. = ..()
-	soundloop = new(list(src),  FALSE)
+	soundloop = new(src,  FALSE)
 	update_icon()
 
 /obj/machinery/species_converter/Destroy()
@@ -37,7 +37,7 @@
 	playsound(src, 'sound/machines/click.ogg', 50)
 	if(occupant)
 		to_chat(occupant, "<span class='notice'>You enter [src]</span>")
-		addtimer(CALLBACK(src, .proc/begin_conversion), 20, TIMER_OVERRIDE|TIMER_UNIQUE)
+		addtimer(CALLBACK(src, PROC_REF(begin_conversion)), 20, TIMER_OVERRIDE|TIMER_UNIQUE)
 		update_icon()
 
 /obj/machinery/species_converter/open_machine(mob/user)
@@ -81,10 +81,10 @@
 	if(panel_open)
 		. += "[icon_state]_panel"
 
-/obj/machinery/species_converter/process()
+/obj/machinery/species_converter/process(delta_time)
 	if(!processing)
 		return
-	if(!is_operational() || !occupant || !iscarbon(occupant))
+	if(!is_operational || !occupant || !iscarbon(occupant))
 		open_machine()
 		return
 
@@ -94,7 +94,7 @@
 		playsound(src, 'sound/machines/microwave/microwave-end.ogg', 100, FALSE)
 		return
 
-	if(prob(iterations * 10 + 10)) // conversion has some random variation in it
+	if(DT_PROB(iterations * 10 + 10, delta_time)) // conversion has some random variation in it
 		C.set_species(desired_race)
 		if(brainwash)
 			to_chat(C, "<span class='userdanger'>A new compulsion fills your mind... you feel forced to obey it!</span>")
@@ -106,7 +106,7 @@
 	use_power(500)
 
 /obj/machinery/species_converter/proc/begin_conversion()
-	if(state_open || !occupant || processing || !is_operational())
+	if(state_open || !occupant || processing || !is_operational)
 		return
 	if(iscarbon(occupant))
 		var/mob/living/carbon/C = occupant

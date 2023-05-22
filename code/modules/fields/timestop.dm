@@ -42,7 +42,7 @@
 		timestop()
 
 /obj/effect/timestop/Destroy()
-	qdel(chronofield)
+	QDEL_NULL(chronofield)
 	playsound(src, 'sound/magic/timeparadox2.ogg', 75, TRUE, frequency = -1) //reverse!
 	return ..()
 
@@ -98,8 +98,8 @@
 	A.move_resist = INFINITY
 	global_frozen_atoms[A] = src
 	into_the_negative_zone(A)
-	RegisterSignal(A, COMSIG_MOVABLE_PRE_MOVE, .proc/unfreeze_atom)
-	RegisterSignal(A, COMSIG_ITEM_PICKUP, .proc/unfreeze_atom)
+	RegisterSignal(A, COMSIG_MOVABLE_PRE_MOVE, PROC_REF(unfreeze_atom))
+	RegisterSignal(A, COMSIG_ITEM_PICKUP, PROC_REF(unfreeze_atom))
 
 	return TRUE
 
@@ -108,6 +108,8 @@
 		unfreeze_atom(i)
 
 /datum/proximity_monitor/advanced/timestop/proc/unfreeze_atom(atom/movable/A)
+	SIGNAL_HANDLER
+
 	if(A.throwing)
 		unfreeze_throwing(A)
 	if(isliving(A))
@@ -164,7 +166,7 @@
 		immune += L
 		return
 	L.Stun(20, 1, 1)
-	walk(L, 0) //stops them mid pathing even if they're stunimmune
+	SSmove_manager.stop_looping(src) //stops them mid pathing even if they're stunimmune //This is really dumb
 	if(isanimal(L))
 		var/mob/living/simple_animal/S = L
 		S.toggle_ai(AI_OFF)

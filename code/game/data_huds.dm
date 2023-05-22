@@ -23,7 +23,7 @@
 /datum/atom_hud/data/human/medical/basic
 
 /datum/atom_hud/data/human/medical/basic/proc/check_sensors(mob/living/carbon/human/H)
-	if(!istype(H))
+	if(!istype(H) && !ismonkey(H))
 		return 0
 	var/obj/item/clothing/under/U = H.w_uniform
 	if(!istype(U))
@@ -91,14 +91,14 @@
 //called when a carbon changes virus
 /mob/living/carbon/proc/check_virus()
 	var/threat
-	var/severity
+	var/danger
 	for(var/thing in diseases)
 		var/datum/disease/D = thing
 		if(!(D.visibility_flags & HIDDEN_SCANNER))
-			if(!threat || get_disease_severity_value(D.severity) > threat) //a buffing virus gets an icon
-				threat = get_disease_severity_value(D.severity)
-				severity = D.severity
-	return severity
+			if(!threat || get_disease_danger_value(D.danger) > threat) //a buffing virus gets an icon
+				threat = get_disease_danger_value(D.danger)
+				danger = D.danger
+	return danger
 
 //helper for getting the appropriate health status
 /proc/RoundHealth(mob/living/M)
@@ -160,9 +160,12 @@
 //called when a living mob changes health
 /mob/living/proc/med_hud_set_health()
 	var/image/holder = hud_list[HEALTH_HUD]
-	holder.icon_state = "hud[RoundHealth(src)]"
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
+	if(holder)
+		holder.icon_state = "hud[RoundHealth(src)]"
+		var/icon/I = icon(icon, icon_state, dir)
+		holder.pixel_y = I.Height() - world.icon_size
+	else
+		stack_trace("[src] does not have a HEALTH_HUD but updates it!")
 
 //for carbon suit sensors
 /mob/living/carbon/med_hud_set_health()
@@ -170,50 +173,68 @@
 
 //called when a carbon changes stat, virus or XENO_HOST
 /mob/living/proc/med_hud_set_status()
+	SIGNAL_HANDLER
 	var/image/holder = hud_list[STATUS_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
-	if(stat == DEAD || (HAS_TRAIT(src, TRAIT_FAKEDEATH)))
-		holder.icon_state = "huddead"
+	if(holder)
+		var/icon/I = icon(icon, icon_state, dir)
+		holder.pixel_y = I.Height() - world.icon_size
+		if(stat == DEAD || (HAS_TRAIT(src, TRAIT_FAKEDEATH)))
+			holder.icon_state = "huddead"
+		else
+			holder.icon_state = "hudhealthy"
 	else
-		holder.icon_state = "hudhealthy"
+		stack_trace("[src] does not have a HEALTH_HUD but updates it!")
 
 /mob/living/carbon/med_hud_set_status()
 	var/image/holder = hud_list[STATUS_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	var/virus_threat = check_virus()
-	holder.pixel_y = I.Height() - world.icon_size
-	if(HAS_TRAIT(src, TRAIT_XENO_HOST))
-		holder.icon_state = "hudxeno"
-	else if(stat == DEAD || (HAS_TRAIT(src, TRAIT_FAKEDEATH)))
-		if(tod)
-			var/tdelta = round(world.time - timeofdeath)
-			if(tdelta < (DEFIB_TIME_LIMIT * 10))
-				holder.icon_state = "huddefib"
+	if(holder)
+		var/icon/I = icon(icon, icon_state, dir)
+		var/virus_threat = check_virus()
+		holder.pixel_y = I.Height() - world.icon_size
+		if(HAS_TRAIT(src, TRAIT_XENO_HOST))
+			holder.icon_state = "hudxeno"
+		else if(stat == DEAD)
+			if(!getorgan(/obj/item/organ/brain) || soul_departed() || ishellbound())
+				holder.icon_state = "huddead-permanent"
 				return
-		holder.icon_state = "huddead"
+			if(tod)
+				var/tdelta = round(world.time - timeofdeath)
+				if(tdelta < (DEFIB_TIME_LIMIT * 10))
+					if(!client && key)
+						holder.icon_state = "huddefib-ssd"
+						return
+					holder.icon_state = "huddefib"
+					return
+			if(!client && key)
+				holder.icon_state = "huddead-ssd"
+				return
+			holder.icon_state = "huddead"
+		else if(HAS_TRAIT(src, TRAIT_FAKEDEATH))
+			holder.icon_state = "huddefib"
+		else
+			switch(virus_threat)
+				if(DISEASE_PANDEMIC)
+					holder.icon_state = "hudill6"
+				if(DISEASE_BIOHAZARD)
+					holder.icon_state = "hudill5"
+				if(DISEASE_DANGEROUS)
+					holder.icon_state = "hudill4"
+				if(DISEASE_HARMFUL)
+					holder.icon_state = "hudill3"
+				if(DISEASE_MEDIUM)
+					holder.icon_state = "hudill2"
+				if(DISEASE_MINOR)
+					holder.icon_state = "hudill1"
+				if(DISEASE_NONTHREAT)
+					holder.icon_state = "hudill0"
+				if(DISEASE_POSITIVE)
+					holder.icon_state = "hudbuff"
+				if(DISEASE_BENEFICIAL)
+					holder.icon_state = "hudbuff2"
+				if(null)
+					holder.icon_state = "hudhealthy"
 	else
-		switch(virus_threat)
-			if(DISEASE_SEVERITY_PANDEMIC)
-				holder.icon_state = "hudill6"
-			if(DISEASE_SEVERITY_BIOHAZARD)
-				holder.icon_state = "hudill5"
-			if(DISEASE_SEVERITY_DANGEROUS)
-				holder.icon_state = "hudill4"
-			if(DISEASE_SEVERITY_HARMFUL)
-				holder.icon_state = "hudill3"
-			if(DISEASE_SEVERITY_MEDIUM)
-				holder.icon_state = "hudill2"
-			if(DISEASE_SEVERITY_MINOR)
-				holder.icon_state = "hudill1"
-			if(DISEASE_SEVERITY_NONTHREAT)
-				holder.icon_state = "hudill0"
-			if(DISEASE_SEVERITY_POSITIVE)
-				holder.icon_state = "hudbuff"
-			if(DISEASE_SEVERITY_BENEFICIAL)
-				holder.icon_state = "hudbuff2"
-			if(null)
-				holder.icon_state = "hudhealthy"
+		stack_trace("[src] does not have a HEALTH_HUD but updates it!")
 
 
 /***********************************************
@@ -228,7 +249,7 @@
 	holder.pixel_y = I.Height() - world.icon_size
 	holder.icon_state = "hudno_id"
 	if(wear_id?.GetID())
-		holder.icon_state = "hud[ckey(wear_id.GetJobName())]"
+		holder.icon_state = "hud[ckey(wear_id.GetJobIcon())]"
 	sec_hud_set_security_status()
 
 /mob/living/proc/sec_hud_set_implants()
@@ -247,11 +268,16 @@
 			var/icon/IC = icon(icon, icon_state, dir)
 			holder.pixel_y = IC.Height() - world.icon_size
 			holder.icon_state = "hud_imp_chem"
-	if(HAS_TRAIT(src, TRAIT_MINDSHIELD) && !istype(src.get_item_by_slot(ITEM_SLOT_HEAD), /obj/item/clothing/head/foilhat)) //tinfoil hats interfere with implant detection
+	if(has_mindshield_hud_icon())
 		holder = hud_list[IMPLOYAL_HUD]
 		var/icon/IC = icon(icon, icon_state, dir)
 		holder.pixel_y = IC.Height() - world.icon_size
 		holder.icon_state = "hud_imp_loyal"
+
+/mob/living/proc/has_mindshield_hud_icon()
+	if(istype(get_item_by_slot(ITEM_SLOT_HEAD), /obj/item/clothing/head/foilhat))
+		return FALSE
+	return HAS_TRAIT(src, TRAIT_MINDSHIELD) || HAS_TRAIT(src, TRAIT_FAKE_MINDSHIELD)
 
 /mob/living/carbon/human/proc/sec_hud_set_security_status()
 	var/image/holder = hud_list[WANTED_HUD]
@@ -291,7 +317,7 @@
 	var/icon/I = icon(icon, icon_state, dir)
 	holder.pixel_y = I.Height() - world.icon_size
 	holder.icon_state = null
-	if(src in SSnanites.nanite_monitored_mobs)
+	if(HAS_TRAIT(src, TRAIT_NANITE_SENSORS))
 		holder.icon_state = "nanite_ping"
 
 //For Diag health and cell bars!
@@ -460,53 +486,3 @@
 		holder.icon_state = "electrified"
 	else
 		holder.icon_state = ""
-
-/*~~~~~~~~~~~~
-	Circutry!
-~~~~~~~~~~~~~*/
-/obj/item/electronic_assembly/proc/diag_hud_set_circuithealth(hide = FALSE)
-	var/image/holder = hud_list[DIAG_CIRCUIT_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
-	if((!isturf(loc))||hide) //if not on the ground dont show overlay
-		holder.icon_state = null
-	else
-		holder.icon_state = "huddiag[RoundDiagBar(obj_integrity/max_integrity)]"
-
-/obj/item/electronic_assembly/proc/diag_hud_set_circuitcell(hide = FALSE)
-	var/image/holder = hud_list[DIAG_BATT_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
-	if((!isturf(loc))||hide) //if not on the ground dont show overlay
-		holder.icon_state = null
-	else if(battery)
-		var/chargelvl = battery.charge/battery.maxcharge
-		holder.icon_state = "hudbatt[RoundDiagBar(chargelvl)]"
-	else
-		holder.icon_state = "hudnobatt"
-
-/obj/item/electronic_assembly/proc/diag_hud_set_circuitstat(hide = FALSE) //On, On and dangerous, or Off
-	var/image/holder = hud_list[DIAG_STAT_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
-	if((!isturf(loc))||hide) //if not on the ground don't show overlay
-		holder.icon_state = null
-	else if(!battery)
-		holder.icon_state = "hudoffline"
-	else if(battery.charge == 0)
-		holder.icon_state = "hudoffline"
-	else if(combat_circuits) //has a circuit that can harm people
-		holder.icon_state = prefered_hud_icon + "-red"
-	else //Bot is on and not dangerous
-		holder.icon_state = prefered_hud_icon
-
-/obj/item/electronic_assembly/proc/diag_hud_set_circuittracking(hide = FALSE)
-	var/image/holder = hud_list[DIAG_TRACK_HUD]
-	var/icon/I = icon(icon, icon_state, dir)
-	holder.pixel_y = I.Height() - world.icon_size
-	if((!isturf(loc))||hide) //if not on the ground dont show overlay
-		holder.icon_state = null
-	else if(long_range_circuits)
-		holder.icon_state = "hudtracking"
-	else
-		holder.icon_state = null

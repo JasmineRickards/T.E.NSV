@@ -16,8 +16,8 @@
 		var/obj/structure/overmap/linked = get_overmap()
 		if(!linked) //Don't use this on things with no overmap dumbass
 			return PROCESS_KILL
-		for(var/mob/M in linked.mobs_in_ship)
-			if(!M.client || !(M.client.prefs.toggles & SOUND_INSTRUMENTS))
+		for(var/mob/M as() in linked.mobs_in_ship)
+			if(!M.client || !(M.client.prefs.toggles & PREFTOGGLE_SOUND_INSTRUMENTS))
 				continue
 			if(!(M in rangers))
 				rangers[M] = TRUE

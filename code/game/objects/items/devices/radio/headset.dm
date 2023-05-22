@@ -8,14 +8,16 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	RADIO_CHANNEL_SECURITY = RADIO_TOKEN_SECURITY,
 	RADIO_CHANNEL_CENTCOM = RADIO_TOKEN_CENTCOM,
 	RADIO_CHANNEL_SYNDICATE = RADIO_TOKEN_SYNDICATE,
+	RADIO_CHANNEL_UPLINK = RADIO_TOKEN_UPLINK,  // shouldnt show up in game
 	RADIO_CHANNEL_SUPPLY = RADIO_TOKEN_SUPPLY,
+//	RADIO_CHANNEL_EXPLORATION = RADIO_TOKEN_EXPLORATION,
 	RADIO_CHANNEL_SERVICE = RADIO_TOKEN_SERVICE,
 	RADIO_CHANNEL_ATC = RADIO_TOKEN_ATC,
 	RADIO_CHANNEL_MUNITIONS = RADIO_TOKEN_MUNITIONS,
 	RADIO_CHANNEL_PIRATE = RADIO_CHANNEL_PIRATE,
 	MODE_BINARY = MODE_TOKEN_BINARY,
 	RADIO_CHANNEL_AI_PRIVATE = RADIO_TOKEN_AI_PRIVATE
-)) //Nsv13 - Atc chat & munitions & space pirates
+)) //Nsv13 - Atc chat & munitions & space pirates. Removed exploration
 
 /obj/item/radio/headset
 	name = "radio headset"
@@ -39,7 +41,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 /obj/item/radio/headset/examine(mob/user)
 	. = ..()
 
-	if(item_flags & IN_INVENTORY && loc == user)
+	if(item_flags & PICKED_UP && loc == user)
 		// construction of frequency description
 		var/list/avail_chans = list("Use [RADIO_KEY_COMMON] for the currently tuned frequency")
 		if(translate_binary)
@@ -57,7 +59,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	else
 		. += "<span class='notice'>A small screen on the headset flashes, it's too small to read without holding or wearing the headset.</span>"
 
-/obj/item/radio/headset/Initialize()
+/obj/item/radio/headset/Initialize(mapload)
 	. = ..()
 	recalculateChannels()
 
@@ -96,12 +98,12 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	name = "team leader headset"
 	command = TRUE
 
-/obj/item/radio/headset/syndicate/Initialize()
+/obj/item/radio/headset/syndicate/Initialize(mapload)
 	. = ..()
 	make_syndie()
 
 /obj/item/radio/headset/binary
-/obj/item/radio/headset/binary/Initialize()
+/obj/item/radio/headset/binary/Initialize(mapload)
 	. = ..()
 	qdel(keyslot)
 	keyslot = new /obj/item/encryptionkey/binary
@@ -184,7 +186,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	item_state = "com_headset_alt"
 	bang_protect = 1
 
-/obj/item/radio/headset/heads/rd
+/obj/item/radio/headset/heads/research_director
 	name = "\proper the research director's headset"
 	desc = "Headset of the fellow who keeps society marching towards technological singularity."
 	icon_state = "com_headset"
@@ -203,7 +205,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	item_state = "com_headset_alt"
 	bang_protect = 1
 
-/obj/item/radio/headset/heads/ce
+/obj/item/radio/headset/heads/chief_engineer
 	name = "\proper the chief engineer's headset"
 	desc = "The headset of the guy in charge of keeping the station powered and undamaged."
 	icon_state = "com_headset"
@@ -223,11 +225,23 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 
 /obj/item/radio/headset/headset_cargo
 	name = "supply radio headset"
-	desc = "A headset used by the QM and his slaves."
+	desc = "A headset used by the QM's slaves."
 	icon_state = "cargo_headset"
 	keyslot = new /obj/item/encryptionkey/headset_cargo
 
-/obj/item/radio/headset/headset_cargo/mining
+/obj/item/radio/headset/headset_quartermaster
+	name = "quartermaster radio headset"
+	desc = "A headset used by the QM."
+	icon_state = "cargo_headset"
+	keyslot = new /obj/item/encryptionkey/headset_cargo
+
+/obj/item/radio/headset/headset_exploration
+	name = "exploration radio headset"
+	desc = "A headset used by exploration teams."
+	icon_state = "exploration_headset"
+	keyslot = new /obj/item/encryptionkey/headset_expteam
+
+/obj/item/radio/headset/headset_cargo/shaft_miner
 	name = "mining radio headset"
 	desc = "Headset used by shaft miners."
 	icon_state = "mine_headset"
@@ -238,6 +252,12 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 	desc = "Headset used by the service staff, tasked with keeping the station full, happy and clean."
 	icon_state = "srv_headset"
 	keyslot = new /obj/item/encryptionkey/headset_service
+
+/obj/item/radio/headset/headset_curator
+	name = "curator radio headset"
+	desc = "Headset used by the curator, which allows for communication with the exploration team."
+	icon_state = "srv_headset"
+	keyslot = new /obj/item/encryptionkey/headset_curator
 
 /obj/item/radio/headset/headset_cent
 	name = "\improper CentCom headset"
@@ -291,6 +311,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 				keyslot2 = null
 
 			recalculateChannels()
+			ui_update()
 			to_chat(user, "<span class='notice'>You pop out the encryption keys in the headset.</span>")
 
 		else
@@ -313,6 +334,7 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 
 
 		recalculateChannels()
+		ui_update()
 	else
 		return ..()
 
@@ -332,6 +354,8 @@ GLOBAL_LIST_INIT(channel_tokens, list(
 			syndie = TRUE
 		if (keyslot2.independent)
 			independent = TRUE
+		if (keyslot2.amplification)
+			command = TRUE
 
 	for(var/ch_name in channels)
 		secure_radio_connections[ch_name] = add_radio(src, GLOB.radiochannels[ch_name])

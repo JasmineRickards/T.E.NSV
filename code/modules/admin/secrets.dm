@@ -15,7 +15,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		ui = new(user, src, "AdminSecretsPanel", "Secrets Panel")
 		ui.open()
 
-/datum/admin_secrets/ui_data(mob/user)
+/datum/admin_secrets/ui_static_data(mob/user)
 	/*
 	Each command is a list that will be read like [Name, Action(see ui_act)]
 	"omg but you could have done it like X"
@@ -73,7 +73,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			list("Summon Events (Toggle)", "events"),
 			list("There can only be one!", "onlyone"),
 			list("There can only be one! (40-second delay)", "delayed_onlyone"),
-			list("Make all players retarded", "retardify"),
+			list("Make all players intellectually disabled", "dumbify"),
 			list("Make all players Australian", "aussify"),
 			list("Egalitarian Station Mode", "eagles"),
 			list("Anarcho-Capitalist Station Mode", "ancap"),
@@ -89,7 +89,8 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			list("Mass Purrbation", "masspurrbation"),
 			list("Mass Remove Purrbation", "massremovepurrbation"),
 			list("Fully Immerse Everyone", "massimmerse"),
-			list("Un-Fully Immerse Everyone", "unmassimmerse")
+			list("Un-Fully Immerse Everyone", "unmassimmerse"),
+			list("Make All Animals Playable", "animalsentience")
 			)
 
 	if(check_rights(R_DEBUG,0))
@@ -133,7 +134,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			if(!check_rights(R_ADMIN))
 				return
 			var/delete_mobs = alert("Clear all mobs?","Confirm","Yes","No","Cancel")
-			if(delete_mobs == "Cancel")
+			if(delete_mobs == "Cancel" || !delete_mobs)
 				return
 
 			log_admin("[key_name(usr)] reset the thunderdome to default with delete_mobs==[delete_mobs].", 1)
@@ -144,7 +145,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 				for(var/mob/living/mob in thunderdome)
 					qdel(mob) //Clear mobs
 			for(var/obj/obj in thunderdome)
-				if(!istype(obj, /obj/machinery/camera) && !istype(obj, /obj/effect/abstract/proximity_checker))
+				if(!istype(obj, /obj/machinery/camera) && !istype(obj, /obj/effect/abstract/proximity_checker) && !istype(obj, /obj/effect/landmark/arena))
 					qdel(obj) //Clear objects
 
 			var/area/template = GLOB.areas_by_type[/area/tdome/arena_source]
@@ -174,7 +175,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			set_station_name(new_name)
 			log_admin("[key_name(usr)] renamed the station to \"[new_name]\".")
 			message_admins("<span class='adminnotice'>[key_name_admin(usr)] renamed the station to: [new_name].</span>")
-			priority_announce("[command_name()] has renamed the station to \"[new_name]\".")
+			priority_announce("[command_name()] has renamed the station to \"[new_name]\".", sound = SSstation.announcer.get_rand_alert_sound())
 		if("night_shift_set")
 			if(!check_rights(R_ADMIN))
 				return
@@ -200,7 +201,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			set_station_name(new_name)
 			log_admin("[key_name(usr)] reset the station name.")
 			message_admins("<span class='adminnotice'>[key_name_admin(usr)] reset the station name.</span>")
-			priority_announce("[command_name()] has renamed the station to \"[new_name]\".")
+			priority_announce("[command_name()] has renamed the station to \"[new_name]\".", sound = SSstation.announcer.get_rand_alert_sound())
 
 		if("list_bombers")
 			if(!check_rights(R_ADMIN))
@@ -453,20 +454,20 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			if(animetype =="Yes")
 				droptype = alert("Make the uniforms undroppable?",,"Yes","No","Cancel")
 
-			if(animetype == "Cancel" || droptype == "Cancel")
+			if(animetype == "Cancel" || droptype == "Cancel" || !animetype || (!droptype && animetype == "Yes"))
 				return
 			SSblackbox.record_feedback("nested tally", "admin_secrets_fun_used", 1, list("Chinese Cartoons"))
 			message_admins("[key_name_admin(usr)] made everything kawaii.")
 			for(var/mob/living/carbon/human/H in GLOB.carbon_list)
-				SEND_SOUND(H, sound('sound/ai/animes.ogg'))
+				SEND_SOUND(H, sound(SSstation.announcer.event_sounds[ANNOUNCER_ANIMES]))
 
-				if(H.dna.species.id == "human")
+				if(H.dna.species.id == SPECIES_HUMAN)
 					if(H.dna.features["tail_human"] == "None" || H.dna.features["ears"] == "None")
 						var/obj/item/organ/ears/cat/ears = new
 						var/obj/item/organ/tail/cat/tail = new
 						ears.Insert(H, drop_if_replaced=FALSE)
 						tail.Insert(H, drop_if_replaced=FALSE)
-					var/list/honorifics = list("[MALE]" = list("kun"), "[FEMALE]" = list("chan","tan"), "[NEUTER]" = list("san")) //John Robust -> Robust-kun
+					var/list/honorifics = list("[MALE]" = list("kun"), "[FEMALE]" = list("chan","tan"), "[NEUTER]" = list("san"), "[PLURAL]" = list("san")) //John Robust -> Robust-kun
 					var/list/names = splittext(H.real_name," ")
 					var/forename = names.len > 1 ? names[2] : names[1]
 					var/newname = "[forename]-[pick(honorifics["[H.gender]"])]"
@@ -505,19 +506,19 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 				if("Random")
 					E = new /datum/round_event/disease_outbreak()
 				if("Choose")
-					var/virus = input("Choose the virus to spread", "BIOHAZARD") as null|anything in sortList(typesof(/datum/disease, /proc/cmp_typepaths_asc))
+					var/virus = input("Choose the virus to spread", "BIOHAZARD") as null|anything in sortList(typesof(/datum/disease, GLOBAL_PROC_REF(cmp_typepaths_asc)))
 					E = new /datum/round_event/disease_outbreak{}()
 					var/datum/round_event/disease_outbreak/DO = E
 					DO.virus_type = virus
 
-		if("retardify")
+		if("dumbify")
 			if(!check_rights(R_FUN))
 				return
 			SSblackbox.record_feedback("nested tally", "admin_secrets_fun_used", 1, list("Mass Braindamage"))
 			for(var/mob/living/carbon/human/H in GLOB.player_list)
 				to_chat(H, "<span class='boldannounce'>You suddenly feel stupid.</span>")
 				H.adjustOrganLoss(ORGAN_SLOT_BRAIN, 60, 80)
-			message_admins("[key_name_admin(usr)] made everybody retarded")
+			message_admins("[key_name_admin(usr)] gave everybody intellectual disability")
 
 		if("aussify") //for rimjobtide
 			if(!check_rights(R_FUN))
@@ -539,7 +540,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 				if(is_station_level(W.z) && !istype(get_area(W), /area/bridge) && !istype(get_area(W), /area/crew_quarters) && !istype(get_area(W), /area/security/prison))
 					W.req_access = list()
 			message_admins("[key_name_admin(usr)] activated Egalitarian Station mode")
-			priority_announce("CentCom airlock control override activated. Please take this time to get acquainted with your coworkers.", null, 'sound/ai/commandreport.ogg')
+			priority_announce("CentCom airlock control override activated. Please take this time to get acquainted with your coworkers.", null, SSstation.announcer.get_rand_report_sound())
 
 		if("ancap")
 			if(!check_rights(R_FUN))
@@ -548,9 +549,9 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			SSeconomy.full_ancap = !SSeconomy.full_ancap
 			message_admins("[key_name_admin(usr)] toggled Anarcho-capitalist mode")
 			if(SSeconomy.full_ancap)
-				priority_announce("The NAP is now in full effect.", null, 'sound/ai/commandreport.ogg')
+				priority_announce("The NAP is now in full effect.", null, SSstation.announcer.get_rand_report_sound())
 			else
-				priority_announce("The NAP has been revoked.", null, 'sound/ai/commandreport.ogg')
+				priority_announce("The NAP has been revoked.", null, SSstation.announcer.get_rand_report_sound())
 
 
 
@@ -642,7 +643,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		if("infinite_sec")
 			if(!check_rights(R_DEBUG))
 				return
-			var/datum/job/J = SSjob.GetJob("Security Officer")
+			var/datum/job/J = SSjob.GetJob(JOB_NAME_SECURITYOFFICER)
 			if(!J)
 				return
 			J.total_positions = -1
@@ -682,11 +683,19 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 			message_admins("[key_name_admin(usr)] has Un-Fully Immersed \
 				everyone!")
 			log_admin("[key_name(usr)] has Un-Fully Immersed everyone.")
+		if("animalsentience")
+			for(var/mob/living/simple_animal/L in GLOB.alive_mob_list)
+				var/turf/T = get_turf(L)
+				if(!T || !is_station_level(T.z))
+					continue
+				if((L in GLOB.player_list) || L.mind || (L.flags_1 & HOLOGRAM_1))
+					continue
+				L.set_playable()
 
 		if("flipmovement")
 			if(!check_rights(R_FUN))
 				return
-			if(alert("Flip all movement controls?","Confirm","Yes","Cancel") == "Cancel")
+			if(alert("Flip all movement controls?","Confirm","Yes","Cancel") != "Yes")
 				return
 			var/list/movement_keys = SSinput.movement_keys
 			for(var/i in 1 to movement_keys.len)
@@ -698,7 +707,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		if("randommovement")
 			if(!check_rights(R_FUN))
 				return
-			if(alert("Randomize all movement controls?","Confirm","Yes","Cancel") == "Cancel")
+			if(alert("Randomize all movement controls?","Confirm","Yes","Cancel") != "Yes")
 				return
 			var/list/movement_keys = SSinput.movement_keys
 			for(var/i in 1 to movement_keys.len)
@@ -710,7 +719,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		if("custommovement")
 			if(!check_rights(R_FUN))
 				return
-			if(alert("Are you sure you want to change every movement key?","Confirm","Yes","Cancel") == "Cancel")
+			if(alert("Are you sure you want to change every movement key?","Confirm","Yes","Cancel") != "Yes")
 				return
 			var/list/movement_keys = SSinput.movement_keys
 			var/list/new_movement = list()
@@ -731,7 +740,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		if("resetmovement")
 			if(!check_rights(R_FUN))
 				return
-			if(alert("Are you sure you want to reset movement keys to default?","Confirm","Yes","Cancel") == "Cancel")
+			if(alert("Are you sure you want to reset movement keys to default?","Confirm","Yes","Cancel") != "Yes")
 				return
 			SSinput.setup_default_movement_keys()
 			message_admins("[key_name_admin(usr)] has reset all movement keys.")
@@ -804,14 +813,14 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 						var/ghostcandidates = list()
 						for (var/j in 1 to min(prefs["amount"]["value"], length(candidates)))
 							ghostcandidates += pick_n_take(candidates)
-							addtimer(CALLBACK(GLOBAL_PROC, .proc/doPortalSpawn, get_random_station_turf(), pathToSpawn, length(ghostcandidates), storm, ghostcandidates, outfit), i*prefs["delay"]["value"])
+							addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(doPortalSpawn), get_random_station_turf(), pathToSpawn, length(ghostcandidates), storm, ghostcandidates, outfit), i*prefs["delay"]["value"])
 					else if (prefs["playersonly"]["value"] != "Yes")
-						addtimer(CALLBACK(GLOBAL_PROC, .proc/doPortalSpawn, get_random_station_turf(), pathToSpawn, prefs["amount"]["value"], storm, null, outfit), i*prefs["delay"]["value"])
+						addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(doPortalSpawn), get_random_station_turf(), pathToSpawn, prefs["amount"]["value"], storm, null, outfit), i*prefs["delay"]["value"])
 
 	if(E)
 		E.processing = FALSE
 		if(E.announceWhen>0)
-			if(alert(usr, "Would you like to alert the crew?", "Alert", "Yes", "No") == "No")
+			if(alert(usr, "Would you like to alert the crew?", "Alert", "Yes", "No") != "Yes")
 				E.announceChance = 0
 		E.processing = TRUE
 	if (usr)
@@ -824,7 +833,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 	if (playlightning)
 		sound_to_playing_players('sound/magic/lightning_chargeup.ogg')
 		sleep(80)
-	priority_announce(replacetext(announcement, "%STATION%", station_name()))
+	priority_announce(replacetext(announcement, "%STATION%", station_name()), sound = SSstation.announcer.get_rand_alert_sound())
 	if (playlightning)
 		sleep(20)
 		sound_to_playing_players('sound/magic/lightningbolt.ogg')
@@ -835,7 +844,7 @@ GLOBAL_DATUM_INIT(admin_secrets, /datum/admin_secrets, new)
 		if (length(players))
 			var/mob/chosen = players[1]
 			if (chosen.client)
-				chosen.client.prefs.copy_to(spawnedMob)
+				chosen.client.prefs.active_character.copy_to(spawnedMob)
 				spawnedMob.key = chosen.key
 			players -= chosen
 		if (ishuman(spawnedMob) && ispath(humanoutfit, /datum/outfit))
