@@ -57,6 +57,7 @@
 	pixel_x = -32
 	pixel_y = -32
 	dir = EAST
+//	circuit = obj/item/circuitboard/ship_weapon/energy/laser_pd
 	safety = FALSE
 	idle_power_usage = 2500
 	active = FALSE
@@ -72,7 +73,7 @@
 	firing_sound = null
 	bang = FALSE // It's a light laser weapon, not a cannon going off
 
-	circuit = /obj/item/circuitboard/machine/laser_pd
+//	circuit = /obj/item/circuitboard/machine/laser_pd
 	var/gunning_component_type = /datum/component/overmap_gunning/laser_pd
 	var/mob/gunner = null
 	var/gun_id = 0 // Used for map linkage

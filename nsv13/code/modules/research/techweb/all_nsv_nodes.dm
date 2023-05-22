@@ -60,7 +60,7 @@
 	display_name = "Advanced Ballistics"
 	description = "More guns means better guns... Right?"
 	prereq_ids = list("ballistic_weapons")
-	design_ids = list("naval_shell", "powder_bag", "gauss_rack_upgrade", "broadside_casing", "broadside_load", "broadside_packer", "plasma_core")
+	design_ids = list("naval_shell", "powder_bag", "gauss_rack_upgrade", "broadside_casing", "broadside_load", "broadside_packer", "plasma_core", "raillies")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 5000)
 	export_price = 5000
 
@@ -69,7 +69,7 @@
 	display_name = "Macro-Ballistics"
 	description = "Asking important questions, like what if we made even bigger guns?"
 	prereq_ids = list("adv_ballistics", "adv_plasma")
-	design_ids = list("naval_shell_ap", "plasma_accelerant", "deck_gun_autorepair", "deck_gun_autoelevator")
+	design_ids = list("naval_shell_ap", "plasma_accelerant", "deck_gun_autorepair", "deck_gun_autoelevator" , "deck_gun" , "antiair" , "payload_gate" , "powder_loader", "railgun_rail", "antiair_heavy" , "deck_gun_dual" , "gauss_dispenser_circuit", "slug_cold_iron", "slug_uranium")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 7500)
 	export_price = 10000
 
@@ -78,7 +78,7 @@
 	display_name = "Automated Missile Construction"
 	description = "Machines and tools to automate missile construction."
 	prereq_ids = list("explosive_weapons")
-	design_ids = list("missilebuilder", "slowconveyor", "missilewelder", "missilescrewer", "missilewirer", "missileassembler")
+	design_ids = list("missilebuilder", "slowconveyor", "missilewelder", "missilescrewer", "missilewirer", "missileassembler", "vls_tube")
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = 2500)
 	export_price = 5000
 

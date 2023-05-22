@@ -22,7 +22,7 @@
 	var/id = null
 	fire_mode = FIRE_MODE_RAILGUN
 	var/built = FALSE //Station goal fuckery
-	//circuit =
+	circuit = /obj/item/circuitboard/ship_weapon/energy/beam/bsa
 
 //Note to mappers. If you REALLY need a north/south facing one go get a spriter to sprite it and I'll add support...
 /obj/machinery/ship_weapon/energy/beam/bsa/west

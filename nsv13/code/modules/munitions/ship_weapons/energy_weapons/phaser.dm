@@ -12,6 +12,7 @@
 	safety = FALSE //Ready to go right from the start.
 	idle_power_usage =  2500
 	var/active = FALSE
+//	Circuit = obj/item/circuitboard/ship_weapon/energy
 	charge = 0
 	charge_rate = 330000 //How quickly do we charge?
 	charge_per_shot = 660000 //How much power per shot do we have to use?
@@ -26,6 +27,7 @@
 	desc = "An extremely powerful directed energy weapon which is capable of delivering a devastating beam attack."
 	icon_state = "ion_cannon"
 	fire_mode = FIRE_MODE_BLUE_LASER
+//	circuit = obj/item/circuitboard/ship_weapon/energy/beam
 	energy_weapon_type = /datum/ship_weapon/phaser
 	charge_rate = 600000 // At power level 5, requires 3MW per tick to charge
 	charge_per_shot = 4000000 // At power level 5, requires 20MW total to fire, takes about 12 seconds to gain 1 charge

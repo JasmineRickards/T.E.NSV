@@ -399,14 +399,14 @@
 	return ..()
 
 // Laser PD
-/obj/item/circuitboard/machine/laser_pd
-	name = "point defense laser turret (circuitboard)"
-	build_path = /obj/machinery/ship_weapon/energy/laser_pd
-	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
-	req_components = list(
-		/obj/item/stock_parts/capacitor = 5,
-		/obj/item/stock_parts/cell = 5,
-		/obj/item/stack/ore/bluespace_crystal = 5)
+//obj/item/circuitboard/machine/laser_pd
+//	name = "point defense laser turret (circuitboard)"
+//	build_path = /obj/machinery/ship_weapon/energy/laser_pd
+//	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF | FREEZE_PROOF
+//	req_components = list(
+//		/obj/item/stock_parts/capacitor = 5,
+//		/obj/item/stock_parts/cell = 5,
+//		/obj/item/stack/ore/bluespace_crystal = 5)
 
 // Smelter and console
 /obj/item/circuitboard/machine/processing_unit
@@ -438,3 +438,30 @@
 		/obj/item/stock_parts/manipulator = 1,
 		/obj/item/stack/sheet/glass = 1)
 	needs_anchored = FALSE
+
+/obj/item/circuitboard/ship_weapon/energy/beam/bsa
+	name = "BSA artillery (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy/beam/bsa
+
+/obj/item/circuitboard/ship_weapon/hybrid_rail
+	name = "Railgun weapon (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/hybrid_rail
+
+/obj/item/circuitboard/ship_weapon/energy/ams
+	name = "Laser AMS (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy/ams
+
+/obj/item/circuitboard/ship_weapon/energy/laser_pd
+	name = "Laser Point defence (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy/laser_pd
+
+/obj/item/circuitboard/ship_weapon/energy
+	name = "Laser Coaxial burst weapon (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy
+
+/obj/item/circuitboard/ship_weapon/energy/beam
+	name = "Laser Phaser Beam weapon (circuitboard)"
+	build_path = /obj/machinery/ship_weapon/energy/beam
+
+
+

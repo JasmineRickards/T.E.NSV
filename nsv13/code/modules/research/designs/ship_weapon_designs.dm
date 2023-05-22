@@ -51,29 +51,36 @@
 	category = list("Computer Boards")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
-//Naval artillery
-/*
+
 /datum/design/board/naval_artillery
 	name = "Machine Design (Deck Gun Frame)"
 	desc = "Allows for the construction of a naval artillery gun frame."
 	id = "deck_gun"
 	build_type = PROTOLATHE|IMPRINTER
 	materials = list(/datum/material/titanium = 12000,/datum/material/iron = 15000, /datum/material/glass = 5000, /datum/material/copper = 5000)
-	build_path = /obj/structure/ship_weapon/mac_assembly/artillery_frame
+	build_path = /obj/structure/ship_weapon/artillery_frame
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
-*/
-/*don't need this no more
+
 /datum/design/naval_artillery_triple
 	name = "Machine Design (Triple Deck Gun Frame)"
 	desc = "Allows for the construction of a triple barreled naval cannon frame."
 	id = "deck_gun_dual"
 	materials = list(/datum/material/titanium = 30000,/datum/material/iron = 25000, /datum/material/diamond = 15000, /datum/material/copper = 35000)
-	build_path = /obj/structure/ship_weapon/mac_assembly/artillery_frame/mega
+	build_path = /obj/item/circuitboard/multibarrel_upgrade/_3
 	category = list("Advanced Munitions")
 	build_type = PROTOLATHE | AUTOLATHE
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
-*/
+
+/datum/design/board/naval_artillery_bsa
+	name = "Machine Design (BSA Cannon)"
+	desc = "Allows for the construction of a triple barreled naval cannon frame."
+	id = "deck_gun_bsa"
+	materials = list(/datum/material/titanium = 45000,/datum/material/iron = 25000, /datum/material/diamond = 15000, /datum/material/copper = 35000)
+	build_path = /obj/item/circuitboard/ship_weapon/energy/beam/bsa
+	category = list("Advanced Munitions")
+	build_type = PROTOLATHE | AUTOLATHE
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
 
 /datum/design/board/naval_artillery_comp
 	name = "Machine Design (Deck Gun Computer)"
@@ -200,3 +207,69 @@
 	build_path = /obj/item/ship_weapon/ammunition/railgun_ammo/uranium
 	category = list("Advanced Munitions")
 	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS
+
+
+/datum/design/board/laserams
+	name = "Laser AMS defence"
+	desc = "Laser weapon for missile defence."
+	id = "lasams"
+	build_type = PROTOLATHE | AUTOLATHE
+	materials = list(/datum/material/iron = 15000, /datum/material/plasma = 7500, /datum/material/uranium = 5000)
+	construction_time=10
+	build_path = /obj/item/circuitboard/ship_weapon/energy/ams
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING
+
+/datum/design/board/munitions_computer_circuit
+	name = "Computer Design (Laser PD computer)"
+	desc = "Allows for the construction of a munitions control console."
+	id = "munitions_computer_circuit"
+	build_type = PROTOLATHE|IMPRINTER
+	materials = list(/datum/material/glass = 2000, /datum/material/copper = 200, /datum/material/gold = 1000)
+	build_path = /obj/item/circuitboard/computer/laser_pd
+	category = list("Computer Boards")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING
+
+/datum/design/board/laserpd
+	name = "Laser Point defence"
+	desc = "Laser weapon for defence."
+	id = "lasams"
+	build_type = PROTOLATHE | AUTOLATHE
+	materials = list(/datum/material/iron = 15000, /datum/material/plasma = 7500, /datum/material/uranium = 5000)
+	construction_time=10
+	build_path = /obj/item/circuitboard/ship_weapon/energy/laser_pd
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING
+
+/datum/design/board/laserburst
+	name = "Laser Coaxial burst weapon"
+	desc = "Laser weapon for offence."
+	id = "lasams"
+	build_type = PROTOLATHE | AUTOLATHE
+	materials = list(/datum/material/iron = 15000, /datum/material/plasma = 7500, /datum/material/uranium = 5000)
+	construction_time=10
+	build_path = /obj/item/circuitboard/ship_weapon/energy
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING
+
+/datum/design/board/laserbeamer
+	name = "Laser Beam weapon"
+	desc = "Laser weapon for offence."
+	id = "lasbeam"
+	build_type = PROTOLATHE | AUTOLATHE
+	materials = list(/datum/material/iron = 15000, /datum/material/plasma = 7500, /datum/material/uranium = 5000, /datum/material/diamond = 2500)
+	construction_time=10
+	build_path = /obj/item/circuitboard/ship_weapon/energy/beam
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING
+
+
+/datum/design/board/railgunturret
+	name = "Machine Design (Railgun)"
+	desc = "Allows you to construct a machine that lets you fire rail sabots."
+	id = "raillies"
+	build_type = PROTOLATHE|IMPRINTER
+	materials = list(/datum/material/glass = 20000, /datum/material/copper = 20000, /datum/material/gold = 5000)
+	build_path = /obj/item/circuitboard/ship_weapon/hybrid_rail
+	category = list("Advanced Munitions")
+	departmental_flags = DEPARTMENTAL_FLAG_MUNITIONS|DEPARTMENTAL_FLAG_ENGINEERING

@@ -6,6 +6,7 @@
 	fire_mode = FIRE_MODE_AMS_LASER //Shot automatically
 	ammo_type = /obj/item/ship_weapon/ammunition/railgun_ammo
 	bound_width = 64
+	circuit = /obj/item/circuitboard/ship_weapon/energy/ams
 	pixel_x = -32
 	pixel_y = -32
 	// maintainable = TRUE //AMS will require some form of maintenance to operate
